@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://blr5df61pvqyf"
+path="res://.godot/imported/Lancer.aseprite-45e14a5f7710a4c490c26564691d7b37.res"
+
+[deps]
+
+source_file="res://assets/Characters/Aseprite file/Lancer.aseprite"
+dest_files=["res://.godot/imported/Lancer.aseprite-45e14a5f7710a4c490c26564691d7b37.res"]
+
+[params]
+

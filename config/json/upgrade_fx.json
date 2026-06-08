@@ -1,0 +1,54 @@
+[
+  {
+    "rarity": "white",
+    "name_cn": "普通",
+    "chance": 0,
+    "color_hex": "#d8d8d8",
+    "overlay": 0.76,
+    "edge_glow": 0,
+    "card_glow": 0.12,
+    "shimmer": 0,
+    "pulse": 0,
+    "spark_count": 0,
+    "rays": 0
+  },
+  {
+    "rarity": "blue",
+    "name_cn": "稀有",
+    "chance": 0.4,
+    "color_hex": "#58a8ff",
+    "overlay": 0.8,
+    "edge_glow": 0.28,
+    "card_glow": 0.32,
+    "shimmer": 1,
+    "pulse": 0,
+    "spark_count": 6,
+    "rays": 0
+  },
+  {
+    "rarity": "purple",
+    "name_cn": "史诗",
+    "chance": 0.4,
+    "color_hex": "#b070ff",
+    "overlay": 0.84,
+    "edge_glow": 0.48,
+    "card_glow": 0.5,
+    "shimmer": 1,
+    "pulse": 1,
+    "spark_count": 12,
+    "rays": 0
+  },
+  {
+    "rarity": "orange",
+    "name_cn": "传奇",
+    "chance": 0.2,
+    "color_hex": "#ff9830",
+    "overlay": 0.88,
+    "edge_glow": 0.78,
+    "card_glow": 0.85,
+    "shimmer": 1,
+    "pulse": 1,
+    "spark_count": 22,
+    "rays": 1
+  }
+]

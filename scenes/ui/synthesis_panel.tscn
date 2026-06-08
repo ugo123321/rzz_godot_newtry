@@ -1,0 +1,285 @@
+[gd_scene format=3 uid="uid://bxooig13x5rd4"]
+
+[ext_resource type="Script" path="res://scripts/ui/synthesis_panel.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dtkajjsg4elof" path="res://assets/ui/equipment_synthesis/full_bg.png" id="2_full_bg"]
+[ext_resource type="Texture2D" uid="uid://fgfncosu22k4" path="res://assets/ui/equipment_synthesis/small_bg.png" id="3_small_bg"]
+[ext_resource type="Texture2D" uid="uid://dywmj410bf5d" path="res://assets/ui/equipment_synthesis/decoration01.png" id="4_deco1"]
+[ext_resource type="Texture2D" uid="uid://c1jgnqk74e184" path="res://assets/ui/equipment_synthesis/equipment_slot02.png" id="5_slot"]
+[ext_resource type="Texture2D" uid="uid://crexxfa1jyvki" path="res://assets/ui/equipment_synthesis/decoration02.png" id="6_deco2"]
+[ext_resource type="Texture2D" uid="uid://bossausv18w87" path="res://assets/ui/equipment_synthesis/Synthesis _button_ok.png" id="7_synth_btn"]
+[ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="8_spring"]
+[ext_resource type="Texture2D" uid="uid://78ospbgqn2wa" path="res://assets/ui/equipment_synthesis/buttom_bar.png" id="9_bottom_bar"]
+[ext_resource type="Texture2D" uid="uid://bsspdds8nwdgr" path="res://assets/ui/equipment_synthesis/back_button.png" id="10_back"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
+bg_color = Color(0.16, 0.1, 0.03, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.819608, 0.4, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="SynthesisPanel" type="Control"]
+texture_filter = 1
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Bg" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_full_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="HeaderBoard" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 135.0
+grow_horizontal = 2
+mouse_filter = 2
+texture = ExtResource("3_small_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Title" type="Label" parent="HeaderBoard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 38
+text = "合成"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Decoration01" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 43.0
+offset_top = 150.0
+offset_right = 677.0
+offset_bottom = 174.0
+mouse_filter = 2
+texture = ExtResource("4_deco1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TargetSlot" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 305.0
+offset_top = 195.0
+offset_right = 415.0
+offset_bottom = 305.0
+texture_normal = ExtResource("5_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="TargetSlot"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Decoration02" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 345.0
+offset_right = 671.0
+offset_bottom = 354.0
+mouse_filter = 2
+texture = ExtResource("6_deco2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MaterialRow" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 165.0
+offset_top = 400.0
+offset_right = 555.0
+offset_bottom = 510.0
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="MaterialSlot0" type="TextureButton" parent="MaterialRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 110)
+layout_mode = 2
+texture_normal = ExtResource("5_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="MaterialRow/MaterialSlot0"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="MaterialSlot1" type="TextureButton" parent="MaterialRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 110)
+layout_mode = 2
+texture_normal = ExtResource("5_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="MaterialRow/MaterialSlot1"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="MaterialSlot2" type="TextureButton" parent="MaterialRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 110)
+layout_mode = 2
+texture_normal = ExtResource("5_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="MaterialRow/MaterialSlot2"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="ComposeButton" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 253.0
+offset_top = 545.0
+offset_right = 466.0
+offset_bottom = 625.0
+texture_normal = ExtResource("7_synth_btn")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="BagScroll" type="ScrollContainer" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 648.0
+offset_right = 696.0
+offset_bottom = 1158.0
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 3
+script = ExtResource("8_spring")
+
+[node name="BagGrid" type="GridContainer" parent="BagScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 5
+
+[node name="BottomBar" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -112.0
+grow_horizontal = 2
+grow_vertical = 0
+texture = ExtResource("9_bottom_bar")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="BackButton" type="TextureButton" parent="BottomBar"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 81.0
+offset_bottom = 96.0
+texture_normal = ExtResource("10_back")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="FlyLayer" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Toast" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -186.0
+offset_top = 150.0
+offset_right = 186.0
+offset_bottom = 192.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.956863, 0.745098, 1)
+theme_override_colors/font_outline_color = Color(0.352941, 0.2, 0.062745, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_toast")
+text = "合成成功"
+horizontal_alignment = 1
+vertical_alignment = 1

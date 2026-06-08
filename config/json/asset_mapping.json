@@ -1,0 +1,30 @@
+[
+  {
+    "asset_key": "terrain_bg",
+    "category": "terrain",
+    "folder_path": "Terrain",
+    "file_pattern": "*.png",
+    "notes": "战斗背景/地形"
+  },
+  {
+    "asset_key": "ui_hud",
+    "category": "ui",
+    "folder_path": "ui",
+    "file_pattern": "*.png",
+    "notes": "HUD界面元素"
+  },
+  {
+    "asset_key": "effect_magic",
+    "category": "effect",
+    "folder_path": "effects",
+    "file_pattern": "*.png",
+    "notes": "魔法特效序列帧"
+  },
+  {
+    "asset_key": "character_base",
+    "category": "character",
+    "folder_path": "Characters/Characters(100x100)",
+    "file_pattern": "*/*/*.png",
+    "notes": "角色动画精灵表"
+  }
+]

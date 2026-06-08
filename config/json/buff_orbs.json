@@ -1,0 +1,17 @@
+{
+  "base_types": [
+    "attack",
+    "ki",
+    "combo"
+  ],
+  "radius": 13,
+  "max_per_type": 4,
+  "spawn_chance": {
+    "attack": 0.55,
+    "ki": 0.45,
+    "combo": 0.42,
+    "ice": 0.28
+  },
+  "extra_spawn_chance": 0.48,
+  "min_ki_per_stage": 2
+}

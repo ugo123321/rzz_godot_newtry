@@ -1,0 +1,639 @@
+[gd_scene format=3 uid="uid://cnq6panxdi1xf"]
+
+[ext_resource type="Script" uid="uid://d01uyh7ncexiv" path="res://scripts/ui/equipment_panel.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://ck5mw8hs28eom" path="res://assets/ui/equipment/full_bg.png" id="2_full_bg"]
+[ext_resource type="Texture2D" uid="uid://delski8cut3gg" path="res://assets/ui/equipment/equipment_slot01.png" id="3_equip_slot"]
+[ext_resource type="Texture2D" uid="uid://dqomdk6d5w47n" path="res://assets/ui/equipment/power_icon.png" id="4_power"]
+[ext_resource type="Texture2D" uid="uid://bpoplkfh8yv5q" path="res://assets/ui/equipment/detail_icon.png" id="5_detail"]
+[ext_resource type="Texture2D" uid="uid://d2jqm4ulnf41r" path="res://assets/ui/equipment/information_bg.png" id="6_info_bg"]
+[ext_resource type="Texture2D" uid="uid://comndldfww2yu" path="res://assets/ui/equipment/sword_icon.png" id="7_sword"]
+[ext_resource type="Texture2D" uid="uid://ctppvfqas86up" path="res://assets/ui/equipment/heart_icon.png" id="8_heart"]
+[ext_resource type="Texture2D" uid="uid://bq5hghuh5lpvf" path="res://assets/ui/equipment/decoration01.png" id="9_divider"]
+[ext_resource type="Texture2D" uid="uid://b3bpquhafp0e5" path="res://assets/ui/equipment/Synthesis _button.png" id="10_synth_btn"]
+[ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="12_spring_scroll"]
+[ext_resource type="PackedScene" uid="uid://cum4btq370jaj" path="res://scenes/ui/bag_slot.tscn" id="13_bag_slot"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_hpsfa"]
+load_path = "res://.godot/imported/small_bg.png-e3d49fedff66e0cd06d87351020374cd.ctex"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_detail"]
+bg_color = Color(0.165, 0.141, 0.125, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.784314, 0.690196, 0.501961, 1)
+
+[node name="EquipmentPanel" type="Control" unique_id=1769657713]
+texture_filter = 1
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+preview_sprite_scale = 5.0
+
+[node name="Frame" type="Control" parent="." unique_id=339340348]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Bg" type="TextureRect" parent="Frame" unique_id=916852482]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_full_bg")
+expand_mode = 3
+stretch_mode = 6
+
+[node name="TextureRect" type="TextureRect" parent="Frame" unique_id=1748671009]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -421.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 0
+texture = SubResource("CompressedTexture2D_hpsfa")
+expand_mode = 1
+
+[node name="RootMargin" type="MarginContainer" parent="Frame" unique_id=890793279]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 88.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="BaseRoot" type="VBoxContainer" parent="Frame/RootMargin" unique_id=448167870]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="UpperArea" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1010051058]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 10
+
+[node name="CharacterRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea" unique_id=858623758]
+layout_mode = 2
+theme_override_constants/separation = 60
+alignment = 1
+
+[node name="LeftSlots" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=2050259587]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="SlotWeapon" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots" unique_id=634181386]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+texture_normal = ExtResource("3_equip_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots/SlotWeapon" unique_id=2064202253]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="SlotArmor" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots" unique_id=1006209893]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+texture_normal = ExtResource("3_equip_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots/SlotArmor" unique_id=1206333992]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="SlotShoes" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots" unique_id=542862201]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+texture_normal = ExtResource("3_equip_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots/SlotShoes" unique_id=1327588292]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="PreviewWrap" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=1184187636]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 2
+
+[node name="PreviewContainer" type="SubViewportContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap" unique_id=673387873]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -139.0
+offset_top = -139.0
+offset_right = 135.0
+offset_bottom = 145.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
+
+[node name="PreviewViewport" type="SubViewport" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap/PreviewContainer" unique_id=1922660392]
+unique_name_in_owner = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(274, 284)
+render_target_update_mode = 4
+
+[node name="PreviewRoot" type="Node2D" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap/PreviewContainer/PreviewViewport" unique_id=676659860]
+
+[node name="PreviewSprite" type="AnimatedSprite2D" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap/PreviewContainer/PreviewViewport/PreviewRoot" unique_id=223466037]
+unique_name_in_owner = true
+position = Vector2(135, 145)
+
+[node name="RightSlots" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=454337851]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="SlotHelmet" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots" unique_id=47639150]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+texture_normal = ExtResource("3_equip_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots/SlotHelmet" unique_id=876051145]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="SlotNecklace" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots" unique_id=1418437364]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+texture_normal = ExtResource("3_equip_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots/SlotNecklace" unique_id=1586186504]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="SlotRing" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots" unique_id=783815904]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+texture_normal = ExtResource("3_equip_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots/SlotRing" unique_id=864418871]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="MarginContainer" type="MarginContainer" parent="Frame/RootMargin/BaseRoot/UpperArea" unique_id=188857679]
+layout_mode = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_right = 50
+
+[node name="StatsBlock" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer" unique_id=2082818038]
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="PowerRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock" unique_id=1330220908]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="PowerIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow" unique_id=909644195]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_power")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="BattlePowerLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow" unique_id=997143457]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.909804, 0.470588, 0.12549, 1)
+theme_override_colors/font_outline_color = Color(0.352941, 0.2, 0.062745, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 32
+text = "0"
+horizontal_alignment = 1
+
+[node name="DetailBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow" unique_id=185588096]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+texture_normal = ExtResource("5_detail")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="SubStatsRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock" unique_id=1329001179]
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="AttackBox" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow" unique_id=763274443]
+custom_minimum_size = Vector2(148, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Bg" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox" unique_id=1148783339]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 22.0
+offset_top = -22.0
+offset_right = -33.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_info_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox" unique_id=1464853691]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -17.0
+offset_right = -34.0
+offset_bottom = 6.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row" unique_id=1011480628]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("7_sword")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="AttackLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row" unique_id=5866879]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 22
+text = "0"
+vertical_alignment = 1
+
+[node name="HpBox" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow" unique_id=390963203]
+custom_minimum_size = Vector2(148, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Bg" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox" unique_id=821645153]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 22.0
+offset_top = -22.0
+offset_right = -33.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_info_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox" unique_id=1609176204]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row" unique_id=314645903]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("8_heart")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="HpLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row" unique_id=7526211]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 22
+text = "0"
+vertical_alignment = 1
+
+[node name="DividerRow" type="CenterContainer" parent="Frame/RootMargin/BaseRoot" unique_id=531036220]
+layout_mode = 2
+
+[node name="Divider" type="TextureRect" parent="Frame/RootMargin/BaseRoot/DividerRow" unique_id=1093558089]
+custom_minimum_size = Vector2(320, 24)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("9_divider")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="SynthRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1651621832]
+layout_mode = 2
+alignment = 2
+
+[node name="SynthBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=158088466]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+texture_normal = ExtResource("10_synth_btn")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="BagScroll" type="ScrollContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1704439205]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 3
+script = ExtResource("12_spring_scroll")
+
+[node name="InventoryGrid" type="GridContainer" parent="Frame/RootMargin/BaseRoot/BagScroll" unique_id=1392245413]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 5
+
+[node name="BagSlot00" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=638964466 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot01" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1097343133 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot02" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=162191553 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot03" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=772079420 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot04" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=750889729 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot05" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=491495044 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot06" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1673276895 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot07" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=853934668 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot08" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1842724198 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot09" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=549610650 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot10" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1492394767 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot11" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=836869822 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot12" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=232205730 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot13" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=594768640 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot14" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=250167505 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot15" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=2005779038 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot16" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=362808599 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot17" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1524015401 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot18" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=807435611 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="BagSlot19" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=116955194 instance=ExtResource("13_bag_slot")]
+layout_mode = 2
+
+[node name="InventoryEmptyLabel" type="Label" parent="Frame/RootMargin/BaseRoot" unique_id=219854697]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.415686, 0.352941, 0.282353, 1)
+text = "暂无装备，击败怪物可掉落装备。"
+horizontal_alignment = 1
+
+[node name="DetailPopup" type="PopupPanel" parent="." unique_id=1781527274]
+unique_name_in_owner = true
+size = Vector2i(340, 360)
+theme_override_styles/panel = SubResource("StyleBoxFlat_detail")
+
+[node name="Margin" type="MarginContainer" parent="DetailPopup" unique_id=493441903]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 338.0
+offset_bottom = 358.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="DetailPopup/Margin" unique_id=1078849933]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Head" type="HBoxContainer" parent="DetailPopup/Margin/VBox" unique_id=455210285]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DetailIcon" type="TextureRect" parent="DetailPopup/Margin/VBox/Head" unique_id=440485648]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(46, 46)
+layout_mode = 2
+expand_mode = 5
+stretch_mode = 5
+
+[node name="HeadText" type="VBoxContainer" parent="DetailPopup/Margin/VBox/Head" unique_id=207732079]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DetailNameLabel" type="Label" parent="DetailPopup/Margin/VBox/Head/HeadText" unique_id=1574923188]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DetailLevelLabel" type="Label" parent="DetailPopup/Margin/VBox/Head/HeadText" unique_id=211919218]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DetailSkillText" type="RichTextLabel" parent="DetailPopup/Margin/VBox" unique_id=1028065338]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 175)
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+
+[node name="DetailTipLabel" type="Label" parent="DetailPopup/Margin/VBox" unique_id=170426239]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ActionRow" type="HBoxContainer" parent="DetailPopup/Margin/VBox" unique_id=1370520975]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="BtnEquip" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=661109105]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "穿戴"
+
+[node name="BtnUnequip" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=1290576736]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "卸下"
+
+[node name="BtnUpgrade" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=867442681]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "升级"
+
+[node name="DetailsPopup" type="AcceptDialog" parent="." unique_id=1342962880]
+unique_name_in_owner = true
+title = "主角详细属性"
+size = Vector2i(320, 300)
+
+[node name="DetailsLabel" type="Label" parent="DetailsPopup" unique_id=1005835323]
+unique_name_in_owner = true
+offset_right = 300.0
+offset_bottom = 260.0
+autowrap_mode = 3
+
+[connection signal="pressed" from="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow/DetailBtn" to="." method="_show_attr_popup"]
+[connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SynthBtn" to="." method="_on_synthesis_pressed"]
+[connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnEquip" to="." method="_on_detail_equip"]
+[connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnUnequip" to="." method="_on_detail_unequip"]
+[connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnUpgrade" to="." method="_on_detail_upgrade"]

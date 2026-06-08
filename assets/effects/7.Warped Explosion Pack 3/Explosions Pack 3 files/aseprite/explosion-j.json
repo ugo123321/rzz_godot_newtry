@@ -1,0 +1,147 @@
+{
+ "frames": [
+  {
+   "filename": "explosion-j 0.ase",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 39
+   },
+   "duration": 70
+  },
+  {
+   "filename": "explosion-j 1.ase",
+   "frame": {
+    "x": 16,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 39
+   },
+   "duration": 70
+  },
+  {
+   "filename": "explosion-j 2.ase",
+   "frame": {
+    "x": 32,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 39
+   },
+   "duration": 70
+  },
+  {
+   "filename": "explosion-j 3.ase",
+   "frame": {
+    "x": 48,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 39
+   },
+   "duration": 70
+  },
+  {
+   "filename": "explosion-j 4.ase",
+   "frame": {
+    "x": 64,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 39
+   },
+   "duration": 70
+  },
+  {
+   "filename": "explosion-j 5.ase",
+   "frame": {
+    "x": 80,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 16,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 16,
+    "h": 39
+   },
+   "duration": 70
+  }
+ ],
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.3.12-x64",
+  "image": "../spritesheets/explosion-j.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 96,
+   "h": 39
+  },
+  "scale": "1"
+ }
+}

@@ -1,0 +1,367 @@
+{
+  "frames": [
+    {
+      "filename": "flame1.png",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame10.png",
+      "frame": {
+        "x": 47,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame11.png",
+      "frame": {
+        "x": 94,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame12.png",
+      "frame": {
+        "x": 141,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame13.png",
+      "frame": {
+        "x": 188,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame14.png",
+      "frame": {
+        "x": 235,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame15.png",
+      "frame": {
+        "x": 282,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame16.png",
+      "frame": {
+        "x": 329,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame2.png",
+      "frame": {
+        "x": 376,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame3.png",
+      "frame": {
+        "x": 423,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame4.png",
+      "frame": {
+        "x": 470,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame5.png",
+      "frame": {
+        "x": 517,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame6.png",
+      "frame": {
+        "x": 564,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame7.png",
+      "frame": {
+        "x": 611,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame8.png",
+      "frame": {
+        "x": 658,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    },
+    {
+      "filename": "flame9.png",
+      "frame": {
+        "x": 705,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 47,
+        "h": 75
+      },
+      "sourceSize": {
+        "w": 47,
+        "h": 75
+      },
+      "duration": 70
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "version": "1.3.12-x64",
+    "image": "../spritesheets/flame-loop.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 752,
+      "h": 75
+    },
+    "scale": "1"
+  }
+}

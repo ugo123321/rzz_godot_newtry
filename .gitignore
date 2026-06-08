@@ -1,0 +1,25 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Export logs (keep build/web for Vercel)
+build/export*.txt
+build/export_pack_log.txt
+
+# OS / editor junk
+.DS_Store
+._*
+Thumbs.db
+*.swp
+*~
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Credentials
+.godot/export_credentials.cfg
+
+# Cursor migration backups (local only; paths can exceed Windows MAX_PATH)
+tools/cursor-migration-backup-*/

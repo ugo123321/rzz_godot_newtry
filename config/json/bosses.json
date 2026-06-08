@@ -1,0 +1,37 @@
+{
+  "centipede": {
+    "name": "千足虫",
+    "warning_time": 3,
+    "segment_hp": 320,
+    "hp_scale": 3.5,
+    "segment_def": 3,
+    "segment_radius": 23,
+    "crawl_speed": 240,
+    "bullet_interval": 0.38,
+    "bullets_per_shot": 20,
+    "bullet_damage": 24,
+    "bullet_speed": 130,
+    "defeat_exp": 140
+  },
+  "lancer_knight": {
+    "name": "冲锋骑士",
+    "warning_time": 3,
+    "hp": 1600,
+    "def": 8,
+    "hitbox_radius": 14,
+    "move_speed": 48,
+    "super_speed_mult": 2.0,
+    "skill_interval": 5.0,
+    "skill_windup": 1.5,
+    "super_speed_duration": 5.0,
+    "specter_count": 1,
+    "specter_alpha": 0.52,
+    "specter_tint_hex": "#9a5acc",
+    "specter_attack_mult": 1.0,
+    "contact_damage": 18,
+    "contact_interval": 0.8,
+    "defeat_exp": 140,
+    "character_folder": "Lancer",
+    "sprite_prefix": "Lancer"
+  }
+}

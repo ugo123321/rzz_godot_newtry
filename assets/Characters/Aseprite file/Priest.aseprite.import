@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://dsxbnc5vcmgfa"
+path="res://.godot/imported/Priest.aseprite-66921e27f2b51198d45251ef1fffa9c3.res"
+
+[deps]
+
+source_file="res://assets/Characters/Aseprite file/Priest.aseprite"
+dest_files=["res://.godot/imported/Priest.aseprite-66921e27f2b51198d45251ef1fffa9c3.res"]
+
+[params]
+

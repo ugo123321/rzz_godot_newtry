@@ -1,0 +1,41 @@
+{
+  "frames": [
+    {
+      "filename": "enemy_shotgun_arrow0.png",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 32
+      },
+      "duration": 83
+    }
+  ],
+  "meta": {
+    "image": "../spritesheets/enemy_shotgun_arrow.png",
+    "size": {
+      "w": 32,
+      "h": 32
+    },
+    "frameTags": [
+      {
+        "name": "preview",
+        "from": 0,
+        "to": 0,
+        "direction": "forward"
+      }
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+ "frames": [
+  {
+   "filename": "Air-Slash 0.ase",
+   "frame": { "x": 0, "y": 0, "w": 160, "h": 112 },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 112 },
+   "sourceSize": { "w": 160, "h": 112 },
+   "duration": 70
+  },
+  {
+   "filename": "Air-Slash 1.ase",
+   "frame": { "x": 160, "y": 0, "w": 160, "h": 112 },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 112 },
+   "sourceSize": { "w": 160, "h": 112 },
+   "duration": 70
+  },
+  {
+   "filename": "Air-Slash 2.ase",
+   "frame": { "x": 320, "y": 0, "w": 160, "h": 112 },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 112 },
+   "sourceSize": { "w": 160, "h": 112 },
+   "duration": 70
+  },
+  {
+   "filename": "Air-Slash 3.ase",
+   "frame": { "x": 480, "y": 0, "w": 160, "h": 112 },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 112 },
+   "sourceSize": { "w": 160, "h": 112 },
+   "duration": 70
+  },
+  {
+   "filename": "Air-Slash 4.ase",
+   "frame": { "x": 640, "y": 0, "w": 160, "h": 112 },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": { "x": 0, "y": 0, "w": 160, "h": 112 },
+   "sourceSize": { "w": 160, "h": 112 },
+   "duration": 70
+  }
+ ],
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.3.12-x64",
+  "image": "../Spritesheets/Air-Slash.png",
+  "format": "RGBA8888",
+  "size": { "w": 800, "h": 112 },
+  "scale": "1"
+ }
+}

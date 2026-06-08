@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://cum4btq370jaj"]
+
+[ext_resource type="Texture2D" uid="uid://c424ehk33sjuy" path="res://assets/ui/equipment/equipment_slot02.png" id="1_inv_slot"]
+
+[node name="BagSlot" type="TextureButton" unique_id=1470510064]
+custom_minimum_size = Vector2(130, 130)
+texture_normal = ExtResource("1_inv_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="." unique_id=52047435]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
