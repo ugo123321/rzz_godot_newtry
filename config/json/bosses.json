@@ -11,7 +11,9 @@
     "bullets_per_shot": 20,
     "bullet_damage": 24,
     "bullet_speed": 130,
-    "defeat_exp": 140
+    "defeat_exp": 140,
+    "elem_resist_poison": 0.5,
+    "vuln_fire": 0.3
   },
   "lancer_knight": {
     "name": "冲锋骑士",
@@ -32,6 +34,8 @@
     "contact_interval": 0.8,
     "defeat_exp": 140,
     "character_folder": "Lancer",
-    "sprite_prefix": "Lancer"
+    "sprite_prefix": "Lancer",
+    "elem_resist_fire": 0.3,
+    "vuln_thunder": 0.4
   }
 }

@@ -263,5 +263,30 @@
     "key": "monster_speed_mul",
     "value": 1.15,
     "description": "怪物移速全局倍率"
+  },
+  {
+    "key": "damage_formula_version",
+    "value": 2,
+    "description": "伤害公式版本(1=旧:raw-def, 2=新:分层乘区)"
+  },
+  {
+    "key": "def_softening_K_base",
+    "value": 100,
+    "description": "新公式防御软化系数基础值(K_base, K=base+per_stage*stage_idx)"
+  },
+  {
+    "key": "def_softening_K_per_stage",
+    "value": 20,
+    "description": "新公式防御软化系数每关增量"
+  },
+  {
+    "key": "crit_soft_cap_threshold",
+    "value": 0.6,
+    "description": "暴击率软上限阈值(超过此值后递减逼近95%)"
+  },
+  {
+    "key": "dot_tick_floor_seconds",
+    "value": 0.25,
+    "description": "DoT 每目标最小 tick 间隔(防全屏燃烧爆炸)"
   }
 ]

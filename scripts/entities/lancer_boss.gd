@@ -35,6 +35,17 @@ var vulnerable_mark := false
 var path_target_hit_count := 0
 var alive := true
 
+# v2 元素抗性/易伤(从 bosses.json 加载)
+var elem_resist_fire := 0.0
+var elem_resist_ice := 0.0
+var elem_resist_thunder := 0.0
+var elem_resist_poison := 0.0
+var vuln_physical := 0.0
+var vuln_fire := 0.0
+var vuln_ice := 0.0
+var vuln_thunder := 0.0
+var vuln_poison := 0.0
+
 var _warning_alpha := 0.0
 var _speed_fx_t := 0.0
 var _specter_archers: Array = []
@@ -85,6 +96,16 @@ func setup(battle_node, p_stage_index: int) -> void:
 	max_hp = int(round(float(cfg.get("hp", 3200)) * scale.hp))
 	hp = max_hp
 	defense = maxi(1, int(round(float(cfg.get("def", 8)) * scale.def)))
+	# v2 元素抗性/易伤(默认 0 = 中立)
+	elem_resist_fire = float(cfg.get("elem_resist_fire", 0.0))
+	elem_resist_ice = float(cfg.get("elem_resist_ice", 0.0))
+	elem_resist_thunder = float(cfg.get("elem_resist_thunder", 0.0))
+	elem_resist_poison = float(cfg.get("elem_resist_poison", 0.0))
+	vuln_physical = float(cfg.get("vuln_physical", 0.0))
+	vuln_fire = float(cfg.get("vuln_fire", 0.0))
+	vuln_ice = float(cfg.get("vuln_ice", 0.0))
+	vuln_thunder = float(cfg.get("vuln_thunder", 0.0))
+	vuln_poison = float(cfg.get("vuln_poison", 0.0))
 	_apply_sprite()
 	global_position = _pick_spawn_position()
 	sprite.play(SpriteHelper.ANIM_IDLE)
@@ -133,16 +154,45 @@ func take_damage(raw_damage: int, from_pos: Vector2) -> Dictionary:
 	return apply_damage(raw_damage, from_pos)
 
 
+# 新路径：透传到 apply_damage_info
+func take_damage_info(info: DamageInfo, from_pos: Vector2) -> Dictionary:
+	return apply_damage_info(info, from_pos)
+
+
 func apply_burn_dot(_duration: float, _dps: int) -> void:
 	pass
 
 
 func apply_damage(raw_damage: int, _from_pos: Vector2) -> Dictionary:
+	return _resolve_apply_damage(DamageInfo.legacy(raw_damage), _from_pos)
+
+
+# 新路径：接收 DamageInfo (供 v2 emitter 用)
+func apply_damage_info(info: DamageInfo, _from_pos: Vector2) -> Dictionary:
+	return _resolve_apply_damage(info, _from_pos)
+
+
+func _resolve_apply_damage(info: DamageInfo, _from_pos: Vector2) -> Dictionary:
 	if defeated or phase != Phase.ACTIVE:
 		return {"damage": 0, "is_crit": false}
-	var mult := 2.0 if vulnerable_mark else 1.0
-	vulnerable_mark = false
-	var actual := maxi(1, int(round((float(raw_damage) - float(defense)) * mult)))
+	var target_stats := {
+		"defense": defense,
+		"vulnerable_mark": vulnerable_mark,
+		"vuln_physical": vuln_physical,
+		"vuln_fire": vuln_fire,
+		"vuln_ice": vuln_ice,
+		"vuln_thunder": vuln_thunder,
+		"vuln_poison": vuln_poison,
+		"elem_resist_fire": elem_resist_fire,
+		"elem_resist_ice": elem_resist_ice,
+		"elem_resist_thunder": elem_resist_thunder,
+		"elem_resist_poison": elem_resist_poison,
+		"stage_index": stage_index,
+	}
+	var res: Dictionary = DamageResolver.compute_damage(target_stats, info)
+	if bool(res.get("vuln_consumed", false)):
+		vulnerable_mark = false
+	var actual := int(res.get("damage", 0))
 	hp = maxi(0, hp - actual)
 	facing = 1.0 if _from_pos.x >= global_position.x else -1.0
 	sprite.flip_h = facing < 0
@@ -150,7 +200,7 @@ func apply_damage(raw_damage: int, _from_pos: Vector2) -> Dictionary:
 		_play_anim(SpriteHelper.ANIM_HURT, true)
 	if hp <= 0:
 		_defeat()
-	return {"damage": actual, "is_crit": false}
+	return {"damage": actual, "is_crit": bool(res.get("is_crit", false))}
 
 
 func die() -> void:

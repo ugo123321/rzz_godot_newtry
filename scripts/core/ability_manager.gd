@@ -39,6 +39,8 @@ var hit_fx: Array = []
 var water_tornados: Array = []
 var black_holes: Array = []
 var whirls: Array = []
+# Phase 6 sr=25 trail_elem_field：场域格列表
+var v6_trail_fields: Array = []
 var auto_bullet_cooldown := 0.0
 var black_hole_spawned_this_resolve := false
 var combo_fireball_milestone := 0
@@ -170,6 +172,7 @@ func reset() -> void:
 	water_tornados.clear()
 	black_holes.clear()
 	whirls.clear()
+	v6_trail_fields.clear()
 	auto_bullet_cooldown = 0.0
 	black_hole_spawned_this_resolve = false
 	combo_fireball_milestone = 0
@@ -210,6 +213,7 @@ func update(delta: float, player: BattlePlayer, monsters: Array) -> void:
 	_update_water_tornados(delta, player, monsters)
 	_update_black_holes(delta, player, monsters)
 	_update_whirls(delta, player, monsters)
+	_update_v6_trail_fields(delta, player, monsters)
 
 
 func on_combo_hit(combo: float, hit_pos: Vector2, seg_ang: float, player: BattlePlayer) -> void:
@@ -246,6 +250,9 @@ func on_combo_hit(combo: float, hit_pos: Vector2, seg_ang: float, player: Battle
 		while player.whirl_charge >= 8:
 			player.whirl_charge -= 8
 			_spawn_whirl(hit_pos, player)
+
+	# Phase 6 sr=20 combo_milestone_spell：5 张 v6 combo_* 卡按 trigger_value 触发
+	SpecialRuleDispatcher.on_combo_milestone(player, self, combo_floor, hit_pos, seg_ang)
 
 
 func _find_nearest_monster(from_pos: Vector2, monsters: Array):
@@ -287,6 +294,10 @@ func _spawn_auto_bullet_volley(player: BattlePlayer, monsters: Array) -> void:
 		if count > 1:
 			ang = base_ang + (float(i) - (count - 1) * 0.5) * AUTO_BULLET_FAN_SPREAD
 		_spawn_bullet_from_angle(player, ang, dmg, is_spirit, 1.0)
+	# Phase 3 sr=17 bullet_side：dispatcher 返回斜射额外角度
+	var extra_angles: Array = SpecialRuleDispatcher.collect_extra_bullet_angles(player, base_ang)
+	for ang2 in extra_angles:
+		_spawn_bullet_from_angle(player, float(ang2), dmg, is_spirit, 1.0)
 	_try_spawn_laser_blast(player, monsters)
 
 
@@ -429,33 +440,53 @@ func _auto_projectile_should_remove(s: Dictionary, player: BattlePlayer, out_of_
 
 
 func try_abyss_explosion(player: BattlePlayer, path: Array) -> void:
-	var lv := player.get_upgrade_level("abyss_explosion")
-	if lv <= 0 or path.size() < 5:
+	if path.size() < 5:
 		return
 	var loops := MathUtils.path_extract_all_closed_loops(path)
 	if loops.is_empty():
 		return
-	var def := GameConfig.get_upgrade("abyss_explosion")
-	var dmg_mul := pow(float(def.get("apply_value", 1.2)), float(lv))
 	var anim_life := EffectHelperScript.one_shot_anim_duration(_explosion_frames)
 	if anim_life <= 0.0:
 		anim_life = 0.55
-	for loop in loops:
-		var center := MathUtils.polygon_centroid(loop)
-		var radius := MathUtils.path_loop_radius(loop, center)
-		var explosion := _with_upgrade_fx_layer({
+	# v5 abyss_explosion 卡（v6 失活）
+	var v5_lv := player.get_upgrade_level("abyss_explosion")
+	if v5_lv > 0:
+		var def := GameConfig.get_upgrade("abyss_explosion")
+		var dmg_mul := pow(float(def.get("apply_value", 1.2)), float(v5_lv))
+		for loop in loops:
+			var center := MathUtils.polygon_centroid(loop)
+			var radius := MathUtils.path_loop_radius(loop, center)
+			var explosion := _with_upgrade_fx_layer({
+				"kind": "abyss_explosion",
+				"pos": center,
+				"radius": radius,
+				"life": anim_life,
+				"max_life": anim_life,
+				"anim_t": 0.0,
+				"dmg_mul": 1 * dmg_mul,
+				"hit": {},
+			}, "abyss_explosion")
+			explosion["damage_applied"] = false
+			abyss_explosions.append(explosion)
+			_skill_burst(center, 9.0, 0.2, Color("#ff6020"), 24)
+	# Phase 6 sr=27 trail_loop_explode：v6 卡按 weapon_mult 爆炸
+	var v6_explosions: Array = SpecialRuleDispatcher.on_loop_explode(player, self, loops)
+	for ex in v6_explosions:
+		var damage: int = player.get_ability_damage(float(ex.weapon_mult))
+		var explosion2 := _with_upgrade_fx_layer({
 			"kind": "abyss_explosion",
-			"pos": center,
-			"radius": radius,
+			"pos": ex.center,
+			"radius": float(ex.radius),
 			"life": anim_life,
 			"max_life": anim_life,
 			"anim_t": 0.0,
-			"dmg_mul": 1 * dmg_mul,
+			"dmg_mul": 1.0,
+			"damage": damage,
 			"hit": {},
-		}, "abyss_explosion")
-		explosion["damage_applied"] = false
-		abyss_explosions.append(explosion)
-		_skill_burst(center, 9.0, 0.2, Color("#ff6020"), 24)
+		}, "trail_loop_explode")
+		explosion2["damage_applied"] = false
+		abyss_explosions.append(explosion2)
+		_skill_burst(ex.center, 8.0, 0.18, Color("#ff8030"), 20)
 
 
 func _update_auto_bullets(delta: float, player: BattlePlayer, monsters: Array) -> void:
@@ -493,11 +524,454 @@ func _spawn_bullet_from_angle(player: BattlePlayer, ang: float, damage: int, is_
 		"anim_t": 0.0,
 		"visual_scale": visual_scale,
 		"is_spirit": is_spirit,
-		"bounces_left": player.get_bounce_bullet_count(),
 		"returning": false,
 		"mirror_used": false,
 	}, "spirit_bomb" if is_spirit else "multi_bullet"))
 	_finalize_spawned_projectile(shurikens.back(), player)
+
+
+# Phase 3 sr=14 bullet_split：从命中点向随机角度 spawn 短寿命小子弹（is_split=true 避免递归）
+func spawn_split_bullet(player: BattlePlayer, origin: Vector2, ang: float, damage: int) -> void:
+	var dir := Vector2(cos(ang), sin(ang))
+	var max_life := float(GameConfig.get_player_value("auto_bullet_life", 0.9)) * 0.5
+	shurikens.append(_with_upgrade_fx_layer({
+		"kind": "auto",
+		"pos": origin,
+		"origin": origin,
+		"vel": dir * float(GameConfig.get_player_value("auto_bullet_speed", 420)) * 0.85,
+		"life": max_life,
+		"max_life": max_life,
+		"damage": damage,
+		"hit": {},
+		"rot": ang,
+		"anim_t": 0.0,
+		"visual_scale": 0.7,
+		"is_spirit": false,
+		"returning": false,
+		"mirror_used": false,
+		"is_split": true,
+	}, "multi_bullet"))
+	_finalize_spawned_projectile(shurikens.back(), player)
+
+
+# Phase 3 sr=15 bullet_bounce：从命中怪向最近未链怪 spawn 子弹，递减 bounces_remaining
+func spawn_bounce_bullet(player: BattlePlayer, from_monster, bounces_remaining: int, damage: int, falloff: float) -> void:
+	if bounces_remaining <= 0 or battle == null or battle.spawner == null:
+		return
+	# 找最近未命中过的怪
+	var best = null
+	var best_d := 9e9
+	for m in battle.spawner.get_active_monsters():
+		if not is_instance_valid(m) or m == from_monster:
+			continue
+		if not bool(m.get("alive")) or bool(m.get("dying")):
+			continue
+		var d: float = from_monster.global_position.distance_to(m.global_position)
+		if d < best_d:
+			best_d = d
+			best = m
+	if best == null:
+		return
+	var dir: Vector2 = (best.global_position - from_monster.global_position).normalized()
+	var max_life := 0.7
+	shurikens.append(_with_upgrade_fx_layer({
+		"kind": "auto",
+		"pos": from_monster.global_position,
+		"origin": from_monster.global_position,
+		"vel": dir * 520.0,
+		"life": max_life,
+		"max_life": max_life,
+		"damage": damage,
+		"hit": {},
+		"rot": dir.angle(),
+		"anim_t": 0.0,
+		"visual_scale": 0.7,
+		"is_spirit": false,
+		"returning": false,
+		"mirror_used": false,
+		"is_bounce": true,
+		"bounce_remaining": bounces_remaining - 1,
+		"bounce_falloff": falloff,
+	}, "multi_bullet"))
+	_finalize_spawned_projectile(shurikens.back(), player)
+
+
+# Phase 5 sr=22 combo_shuriken：slash 末段 spawn 辅助子弹（line: 朝最近敌人；其它 shape 走随机方向）
+func spawn_combo_shuriken(player: BattlePlayer, shape: String) -> void:
+	if battle == null or battle.spawner == null:
+		return
+	var monsters: Array = battle.spawner.get_active_monsters()
+	if monsters.is_empty():
+		return
+	var ang: float = _nearest_monster_angle(player.global_position, -PI * 0.5, monsters)
+	if shape == "random" or shape == "":
+		ang = randf() * TAU
+	var dir := Vector2(cos(ang), sin(ang))
+	var spawn_pos := player.global_position + dir * (player.get_effective_radius() + GameConfig.scale_world(AUTO_BULLET_SPAWN_OFFSET))
+	var dmg: int = player.get_auto_bullet_damage()
+	shurikens.append(_with_upgrade_fx_layer({
+		"kind": "auto",
+		"pos": spawn_pos,
+		"origin": spawn_pos,
+		"vel": dir * float(GameConfig.get_player_value("auto_bullet_speed", 420)) * 0.9,
+		"life": 0.8,
+		"max_life": 0.8,
+		"damage": dmg,
+		"hit": {},
+		"rot": ang,
+		"anim_t": 0.0,
+		"visual_scale": 0.9,
+		"is_spirit": false,
+		"returning": false,
+		"mirror_used": false,
+		"is_split": true,
+	}, "shuriken"))
+	_finalize_spawned_projectile(shurikens.back(), player)
+
+
+# ============= Phase 6 v6 combo spawn helpers (sr=20) =============
+
+# combo_black_hole：单点黑洞 — 强 pull + AOE
+func spawn_v6_black_hole(player: BattlePlayer, pos: Vector2, level: int, weapon_mult: float) -> void:
+	var dmg: int = player.get_ability_damage(weapon_mult)
+	black_holes.append(_with_upgrade_fx_layer({
+		"kind": "black_hole",
+		"pos": pos,
+		"radius": GameConfig.scale_world(64.0 + float(level) * 24.0) * FX_SCALE,
+		"life": 2.0,
+		"max_life": 2.0,
+		"anim_t": 0.0,
+		"pull": 260.0 + float(level) * 70.0,
+		"dmg_timer": 0.0,
+		"hit": {},
+		"damage": dmg,
+		"dmg_mul": 1.0,
+	}, "black_hole"))
+	_skill_burst(pos, 8.0, 0.2, Color("#9040d8"), 22)
+
+
+# combo_fireball：line — N 颗火球横向喷出
+func spawn_v6_fireballs(player: BattlePlayer, pos: Vector2, seg_ang: float, level: int, weapon_mult: float) -> void:
+	var dmg: int = player.get_ability_damage(weapon_mult)
+	var cnt: int = 3 + maxi(0, level - 1)
+	for i in range(cnt):
+		var a: float = seg_ang + MathUtils.rand_range(-0.9, 0.9)
+		shurikens.append(_with_upgrade_fx_layer({
+			"kind": "fireball",
+			"pos": pos,
+			"vel": Vector2(cos(a), sin(a)) * 280.0,
+			"life": 0.95,
+			"damage": dmg,
+			"hit": {},
+			"rot": a,
+			"spin": 0.0,
+			"dmg_mul": 1.0,
+			"visual_scale": 1.5,
+		}, "great_fireball"))
+	_skill_burst(pos, 6.5, 0.16, Color("#ff7020"), 18)
+
+
+# combo_water_tornado：line — N 个龙卷螺旋
+func spawn_v6_water_tornado(player: BattlePlayer, pos: Vector2, seg_ang: float, level: int, weapon_mult: float) -> void:
+	var dmg: int = player.get_ability_damage(weapon_mult)
+	var cnt: int = 1 + maxi(0, level - 1)
+	for i in range(cnt):
+		var spread: float = 0.0 if cnt <= 1 else (float(i) - (cnt - 1) * 0.5) * 0.22
+		var monsters: Array = battle.spawner.get_active_monsters() if battle and battle.spawner else []
+		var ang: float = _nearest_monster_angle(pos, seg_ang, monsters) + spread
+		water_tornados.append(_with_upgrade_fx_layer({
+			"kind": "water_tornado",
+			"pos": pos,
+			"vel": Vector2(cos(ang), sin(ang)) * 360.0,
+			"life": 1.85,
+			"max_life": 1.85,
+			"anim_t": 0.0,
+			"hit": {},
+			"damage": dmg,
+			"dmg_mul": 1.0,
+		}, "water_tornado"))
+	_skill_burst(pos, 5.5, 0.14, Color("#58d8ff"), 14)
+
+
+# combo_blade_storm：circle — 转刀阵
+func spawn_v6_blade_storm(player: BattlePlayer, pos: Vector2, level: int, weapon_mult: float, radius: float, extra_per_lv: int) -> void:
+	var dmg: int = player.get_ability_damage(weapon_mult)
+	# 单转刀阵 sized by radius；extra_per_lv 增加 blade 数（实际表现为同一 whirl 数）
+	var blade_count: int = 1 + extra_per_lv * maxi(0, level - 1)
+	for i in range(blade_count):
+		var offset_ang: float = TAU * float(i) / float(maxi(1, blade_count))
+		var spawn_pos: Vector2 = pos + Vector2(cos(offset_ang), sin(offset_ang)) * 20.0
+		whirls.append(_with_upgrade_fx_layer({
+			"kind": "whirl",
+			"pos": spawn_pos,
+			"radius": GameConfig.scale_world(radius) * FX_SCALE * 0.6,
+			"max_radius": GameConfig.scale_world(radius) * FX_SCALE,
+			"life": 1.0,
+			"max_life": 1.0,
+			"anim_t": 0.0,
+			"hit": {},
+			"damage": dmg,
+			"dmg_mul": 1.0,
+		}, "blade_whirl"))
+	_skill_burst(pos, 6.0, 0.15, Color("#ffe060"), 16)
+
+
+# combo_thunder：circle — 雷链 + AOE
+func spawn_v6_thunder(player: BattlePlayer, pos: Vector2, level: int, weapon_mult: float, radius: float) -> void:
+	var dmg: int = player.get_ability_damage(weapon_mult)
+	# 直接 AOE，所有 radius 内怪都吃伤；走 info 路径（thunder element 可激活 chain）
+	if battle == null or battle.spawner == null:
+		return
+	var monsters: Array = battle.spawner.get_active_monsters()
+	for m in monsters:
+		if not is_instance_valid(m) or m.get("alive") == false:
+			continue
+		if pos.distance_to(m.global_position) > radius + m.get_hitbox_radius():
+			continue
+		var info := player.make_ability_damage("combo_v6_thunder", weapon_mult, "combo", "thunder", false, false)
+		info.raw_amount = dmg
+		var result: Dictionary = {}
+		if m.has_method("take_damage_info"):
+			result = m.take_damage_info(info, pos)
+		if not result.is_empty():
+			if battle.combat:
+				battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), false, false, Color("#f8d020"))
+			if battle.particles:
+				battle.particles.lightning_effect(pos, m.global_position)
+			if int(result.get("damage", 0)) > 0:
+				ElementEffectManager.try_apply(m, info, player)
+			if bool(result.get("started_dying", false)):
+				EventBus.monster_killed.emit(m)
+	_skill_burst(pos, 7.5, 0.17, Color("#a8e8ff"), 18)
+
+
+# ============= Phase 6 v6 bullet proc helpers (sr=13 / sr=18) =============
+
+# sr=13 bullet_fire_support：在命中位置 spawn 小爆炸
+func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, radius_px: float) -> void:
+	if battle == null or battle.spawner == null:
+		return
+	var dmg: int = player.get_ability_damage(atk_mult)
+	for m in battle.spawner.get_active_monsters():
+		if not is_instance_valid(m) or m.get("alive") == false:
+			continue
+		if pos.distance_to(m.global_position) > radius_px + m.get_hitbox_radius():
+			continue
+		var info := player.make_ability_damage("bullet_fire_support", atk_mult, "bullet", "fire", false, false)
+		info.raw_amount = dmg
+		info.applies_fire = true
+		var result: Dictionary = {}
+		if m.has_method("take_damage_info"):
+			result = m.take_damage_info(info, pos)
+		if not result.is_empty():
+			if battle.combat:
+				battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), false, false, Color("#ff8040"))
+			if int(result.get("damage", 0)) > 0:
+				ElementEffectManager.try_apply(m, info, player)
+			if bool(result.get("started_dying", false)):
+				EventBus.monster_killed.emit(m)
+	_skill_burst(pos, 4.0, 0.1, Color("#ff8040"), 10)
+
+
+# sr=18 bullet_beam：spawn 一条 laser 短射线
+func spawn_v6_bullet_beam(player: BattlePlayer, pos: Vector2, ang: float, atk_mult: float) -> void:
+	var dir := Vector2(cos(ang), sin(ang))
+	var exit_dist := _ray_playfield_exit_distance(pos, dir)
+	var beam_length := exit_dist + GameConfig.scale_world(48.0) * FX_SCALE
+	lasers.append(_with_upgrade_fx_layer({
+		"kind": "laser",
+		"tail": pos,
+		"origin": pos,
+		"dir": dir,
+		"exit_dist": exit_dist,
+		"beam_length": beam_length,
+		"vel": dir * 1200.0,
+		"damage": player.get_ability_damage(atk_mult),
+		"hit": {},
+		"rot": ang,
+	}, "bullet_beam"))
+
+
+# Phase 7 sr=37 orb_fire/ice/poison/thunder：拾取触发的元素 AOE
+func spawn_v6_orb_elem_aoe(player: BattlePlayer, pos: Vector2, element: String, atk_mult: float, radius_px: float) -> void:
+	if battle == null or battle.spawner == null:
+		return
+	var dmg: int = player.get_ability_damage(atk_mult)
+	for m in battle.spawner.get_active_monsters():
+		if not is_instance_valid(m) or m.get("alive") == false:
+			continue
+		if pos.distance_to(m.global_position) > radius_px + m.get_hitbox_radius():
+			continue
+		var info := player.make_ability_damage("orb_elem_" + element, atk_mult, "trail", element, false, false)
+		info.raw_amount = dmg
+		match element:
+			"fire":    info.applies_fire = true
+			"ice":     info.applies_ice = true
+			"thunder": info.applies_thunder = true
+			"poison":  info.applies_poison = true
+		var result: Dictionary = {}
+		if m.has_method("take_damage_info"):
+			result = m.take_damage_info(info, pos)
+		if not result.is_empty():
+			if battle.combat:
+				battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), false, false, _orb_elem_color(element))
+			if int(result.get("damage", 0)) > 0:
+				ElementEffectManager.try_apply(m, info, player)
+			if bool(result.get("started_dying", false)):
+				EventBus.monster_killed.emit(m)
+	_skill_burst(pos, 5.0, 0.12, _orb_elem_color(element), 14)
+
+
+func _orb_elem_color(element: String) -> Color:
+	match element:
+		"fire":    return Color(1.0, 0.55, 0.25, 1.0)
+		"ice":     return Color(0.6, 0.85, 1.0, 1.0)
+		"thunder": return Color(1.0, 0.95, 0.35, 1.0)
+		"poison":  return Color(0.55, 0.95, 0.45, 1.0)
+		_:         return Color(0.95, 0.95, 0.85, 1.0)
+
+
+# ============= Phase 6 sr=26 trail_slash_wave：末段 spawn 推开 AOE =============
+func spawn_v6_slash_wave(player: BattlePlayer, end_pos: Vector2, radius: float, weapon_mult: float) -> void:
+	if battle == null or battle.spawner == null:
+		return
+	var dmg: int = player.get_ability_damage(weapon_mult)
+	var push_force: float = 220.0
+	for m in battle.spawner.get_active_monsters():
+		if not is_instance_valid(m) or m.get("alive") == false:
+			continue
+		var d: float = end_pos.distance_to(m.global_position)
+		if d > radius + m.get_hitbox_radius():
+			continue
+		# 推开
+		var to_m: Vector2 = m.global_position - end_pos
+		if to_m.length_squared() > 1.0:
+			m.global_position += to_m.normalized() * push_force * 0.08
+		var info := player.make_ability_damage("trail_slash_wave", weapon_mult, "slash", "", false, false)
+		info.raw_amount = dmg
+		var result: Dictionary = {}
+		if m.has_method("take_damage_info"):
+			result = m.take_damage_info(info, end_pos)
+		if not result.is_empty():
+			if battle.combat:
+				battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), false, false, Color("#ffffff"))
+			if bool(result.get("started_dying", false)):
+				EventBus.monster_killed.emit(m)
+	_skill_burst(end_pos, 7.0, 0.18, Color("#e8e8ff"), 18)
+	if battle:
+		battle.shake_camera(2.2, 0.08)
+
+
+# ============= Phase 6 sr=25 trail_elem_field：元素场域 =============
+
+func spawn_v6_trail_field(player: BattlePlayer, points: Array, element: String, atk_mult: float, tick_interval: float, slow_pct: float, stun_sec: float, ramp_pct: float, duration: float, bullet_attach: bool, card_id: String) -> void:
+	for p in points:
+		v6_trail_fields.append({
+			"pos": p,
+			"radius": 32.0,
+			"element": element,
+			"atk_mult": atk_mult,
+			"tick_interval": tick_interval,
+			"slow_pct": slow_pct,
+			"stun_sec": stun_sec,
+			"ramp_pct": ramp_pct,
+			"bullet_attach": bullet_attach,
+			"life": duration,
+			"max_life": duration,
+			"tick_timer": 0.0,
+			"ramp_stacks": {},
+			"card_id": card_id,
+		})
+
+
+func _update_v6_trail_fields(delta: float, player: BattlePlayer, monsters: Array) -> void:
+	if v6_trail_fields.is_empty():
+		return
+	for i in range(v6_trail_fields.size() - 1, -1, -1):
+		var f: Dictionary = v6_trail_fields[i]
+		f.life = float(f.life) - delta
+		if float(f.life) <= 0.0:
+			v6_trail_fields.remove_at(i)
+			continue
+		f.tick_timer = float(f.tick_timer) - delta
+		if float(f.tick_timer) <= 0.0:
+			f.tick_timer = float(f.tick_interval)
+			_trail_field_tick(f, player, monsters)
+		v6_trail_fields[i] = f
+
+
+func _trail_field_tick(f: Dictionary, player: BattlePlayer, monsters: Array) -> void:
+	var element: String = str(f.element)
+	var atk_mult: float = float(f.atk_mult)
+	var radius: float = float(f.radius)
+	var slow_pct: float = float(f.slow_pct)
+	var stun_sec: float = float(f.stun_sec)
+	var ramp_pct: float = float(f.ramp_pct)
+	var ramp_stacks: Dictionary = f.ramp_stacks
+	var pos: Vector2 = f.pos
+	for m in monsters:
+		if not is_instance_valid(m) or m.get("alive") == false:
+			continue
+		if pos.distance_to(m.global_position) > radius + m.get_hitbox_radius():
+			continue
+		var key := str(m.get_instance_id())
+		# ramp 计 tick 数
+		var stacks: int = int(ramp_stacks.get(key, 0)) + 1
+		ramp_stacks[key] = stacks
+		var ramp_total: float = ramp_pct * float(stacks - 1)
+		var effective_mult: float = atk_mult * (1.0 + ramp_total)
+		var dmg: int = player.get_ability_damage(effective_mult)
+		var info := player.make_ability_damage("trail_field_" + element, effective_mult, "trail", element, false, true)
+		info.raw_amount = dmg
+		# 元素自带状态由 element_effect_manager 接管；这里只在 sv 有 override 时额外注入
+		var apply_fire := element == "fire"
+		var apply_ice := element == "ice"
+		var apply_thunder := element == "thunder"
+		var apply_poison := element == "poison"
+		info.applies_fire = apply_fire
+		info.applies_ice = apply_ice
+		info.applies_thunder = apply_thunder
+		info.applies_poison = apply_poison
+		var result: Dictionary = {}
+		if m.has_method("take_damage_info"):
+			result = m.take_damage_info(info, pos)
+		if not result.is_empty() and int(result.get("damage", 0)) > 0:
+			ElementEffectManager.try_apply(m, info, player)
+			# 额外 slow override（trail_frost 0.4 取代 ice 默认 0.3）
+			if slow_pct > 0.0 and m.has_method("apply_freeze_slow"):
+				m.apply_freeze_slow(player.base_attack, 0.0, slow_pct)
+			# stun（trail_thunder_field 0.3s）
+			if stun_sec > 0.0 and m.has_method("apply_paralyze"):
+				m.apply_paralyze(stun_sec)
+			if bool(result.get("started_dying", false)):
+				EventBus.monster_killed.emit(m)
+	f.ramp_stacks = ramp_stacks
+
+
+func draw_v6_trail_fields(canvas: Node2D, below_monsters: bool) -> void:
+	if v6_trail_fields.is_empty():
+		return
+	# 场域绘制在怪物之下
+	if not below_monsters:
+		return
+	var offset := -canvas.global_position
+	for f in v6_trail_fields:
+		var life_t: float = clampf(float(f.life) / maxf(0.001, float(f.max_life)), 0.0, 1.0)
+		var alpha: float = 0.45 * life_t
+		var col: Color = _trail_field_color(str(f.element), alpha)
+		var pos: Vector2 = Vector2(f.pos) + offset
+		canvas.draw_circle(pos, float(f.radius), col)
+		# 元素特征轮廓
+		canvas.draw_arc(pos, float(f.radius), 0.0, TAU, 32, Color(col.r, col.g, col.b, alpha * 1.4), 1.6)
+
+
+func _trail_field_color(element: String, alpha: float) -> Color:
+	match element:
+		"fire":    return Color(1.0, 0.45, 0.15, alpha)
+		"ice":     return Color(0.5, 0.85, 1.0, alpha)
+		"thunder": return Color(1.0, 0.95, 0.35, alpha)
+		"poison":  return Color(0.45, 0.95, 0.4, alpha)
+		_:         return Color(0.9, 0.9, 0.9, alpha)
 
 
 func _spawn_combo_shurikens(pos: Vector2, seg_ang: float) -> void:
@@ -598,15 +1072,21 @@ func _spawn_lightning_chain(from_pos: Vector2, player: BattlePlayer, monsters: A
 			targets.append(m)
 	targets.sort_custom(func(a, b): return from_pos.distance_to(a.global_position) < from_pos.distance_to(b.global_position))
 	var chain_count := mini(3 + player.get_upgrade_level("lightning_chain"), targets.size())
-	var dmg := int(max(1, round(player.base_attack * player.attack_power_scale * 0.6)))
+	# 迁移到 DamageInfo 路径：v6 dmg_layer=COMBO + element=thunder (硬编码 bypass 已修正，
+	# 现可正常吃 bonus_attack_mult 等加成；v==2 时怪物的 vuln_thunder / elem_resist_thunder 也会生效)
+	var info := player.make_ability_damage("combo_lightning", 0.6, "combo", "thunder", false, false)
 	var chain_from := from_pos
 	for i in range(chain_count):
 		var m = targets[i]
 		var to_pos: Vector2 = m.global_position
 		if battle and battle.particles:
 			battle.particles.lightning_effect(chain_from, to_pos)
-		if m.has_method("take_damage"):
-			var result: Dictionary = m.take_damage(dmg, chain_from)
+		var result: Dictionary = {}
+		if m.has_method("take_damage_info"):
+			result = m.take_damage_info(info, chain_from)
+		elif m.has_method("take_damage"):
+			result = m.take_damage(info.raw_amount, chain_from)
+		if not result.is_empty():
 			if battle and battle.combat:
 				battle.combat.spawn_damage_number(to_pos, int(result.get("damage", 0)), false, false, Color("#f8d020"))
 			if battle and battle.particles:
@@ -650,41 +1130,15 @@ func _should_remove_auto_projectile(s: Dictionary, player: BattlePlayer, monster
 		var dist := Vector2(s.pos).distance_to(player.global_position)
 		return dist <= player.get_effective_radius() + 10.0
 	var pierce := player.has_pierce_bullet()
-	if not pierce:
-		var bounces := int(s.get("bounces_left", 0))
-		if bounces > 0:
-			s["bounces_left"] = bounces - 1
-			if _redirect_auto_to_next_enemy(s, monsters):
-				return false
+	# Phase 5 sr=16 bullet_mirror：命中后回弹（mult>0 启用；split/bounce 不参与）
+	if not bool(s.get("is_split", false)) and not bool(s.get("is_bounce", false)) and float(player.bullet_mirror_mult) > 0.0 and not bool(s.get("mirror_used", false)):
+		s["damage"] = int(max(1, round(float(s.get("damage", 1)) * float(player.bullet_mirror_mult))))
+		_start_mirror_return(s, player)
+		return false
 	if player.has_mirror_bullet() and not bool(s.get("mirror_used", false)) and not pierce:
 		_start_mirror_return(s, player)
 		return false
 	return not pierce
-
-
-func _redirect_auto_to_next_enemy(s: Dictionary, monsters: Array) -> bool:
-	var from_pos: Vector2 = s.get("pos", Vector2.ZERO)
-	var hit: Dictionary = s.get("hit", {})
-	var nearest: Node2D = null
-	var nearest_dist := INF
-	for m in monsters:
-		if not is_instance_valid(m) or m.get("alive") == false:
-			continue
-		if hit.has(str(m.get_instance_id())):
-			continue
-		var d := from_pos.distance_to(m.global_position)
-		if d < nearest_dist:
-			nearest_dist = d
-			nearest = m
-	if nearest == null:
-		return false
-	var dir: Vector2 = nearest.global_position - from_pos
-	if dir.length_squared() < 4.0:
-		return false
-	var ang: float = dir.angle()
-	s["vel"] = Vector2(cos(ang), sin(ang)) * float(GameConfig.get_player_value("auto_bullet_speed", 420))
-	s["rot"] = ang
-	return true
 
 
 func _redirect_auto_to_player(s: Dictionary, player: BattlePlayer) -> void:
@@ -726,15 +1180,30 @@ func _apply_projectile_hit(s: Dictionary, m, player: BattlePlayer) -> bool:
 		var mul := float(s.get("dmg_mul", 0.35))
 		dmg = int(max(1, round(player.base_attack * player.attack_power_scale * mul)))
 	var kind := _projectile_kind(s)
-	var is_crit := false
-	if kind in ["auto", "laser"]:
-		var dmg_info: Dictionary = player.roll_crit_damage(float(dmg))
-		dmg = int(dmg_info.get("amount", dmg))
-		is_crit = bool(dmg_info.get("is_crit", false))
-	if m.has_method("take_damage"):
-		var result: Dictionary = m.take_damage(dmg, pos)
+	# Phase 3 sr=11 bullet_distance_scale：按飞行距离加成（只对 auto/laser/spirit 类）
+	if kind == "auto" or kind == "laser":
+		dmg = SpecialRuleDispatcher.transform_bullet_damage(player, s, dmg)
+	# crit roll 移到 resolver；emitter 端不再预乘暴击倍率
+	# 构造 DamageInfo：按 projectile kind 映射到 v6 dmg_layer/element
+	var info := _build_projectile_damage_info(kind, dmg, false, player)
+	var result: Dictionary = {}
+	if m.has_method("take_damage_info"):
+		result = m.take_damage_info(info, pos)
+	elif m.has_method("take_damage"):
+		result = m.take_damage(dmg, pos)
+	if not result.is_empty():
+		var hit_is_crit := bool(result.get("is_crit", false))
 		if battle and battle.combat:
-			battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), is_crit)
+			battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), hit_is_crit)
+		# Sheet4 元素状态注入（仅当伤害实际生效）
+		if int(result.get("damage", 0)) > 0:
+			ElementEffectManager.try_apply(m, info, player)
+		# Phase 3 sr=14/15 bullet_split / bounce
+		if kind == "auto" and int(result.get("damage", 0)) > 0:
+			SpecialRuleDispatcher.on_bullet_hit(player, self, s, m, info, int(result.get("damage", 0)))
+		# Phase 6 sr=13 / sr=18 bullet proc spell / beam
+		if kind == "auto" and int(result.get("damage", 0)) > 0:
+			SpecialRuleDispatcher.on_bullet_proc(player, self, m.global_position, float(s.get("rot", 0.0)))
 		if kind == "auto":
 			var fx_scale := float(s.get("visual_scale", 1.0))
 			_spawn_auto_hit_fx(m, fx_scale)
@@ -744,13 +1213,49 @@ func _apply_projectile_hit(s: Dictionary, m, player: BattlePlayer) -> bool:
 	return true
 
 
+# 按 projectile kind 映射到 v6 dmg_layer/element。覆盖 ability_manager 已知的 8 种 kind。
+# 未识别的 kind 默认归到 physical (无元素)，保证迁移过程不漏。
+func _build_projectile_damage_info(kind: String, dmg: int, is_crit: bool, player: BattlePlayer) -> DamageInfo:
+	var category := "physical"
+	var element := ""
+	var source := "projectile_" + kind
+	match kind:
+		"auto":
+			category = "bullet"
+			source = "bullet_auto"
+		"laser":
+			category = "bullet"
+			source = "bullet_laser"
+		"abyss_explosion":
+			category = "combo"
+			source = "combo_abyss"
+		"whirl":
+			category = "combo"
+			source = "combo_whirl"
+		"black_hole":
+			category = "combo"
+			source = "combo_blackhole"
+		"water_tornado":
+			category = "combo"
+			element = "ice"
+			source = "combo_tornado"
+		"fireball":
+			category = "combo"
+			element = "fire"
+			source = "combo_fireball"
+		"skill":
+			category = "combo"
+			source = "combo_skill"
+	var info := player.make_damage(source, 1.0, category, element, true, false)
+	info.raw_amount = dmg
+	info.is_crit_resolved = is_crit
+	return info
+
+
 func _apply_auto_bullet_upgrade_effects(s: Dictionary, m, player: BattlePlayer, dealt_damage: int) -> void:
 	if player == null:
 		return
-	var burn_lv := player.get_upgrade_level("bullet_burn")
-	if burn_lv > 0 and m.has_method("apply_burn_dot"):
-		var burn_dps := int(max(1, round(player.get_ability_damage(0.14 + 0.06 * float(maxi(0, burn_lv - 1))))))
-		m.apply_burn_dot(1.5, burn_dps)
+	# 注：bullet_burn v5 hardcode 已删除（v6 走 ElementEffectManager.try_apply 通过 applies_fire）。
 	var close_lv := player.get_upgrade_level("close_range_shot")
 	if close_lv > 0 and dealt_damage > 0:
 		var travel := Vector2(s.get("pos", Vector2.ZERO)).distance_to(Vector2(s.get("origin", Vector2.ZERO)))
@@ -758,15 +1263,25 @@ func _apply_auto_bullet_upgrade_effects(s: Dictionary, m, player: BattlePlayer, 
 		var near_ratio := clampf(1.0 - travel / max_range, 0.0, 1.0)
 		var tier_bonus := _close_range_tier_bonus(near_ratio)
 		var bonus_mul := (0.35 + 0.12 * float(maxi(0, close_lv - 1))) * tier_bonus
-		if bonus_mul > 0.0 and m.has_method("take_damage"):
-			var extra_info: Dictionary = player.roll_crit_damage(float(dealt_damage) * bonus_mul)
-			var extra := int(extra_info.get("amount", 1))
-			var extra_crit := bool(extra_info.get("is_crit", false))
-			var result: Dictionary = m.take_damage(extra, Vector2(s.get("pos", Vector2.ZERO)))
-			if battle and battle.combat:
-				battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), extra_crit)
-			if bool(result.get("started_dying", false)):
-				EventBus.monster_killed.emit(m)
+		if bonus_mul > 0.0:
+			# close_range_shot 第二个命中事件：category=bullet，可暴击(原代码会 roll)
+			var extra_roll: Dictionary = player.roll_crit_damage(float(dealt_damage) * bonus_mul)
+			var extra := int(extra_roll.get("amount", 1))
+			var extra_crit := bool(extra_roll.get("is_crit", false))
+			var extra_info := player.make_damage("bullet_close", 1.0, "bullet", "", true, false)
+			extra_info.raw_amount = extra
+			extra_info.is_crit_resolved = extra_crit
+			var pos_v: Vector2 = s.get("pos", Vector2.ZERO)
+			var result: Dictionary = {}
+			if m.has_method("take_damage_info"):
+				result = m.take_damage_info(extra_info, pos_v)
+			elif m.has_method("take_damage"):
+				result = m.take_damage(extra, pos_v)
+			if not result.is_empty():
+				if battle and battle.combat:
+					battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), extra_crit)
+				if bool(result.get("started_dying", false)):
+					EventBus.monster_killed.emit(m)
 
 
 func _close_range_tier_bonus(near_ratio: float) -> float:
@@ -813,6 +1328,12 @@ func _update_shurikens(delta: float, player: BattlePlayer, monsters: Array) -> v
 				s["anim_t"] = float(s.get("anim_t", 0.0)) + delta
 				if bool(s.get("returning", false)) and player != null:
 					_redirect_auto_to_player(s, player)
+				# Phase 5 sr=12 bullet_homing：每帧调整 velocity 朝最近怪
+				elif player != null and player.bullet_homing_enabled and not bool(s.get("is_split", false)) and not bool(s.get("is_bounce", false)):
+					var new_vel: Vector2 = SpecialRuleDispatcher.apply_bullet_homing(player, s, monsters, delta)
+					if new_vel.length_squared() > 4.0:
+						s["vel"] = new_vel
+						s["rot"] = new_vel.angle()
 			else:
 				s["rot"] = float(s.rot) + float(s.get("spin", 0.0)) * delta
 				s["life"] = float(s.life) - delta
@@ -1148,6 +1669,8 @@ func _draw_pixel_shuriken(canvas: CanvasItem, center: Vector2, rot: float, px: f
 
 
 func draw_fx(canvas: Node2D, below_monsters: bool) -> void:
+	# Phase 6 sr=25 trail_elem_field：地面场域（仅 below_monsters）
+	draw_v6_trail_fields(canvas, below_monsters)
 	for s in shurikens:
 		if not _fx_on_layer(s, below_monsters):
 			continue

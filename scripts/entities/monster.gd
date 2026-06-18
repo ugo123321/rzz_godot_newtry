@@ -38,6 +38,19 @@ var stage_index_cached := 0
 var frozen_timer := 0.0
 var vulnerable_mark := false
 var path_target_hit_count := 0
+
+# === v2 易伤/抗性字段 (默认 0，待 debuff/精英差异化时填充；v==1 路径完全忽略) ===
+# VULN 层：同层加和。final ×= (1 + vuln_physical + 对应元素的 vuln_*)
+var vuln_physical := 0.0
+var vuln_fire := 0.0
+var vuln_ice := 0.0
+var vuln_thunder := 0.0
+var vuln_poison := 0.0
+# 元素抗性：进 ELEM 层。effective_elem_pct = elem_pct - elem_resist_[type]
+var elem_resist_fire := 0.0
+var elem_resist_ice := 0.0
+var elem_resist_thunder := 0.0
+var elem_resist_poison := 0.0
 var dying := false
 var death_delay := 0.0
 var death_timer := 0.0
@@ -48,6 +61,19 @@ var hurt_reaction_timer := 0.0
 var burn_timer := 0.0
 var burn_tick_timer := 0.0
 var burn_dps := 0
+# v2 burn DoT 快照玩家挂载时的 elem_fire 加成(elem_all_pct + elem_fire_pct)；
+# tick 用这个 snapshot 算 ELEM 层，避免后续玩家面板变化让进行中的 DoT 抖动
+var burn_elem_snapshot_pct := 0.0
+var burn_tick_interval := 0.5
+# v2 元素状态（Sheet4）
+var poison_timer := 0.0
+var poison_tick_timer := 0.0
+var poison_per_tick := 0
+var poison_elem_snapshot_pct := 0.0
+var poison_tick_interval := 1.0
+var paralyze_timer := 0.0
+var slow_timer := 0.0
+var slow_pct_active := 0.0
 
 var _sprite_folder := "Skeleton"
 var _sprite_prefix := "Skeleton"
@@ -64,6 +90,16 @@ func setup(monster_kind: String, stage_index: int, spawn_pos: Vector2) -> void:
 	max_hp = int(stats.get("hp", 1))
 	hp = max_hp
 	defense = int(stats.get("def", 0))
+	# v2 元素抗性 & 易伤（从 monsters.json 配置加载；缺省 0 = 中立）
+	elem_resist_fire = float(stats.get("elem_resist_fire", 0.0))
+	elem_resist_ice = float(stats.get("elem_resist_ice", 0.0))
+	elem_resist_thunder = float(stats.get("elem_resist_thunder", 0.0))
+	elem_resist_poison = float(stats.get("elem_resist_poison", 0.0))
+	vuln_physical = float(stats.get("vuln_physical", 0.0))
+	vuln_fire = float(stats.get("vuln_fire", 0.0))
+	vuln_ice = float(stats.get("vuln_ice", 0.0))
+	vuln_thunder = float(stats.get("vuln_thunder", 0.0))
+	vuln_poison = float(stats.get("vuln_poison", 0.0))
 	attack = int(stats.get("attack", 1))
 	attack_interval = float(stats.get("attack_interval", 1.0))
 	hitbox_radius = GameConfig.scale_world(float(stats.get("size", 13)))
@@ -205,22 +241,48 @@ func _apply_death_modulate(alpha: float) -> void:
 
 
 func is_frozen() -> bool:
-	return frozen_timer > 0.0
+	# 旧 API：完全冻结视为 paralyze（雷麻痹同语义）
+	return paralyze_timer > 0.0
 
 
 func freeze(duration: float) -> void:
-	frozen_timer = maxf(frozen_timer, duration)
+	# v5 freeze（完全不动）映射到 paralyze；v2 冰减速走 apply_freeze_slow
+	paralyze_timer = maxf(paralyze_timer, duration)
 
 
 func take_damage(raw_damage: int, from_pos: Vector2) -> Dictionary:
+	return _resolve_take_damage(DamageInfo.legacy(raw_damage), from_pos)
+
+
+# 新路径：接收带元素/品类/快照的 DamageInfo，供 v2 emitter 使用
+func take_damage_info(info: DamageInfo, from_pos: Vector2) -> Dictionary:
+	return _resolve_take_damage(info, from_pos)
+
+
+func _resolve_take_damage(info: DamageInfo, from_pos: Vector2) -> Dictionary:
 	if not alive or dying:
 		return {"damage": 0, "is_crit": false}
 	if has_shield:
 		has_shield = false
 		return {"damage": 0, "is_crit": false, "blocked_by_shield": true}
-	var mult := 2.0 if vulnerable_mark else 1.0
-	vulnerable_mark = false
-	var actual := maxi(1, int(round((float(raw_damage) - defense) * mult)))
+	var target_stats := {
+		"defense": defense,
+		"vulnerable_mark": vulnerable_mark,
+		"vuln_physical": vuln_physical,
+		"vuln_fire": vuln_fire,
+		"vuln_ice": vuln_ice,
+		"vuln_thunder": vuln_thunder,
+		"vuln_poison": vuln_poison,
+		"elem_resist_fire": elem_resist_fire,
+		"elem_resist_ice": elem_resist_ice,
+		"elem_resist_thunder": elem_resist_thunder,
+		"elem_resist_poison": elem_resist_poison,
+		"stage_index": stage_index_cached,
+	}
+	var res: Dictionary = DamageResolver.compute_damage(target_stats, info)
+	if bool(res.get("vuln_consumed", false)):
+		vulnerable_mark = false
+	var actual := int(res.get("damage", 0))
 	hp -= actual
 	var started_dying := false
 	if hp <= 0:
@@ -237,15 +299,87 @@ func take_damage(raw_damage: int, from_pos: Vector2) -> Dictionary:
 			anim_sprite.flip_h = facing < 0
 		_play_hurt_anim()
 	queue_redraw()
-	return {"damage": actual, "is_crit": false, "started_dying": started_dying}
+	return {"damage": actual, "is_crit": bool(res.get("is_crit", false)), "started_dying": started_dying}
 
 
 func apply_burn_dot(duration: float, dps: int) -> void:
+	_apply_burn_internal(duration, dps, 0.0)
+
+
+# v2 路径：发射端可顺便快照 elem_fire 加成，让 tick 享受元素增伤(v==2 启用时生效)
+func apply_burn_dot_with_snapshot(duration: float, dps: int, elem_pct: float) -> void:
+	_apply_burn_internal(duration, dps, elem_pct)
+
+
+# Sheet4 火元素 burn DoT：snapshot_atk × 0.30/sec × ELEM × proc_freq
+# proc_freq 越高，tick 间隔越短（频率越高）；duration 固定 2.0s
+func apply_burn_dot_v2(snapshot_atk: float, elem_pct: float, proc_freq_pct: float) -> void:
+	if not alive or dying:
+		return
+	# tick 间隔随 proc_freq 缩短：base 0.5s / (1 + proc_freq)
+	burn_tick_interval = maxf(0.05, 0.5 / maxf(0.01, 1.0 + proc_freq_pct))
+	# 每 tick 伤害：snapshot_atk × 0.30(/sec) × tick_interval
+	var per_sec := maxf(1.0, snapshot_atk * 0.30)
+	var per_tick: int = int(max(1, round(per_sec * burn_tick_interval)))
+	burn_timer = maxf(burn_timer, 2.0)
+	burn_tick_timer = 0.0
+	burn_dps = maxi(burn_dps, per_tick)
+	burn_elem_snapshot_pct = maxf(burn_elem_snapshot_pct, elem_pct)
+
+
+# Sheet4 冰元素 freeze+slow：立即一次冰伤 + 减速持续 1.5s（不彻底冻结，那是 paralyze）
+func apply_freeze_slow(snapshot_atk: float, elem_pct: float, slow_bonus: float) -> void:
+	if not alive or dying:
+		return
+	# 立即一次冰伤：snapshot_atk × 0.30 × (1 + elem_pct - resist)
+	var elem_layer: float = maxf(0.0, 1.0 + elem_pct - elem_resist_ice)
+	var hit_dmg: int = int(max(1, round(snapshot_atk * 0.30 * elem_layer)))
+	hp = maxi(0, hp - hit_dmg)
+	var battle := get_tree().get_first_node_in_group("battle")
+	if battle and battle.combat:
+		battle.combat.spawn_damage_number(global_position + Vector2(0.0, -8.0), hit_dmg, false, false, Color("#88ccff"))
+	if hp <= 0:
+		var delay := 0.0
+		if battle and battle.combat:
+			delay = battle.combat.schedule_death_fade()
+		if begin_dying(delay):
+			EventBus.monster_killed.emit(self)
+		return
+	# 减速 + 计时
+	slow_pct_active = maxf(slow_pct_active, 0.30 + slow_bonus)
+	slow_timer = maxf(slow_timer, 1.5)
+	queue_redraw()
+
+
+# Sheet4 毒元素 poison DoT：snapshot_atk × 0.30/sec × ELEM × proc_freq；持续 3.0s
+func apply_poison_dot(snapshot_atk: float, elem_pct: float, proc_freq_pct: float) -> void:
+	if not alive or dying:
+		return
+	poison_tick_interval = maxf(0.1, 1.0 / maxf(0.01, 1.0 + proc_freq_pct))
+	var per_sec := maxf(1.0, snapshot_atk * 0.30)
+	var per_tick: int = int(max(1, round(per_sec * poison_tick_interval)))
+	poison_timer = maxf(poison_timer, 3.0)
+	poison_tick_timer = 0.0
+	poison_per_tick = maxi(poison_per_tick, per_tick)
+	poison_elem_snapshot_pct = maxf(poison_elem_snapshot_pct, elem_pct)
+
+
+# Sheet4 雷链尾麻痹：完全停止 N 秒
+func apply_paralyze(duration: float) -> void:
+	if not alive or dying:
+		return
+	paralyze_timer = maxf(paralyze_timer, duration)
+	queue_redraw()
+
+
+func _apply_burn_internal(duration: float, dps: int, elem_pct: float) -> void:
 	if not alive or dying:
 		return
 	burn_timer = maxf(burn_timer, duration)
 	burn_tick_timer = 0.0
 	burn_dps = maxi(burn_dps, dps)
+	# 取较高 snapshot：让"重新点燃"时享受更强加成
+	burn_elem_snapshot_pct = maxf(burn_elem_snapshot_pct, elem_pct)
 
 
 func can_split() -> bool:
@@ -292,10 +426,14 @@ func _finish_death() -> void:
 func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 	if not alive or dying or player == null:
 		return
-	_update_burn_dot(delta)
+	_update_status_effects(delta)
 	if spawn_lock_timer > 0.0:
 		spawn_lock_timer = maxf(0.0, spawn_lock_timer - delta)
 		return
+	if paralyze_timer > 0.0:
+		# 雷麻痹/旧 freeze：完全不动
+		return
+	# 旧 frozen_timer 兼容路径（v5 残留；如有外部还在写 frozen_timer 也保持原行为）
 	if frozen_timer > 0.0:
 		frozen_timer -= delta
 		return
@@ -313,7 +451,9 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 		if ranged:
 			stop_dist = attack_range * 0.85 if attack_range > 0.0 else GameConfig.scale_world(140.0)
 		if dist > stop_dist:
-			global_position += to_player.normalized() * move_speed * delta
+			# 冰减速：当前速度 = move_speed × (1 - slow_pct_active)
+			var eff_speed: float = move_speed * maxf(0.0, 1.0 - slow_pct_active)
+			global_position += to_player.normalized() * eff_speed * delta
 			if not preserve_anim:
 				_play_anim(SpriteHelper.ANIM_WALK)
 		elif not preserve_anim:
@@ -482,6 +622,30 @@ func _draw() -> void:
 	if burn_timer > 0.0:
 		var t := 0.65 + 0.35 * sin(Time.get_ticks_msec() * 0.018)
 		draw_arc(Vector2.ZERO, hitbox_radius + GameConfig.scale_world(7.0), 0.0, TAU, 30, Color(1.0, 0.35, 0.2, 0.55 + 0.25 * t), GameConfig.scale_world(2.0))
+	if slow_timer > 0.0:
+		# 冰减速：脚下半圆 + 围绕青色环
+		var ice_pulse := 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.012)
+		draw_arc(Vector2.ZERO, hitbox_radius + GameConfig.scale_world(6.0), 0.0, TAU, 28, Color(0.55, 0.85, 1.0, 0.45 * ice_pulse), GameConfig.scale_world(2.0))
+	if poison_timer > 0.0:
+		# 中毒：头顶 3 个绿色气泡上下浮动
+		var ms := float(Time.get_ticks_msec())
+		var top := -hitbox_radius - GameConfig.scale_world(14.0)
+		for i in range(3):
+			var phase := ms * 0.004 + float(i) * 0.9
+			var ox := (float(i) - 1.0) * GameConfig.scale_world(5.0)
+			var oy := top + sin(phase) * GameConfig.scale_world(2.0)
+			var rr := GameConfig.scale_world(2.0 + 0.4 * sin(phase * 1.8))
+			draw_circle(Vector2(ox, oy), rr, Color(0.55, 0.95, 0.45, 0.85))
+	if paralyze_timer > 0.0:
+		# 雷麻痹：头顶两道金黄短闪电（X 形）
+		var ms2 := float(Time.get_ticks_msec())
+		var pulse := 0.5 + 0.5 * sin(ms2 * 0.022)
+		var top2 := -hitbox_radius - GameConfig.scale_world(10.0)
+		var w := GameConfig.scale_world(6.0)
+		var h := GameConfig.scale_world(8.0)
+		var col := Color(1.0, 0.95, 0.35, 0.75 + 0.25 * pulse)
+		draw_line(Vector2(-w, top2 - h), Vector2(w, top2 + h), col, GameConfig.scale_world(1.5))
+		draw_line(Vector2(w, top2 - h), Vector2(-w, top2 + h), col, GameConfig.scale_world(1.5))
 	if not alive or dying or path_target_hit_count <= 0:
 		return
 	var ring := CombatDirector.path_preview_ring_color(path_target_hit_count)
@@ -492,39 +656,88 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, r * 0.55, fill)
 
 
-func _update_burn_dot(delta: float) -> void:
+func _update_status_effects(delta: float) -> void:
+	# 计时器衰减
+	if slow_timer > 0.0:
+		slow_timer = maxf(0.0, slow_timer - delta)
+		if slow_timer <= 0.0:
+			slow_pct_active = 0.0
+	if paralyze_timer > 0.0:
+		paralyze_timer = maxf(0.0, paralyze_timer - delta)
+	# burn DoT tick
+	_tick_burn(delta)
+	# poison DoT tick
+	_tick_poison(delta)
+	# 视觉刷新（modulate 由 _apply_status_tint 综合处理）
+	_apply_status_tint()
+	if burn_timer > 0.0 or slow_timer > 0.0 or poison_timer > 0.0 or paralyze_timer > 0.0:
+		queue_redraw()
+
+
+func _tick_burn(delta: float) -> void:
 	if burn_timer <= 0.0:
 		burn_timer = 0.0
 		burn_tick_timer = 0.0
 		burn_dps = 0
-		_restore_sprite_tint()
+		burn_elem_snapshot_pct = 0.0
 		return
-	_apply_burn_tint()
 	burn_timer = maxf(0.0, burn_timer - delta)
 	burn_tick_timer += delta
 	var battle := get_tree().get_first_node_in_group("battle")
-	while burn_tick_timer >= 0.5 and burn_timer > 0.0 and burn_dps > 0 and alive and not dying:
-		burn_tick_timer -= 0.5
-		var tick_damage := int(max(1, round(float(burn_dps) * 0.5)))
-		var result := take_damage(tick_damage, global_position + Vector2(0.0, -8.0))
+	var iv: float = maxf(0.05, burn_tick_interval)
+	while burn_tick_timer >= iv and burn_timer > 0.0 and burn_dps > 0 and alive and not dying:
+		burn_tick_timer -= iv
+		var info := DamageInfo.make("bullet_burn_tick", "bullet", 1.0, "fire", false, true)
+		info.raw_amount = burn_dps
+		info.snapshot_elem_pct = burn_elem_snapshot_pct
+		var result := _resolve_take_damage(info, global_position + Vector2(0.0, -8.0))
 		if battle and battle.combat and int(result.get("damage", 0)) > 0:
 			battle.combat.spawn_damage_number(global_position + Vector2(0.0, -8.0), int(result.get("damage", 0)), false, false, Color("#ff6a3a"))
 		if bool(result.get("started_dying", false)):
 			EventBus.monster_killed.emit(self)
 
 
-func _apply_burn_tint() -> void:
+func _tick_poison(delta: float) -> void:
+	if poison_timer <= 0.0:
+		poison_timer = 0.0
+		poison_tick_timer = 0.0
+		poison_per_tick = 0
+		poison_elem_snapshot_pct = 0.0
+		return
+	poison_timer = maxf(0.0, poison_timer - delta)
+	poison_tick_timer += delta
+	var battle := get_tree().get_first_node_in_group("battle")
+	var iv: float = maxf(0.1, poison_tick_interval)
+	while poison_tick_timer >= iv and poison_timer > 0.0 and poison_per_tick > 0 and alive and not dying:
+		poison_tick_timer -= iv
+		var info := DamageInfo.make("bullet_poison_tick", "bullet", 1.0, "poison", false, true)
+		info.raw_amount = poison_per_tick
+		info.snapshot_elem_pct = poison_elem_snapshot_pct
+		var result := _resolve_take_damage(info, global_position + Vector2(0.0, -8.0))
+		if battle and battle.combat and int(result.get("damage", 0)) > 0:
+			battle.combat.spawn_damage_number(global_position + Vector2(0.0, -8.0), int(result.get("damage", 0)), false, false, Color("#88dd55"))
+		if bool(result.get("started_dying", false)):
+			EventBus.monster_killed.emit(self)
+
+
+# 综合 modulate：火 > 麻痹（金黄闪烁）> 毒 > 冰；仅取最高优先级一种染色
+func _apply_status_tint() -> void:
 	var anim_sprite := _get_sprite()
 	if anim_sprite == null:
 		return
-	if sprite_tint != Color.WHITE:
-		anim_sprite.modulate = sprite_tint.lerp(Color(1.0, 0.45, 0.38, 1.0), 0.42)
-	else:
-		anim_sprite.modulate = Color(1.0, 0.42, 0.36, 1.0)
-
-
-func _restore_sprite_tint() -> void:
-	var anim_sprite := _get_sprite()
-	if anim_sprite == null:
+	var base_tint: Color = sprite_tint if sprite_tint != Color.WHITE else Color.WHITE
+	if burn_timer > 0.0:
+		anim_sprite.modulate = base_tint.lerp(Color(1.0, 0.42, 0.36, 1.0), 0.42)
 		return
-	anim_sprite.modulate = sprite_tint if sprite_tint != Color.WHITE else Color.WHITE
+	if paralyze_timer > 0.0:
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.022)
+		anim_sprite.modulate = base_tint.lerp(Color(1.0, 0.96, 0.45, 1.0), 0.35 + 0.25 * pulse)
+		return
+	if poison_timer > 0.0:
+		anim_sprite.modulate = base_tint.lerp(Color(0.6, 1.0, 0.55, 1.0), 0.40)
+		return
+	if slow_timer > 0.0:
+		anim_sprite.modulate = base_tint.lerp(Color(0.65, 0.85, 1.0, 1.0), 0.45)
+		return
+	# 都没有则恢复 baseline
+	anim_sprite.modulate = base_tint

@@ -9,6 +9,8 @@ var notice := ""
 var notice_timer := 0.0
 var _spawn_queue: Array = []
 var _spawn_timer := 0.0
+# Phase 7 sr=31 orb_tide：周期生成 timer
+var _tide_timer: float = 0.0
 
 
 func setup(battle_node) -> void:
@@ -60,6 +62,16 @@ func spawn_for_stage(_stage_index: int, safe_zone: Vector2) -> void:
 		ki_count += 1
 	_spawn_queue.shuffle()
 	_spawn_timer = _spawn_wave_delay()
+	# Phase 7 sr=33 orb_field：按 player.orb_field_pct 额外 spawn
+	if battle and battle.player and float(battle.player.orb_field_pct) > 0.0:
+		var extra: int = int(round(float(_spawn_queue.size()) * float(battle.player.orb_field_pct)))
+		var base_types_arr: Array = cfg.get("base_types", ["attack", "ki", "combo"])
+		for i in range(extra):
+			var t: String = str(base_types_arr[randi() % base_types_arr.size()])
+			var pos: Vector2 = _pick_spawn_pos(w, h, play_bottom, safe_zone, planned)
+			_spawn_queue.append({"type": t, "pos": pos, "radius": radius})
+			planned.append(pos)
+		_spawn_queue.shuffle()
 
 
 func begin_draw_session(player: BattlePlayer) -> void:
@@ -112,6 +124,12 @@ func check_path_segment(from: Vector2, to: Vector2) -> void:
 
 func update(delta: float, player: BattlePlayer) -> void:
 	_update_spawns(delta)
+	# Phase 7 sr=31 orb_tide：周期 spawn 一颗随机 base_type orb
+	if player and float(player.orb_tide_interval_sec) > 0.0:
+		_tide_timer -= delta
+		if _tide_timer <= 0.0:
+			_tide_timer = float(player.orb_tide_interval_sec)
+			_spawn_tide_orb(player)
 	if player == null:
 		return
 	for o in orbs:
@@ -122,7 +140,9 @@ func update(delta: float, player: BattlePlayer) -> void:
 			continue
 		o.pulse = float(o.pulse) + delta * 4.2
 		if player.state == BattlePlayer.State.ATTACKING:
-			if player.global_position.distance_to(o.pos) <= player.get_effective_radius() + float(o.radius):
+			# Phase 7 sr=34 orb_magnet：扩大拾取半径
+			var pickup_extra: float = player.get_effective_radius() * float(player.orb_pickup_radius_pct)
+			if player.global_position.distance_to(o.pos) <= player.get_effective_radius() + float(o.radius) + pickup_extra:
 				_collect_orb(o)
 	orbs = orbs.filter(func(o): return bool(o.alive))
 	for i in range(pickup_flashes.size() - 1, -1, -1):
@@ -132,6 +152,29 @@ func update(delta: float, player: BattlePlayer) -> void:
 	if notice_timer > 0.0:
 		notice_timer -= delta
 	queue_redraw()
+
+
+# Phase 7 sr=32 orb_mark: 在原球位置附近复制一颗（不参与 burst/glow/mark 二次触发）
+func _spawn_duplicate_orb(src: Dictionary) -> void:
+	var offset := Vector2(MathUtils.rand_range(-24.0, 24.0), MathUtils.rand_range(-24.0, 24.0))
+	var pos: Vector2 = Vector2(src.pos) + offset
+	_spawn_orb(str(src.type), pos, float(src.get("radius", 13.0)), false)
+	orbs.back().alive = true
+
+
+# Phase 7 sr=31 orb_tide：周期生成一颗随机 base_type orb
+func _spawn_tide_orb(player: BattlePlayer) -> void:
+	if battle == null:
+		return
+	var cfg := GameConfig.buff_orbs
+	var base_types: Array = cfg.get("base_types", ["attack", "ki", "combo"])
+	var type_name: String = str(base_types[randi() % base_types.size()])
+	var radius: float = float(cfg.get("radius", 13))
+	var w: float = float(GameConfig.get_tuning("logical_width", 720))
+	var h: float = float(GameConfig.get_tuning("logical_height", 1280))
+	var play_bottom: float = h - 120.0
+	var pos: Vector2 = _pick_spawn_pos(w, h, play_bottom, player.global_position, [])
+	_spawn_orb(type_name, pos, radius, true)
 
 
 func _spawn_orb(type_name: String, pos: Vector2, radius: float, animate: bool = true) -> void:
@@ -235,6 +278,12 @@ func _collect_orb(o: Dictionary) -> void:
 	o.alive = false
 	_apply_orb(str(o.type))
 	_emit_pickup_flash(o)
+	# Phase 7 v6 拾取触发：sr=35 orb_burst / sr=37 元素球 AOE / sr=36 orb_glow 启用 buff
+	if player and battle and battle.abilities:
+		SpecialRuleDispatcher.on_orb_pickup(player, battle.abilities, Vector2(o.pos), str(o.type))
+	# Phase 7 sr=32 orb_mark：按概率复制一颗同类型球
+	if player and SpecialRuleDispatcher.roll_orb_dup(player):
+		_spawn_duplicate_orb(o)
 
 
 func _apply_orb(type_name: String) -> void:

@@ -2,6 +2,7 @@ extends Node2D
 class_name BattleController
 
 const SummonAbilityManagerScript = preload("res://scripts/core/summon_ability_manager.gd")
+const SwordOrbitManagerScript = preload("res://scripts/core/sword_orbit_manager.gd")
 const ParticleManagerScript = preload("res://scripts/core/particle_manager.gd")
 const BloodStainManagerScript = preload("res://scripts/core/blood_stain_manager.gd")
 const GroundEffectManagerScript = preload("res://scripts/core/ground_effect_manager.gd")
@@ -41,6 +42,7 @@ var path_input
 var buff_orbs: BuffOrbManager
 var abilities: AbilityManager
 var summons
+var swords
 var damage_overlay: DamageNumbersOverlay
 var equipment_drop_fx: EquipmentDropFxOverlay
 var afterimages_overlay
@@ -103,6 +105,11 @@ func _ready() -> void:
 	summons.name = "Summons"
 	add_child(summons)
 	summons.setup(self)
+	# Phase 7 sword orbit manager
+	swords = SwordOrbitManagerScript.new()
+	swords.name = "SwordOrbits"
+	add_child(swords)
+	swords.setup(self)
 	damage_overlay = DamageNumbersOverlay.new()
 	damage_overlay.name = "DamageNumbers"
 	damage_overlay.z_index = 50
@@ -747,6 +754,9 @@ func _update_playing(scaled_delta: float, real_delta: float) -> void:
 	if summons:
 		var summon_delta := 0.0 if time_scale < 1.0 else real_delta
 		summons.update(summon_delta, player, spawner.get_active_monsters())
+	if swords:
+		var sword_delta := 0.0 if time_scale < 1.0 else real_delta
+		swords.update(sword_delta, player, spawner.get_active_monsters())
 	if particles:
 		particles.update_particles(real_delta)
 	if blood_stains:
@@ -799,6 +809,8 @@ func _clear_stage_transition_presentation(keep_companions: bool) -> void:
 		abilities.reset()
 	if summons:
 		summons.reset(keep_companions)
+	if swords:
+		swords.reset()
 	if particles:
 		particles.clear()
 	if blood_stains:
@@ -887,6 +899,8 @@ func _draw_above_monster_fx_overlay() -> void:
 		abilities.draw_fx(above_monster_fx_overlay, false)
 	if summons:
 		summons.draw_fx(above_monster_fx_overlay, false)
+	if swords:
+		swords.draw_fx(above_monster_fx_overlay, false)
 
 
 func _pointer_flow_uses_early_input() -> bool:

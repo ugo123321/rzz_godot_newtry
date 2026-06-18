@@ -1,6 +1,10 @@
 extends Node2D
 class_name BattlePlayer
 
+const AttrEngineT = preload("res://scripts/core/attr_engine.gd")
+const TriggerDispatcherT = preload("res://scripts/core/trigger_dispatcher.gd")
+const SpecialRuleDispatcherT = preload("res://scripts/core/special_rule_dispatcher.gd")
+
 signal auto_bullet_released
 
 enum State { IDLE, BULLET_TIME, ATTACKING }
@@ -78,6 +82,49 @@ var luck_roll_blue_offset := 0.0
 var luck_roll_purple_offset := 0.0
 var luck_roll_orange_offset := 0.0
 var run_acquired_once: Dictionary = {}
+
+# === v2 分层 stat 字段 (默认 0，待 v6 emitter 迁移时填充；v==1 路径完全忽略) ===
+# ATK 层：同层加和。effective_atk = base_attack × (1 + atk_pct_total) [v2 启用时]
+var atk_pct_total := 0.0
+# Phase 1 新增：表驱动 attr 累加字段（AttrEngine 写入；_rebuild_upgrades 末段整合到实际生效字段）
+var atk_speed_pct_total := 0.0
+var move_speed_pct_total := 0.0
+var max_hp_pct_total := 0.0
+var ki_max_pct_total := 0.0
+var ki_regen_pct_total := 0.0
+var dodge_pct_total := 0.0
+var luck_pct_total := 0.0
+var size_pct_total := 0.0
+var bullet_count_bonus := 0
+var elem_proc_freq_pct := 0.0
+var slow_pct_bonus := 0.0
+var chain_targets_bonus := 0
+var elem_fire_attach_atk_mult := 0.0
+var elem_ice_attach_atk_mult := 0.0
+var elem_thunder_attach_atk_mult := 0.0
+var elem_poison_attach_atk_mult := 0.0
+var cooldown_sec_total := 0.0
+var duration_sec_total := 0.0
+var tick_interval_sec_total := 0.0
+# DMG 层(按来源细分)：(1 + dmg_all_pct + dmg_[source]_pct) 同层加和
+var dmg_all_pct := 0.0
+var dmg_slash_pct := 0.0
+var dmg_bullet_pct := 0.0
+var dmg_combo_pct := 0.0
+var dmg_trail_pct := 0.0
+var dmg_sword_pct := 0.0
+var dmg_summon_pct := 0.0
+# ELEM 层(按四元素细分)：(1 + elem_all_pct + elem_[type]_pct) 仅在 info.element != "" 时启用
+var elem_all_pct := 0.0
+var elem_fire_pct := 0.0
+var elem_ice_pct := 0.0
+var elem_thunder_pct := 0.0
+var elem_poison_pct := 0.0
+# 元素挂载触发率(由子弹/剑/球等持续命中触发对应元素 DoT/控制)
+var elem_proc_fire := 0.0
+var elem_proc_ice := 0.0
+var elem_proc_thunder := 0.0
+var elem_proc_poison := 0.0
 var chapter_acquired_once: Dictionary = {}
 var force_legendary_upgrade_count := 0
 var _trigger_ring_fade_t := 0.0
@@ -97,6 +144,69 @@ var steadfast_active := false
 var stillness_stack_timer := 0.0
 var stillness_move_grace_timer := 0.0
 var stillness_stacks := 0
+
+
+var trigger_dispatcher: Node = null
+
+# v6 applies_<elem> 按卡牌路径分组缓存（每次 _rebuild_upgrades 末段重建）
+# {"bullet": {"fire": bool, "ice": bool, "thunder": bool, "poison": bool}, "sword": {...}, ...}
+var current_applies: Dictionary = {}
+
+# Phase 3 SR 状态字段
+var kill_stack_count: int = 0
+var kill_stack_timer: float = 0.0
+var revive_used: bool = false
+var boss_target_active: bool = false
+
+# Phase 4 v6 召唤数量（AttrEngine 写入；SummonAbilityManager 读取）
+var summon_king_count: int = 0
+var summon_god_count: int = 0
+var summon_gorilla_count: int = 0
+var summon_thunder_count: int = 0
+var summon_bear_count: int = 0
+var summon_snake_count: int = 0
+var summon_fire_count: int = 0
+# sr=44 summon_pact buffs（每次 rebuild 重置；on_rebuild 中累加）
+var summon_size_pct: float = 0.0
+var summon_atk_speed_pct: float = 0.0
+
+# Phase 5 SR 状态字段
+var on_hit_window_timer: float = 0.0     # sr=1 on_hit_window 受击触发限时增伤窗口
+var trail_width_pct_total: float = 0.0   # sr=29 trail_width 累加
+var stand_guard_timer: float = 0.0       # sr=9 stand_guard 累计静止时长
+var stand_guard_active: bool = false     # sr=9 stand_guard 当前是否激活
+var combo_charge_time: float = 0.0       # sr=21 combo_charge 蓄力时长
+var bullet_homing_enabled: bool = false  # sr=12 bullet_homing 标记
+var bullet_mirror_mult: float = 0.0      # sr=16 bullet_mirror 回弹伤害倍率(0=关)
+var iframe_cd_timer: float = 0.0         # sr=10 iframe_on_hit CD 计时
+var flame_walk_timer: float = 0.0        # sr=5 trail_burn_walk tick 计时
+var aura_tick_timer: float = 0.0         # sr=3 aura tick 计时
+
+# Phase 6 SR 字段
+var trail_multi_count: int = 0           # sr=24 trail_multi 多重轨迹（影响 path_hit_pad）
+var trail_pierce_obstacles: bool = false # sr=28 trail_pierce（占位）
+
+# Phase 7 sr=40 sword units（6 张剑单位 attr_code 13~18）
+var sword_guard_count: int = 0
+var sword_blood_count: int = 0
+var sword_flame_count: int = 0
+var sword_thunder_count: int = 0
+var sword_poison_count: int = 0
+var sword_frost_count: int = 0
+# Phase 7 sword buffs（sr=38/41/42/43）
+var sword_count_mult: float = 1.0        # sr=38 sword_double：剑数倍率
+var sword_length_pct: float = 0.0        # sr=41 sword_length：剑半径加成
+var sword_speed_pct: float = 0.0         # sr=42 sword_speed：旋转角速度加成
+var sword_dmg_pct: float = 0.0           # sr=43 sword_dmg：剑伤加成
+
+# Phase 7 orb buffs（sr=33/34/36 等静态字段）
+var orb_field_pct: float = 0.0           # sr=33 orb_field：场上球数量百分比
+var orb_pickup_radius_pct: float = 0.0   # sr=34 orb_magnet：拾取半径百分比
+var orb_line_magnet_pct: float = 0.0     # sr=34 orb_magnet：划线磁吸百分比
+var orb_glow_dmg_pct: float = 0.0        # sr=36 orb_glow：拾取后下一斩击增伤
+var orb_glow_pending_active: bool = false  # 下一斩击是否启用 orb_glow buff
+var orb_mark_dup_chance: float = 0.0     # sr=32 orb_mark：拾取后复制概率
+var orb_tide_interval_sec: float = 0.0   # sr=31 orb_tide：周期生成间隔（>0 启用）
 const STILLNESS_MAX_STACKS := 15
 const STILLNESS_CRIT_PER_STACK := 0.03
 var _last_position := Vector2.ZERO
@@ -120,6 +230,25 @@ func _ready() -> void:
 	path_line.width = GameConfig.scale_world(PATH_LINE_WIDTH)
 	path_line.default_color = PATH_LINE_COLOR
 	path_line.top_level = true
+	trigger_dispatcher = TriggerDispatcherT.new()
+	trigger_dispatcher.name = "TriggerDispatcher"
+	add_child(trigger_dispatcher)
+	trigger_dispatcher.setup(self)
+	# Phase 3 dispatcher hooks（不是节点，直接订阅 EventBus）
+	if not EventBus.monster_killed.is_connected(_on_sr_monster_killed):
+		EventBus.monster_killed.connect(_on_sr_monster_killed)
+	if not EventBus.stage_started.is_connected(_on_sr_stage_started):
+		EventBus.stage_started.connect(_on_sr_stage_started)
+
+
+func _on_sr_monster_killed(monster: Node) -> void:
+	SpecialRuleDispatcherT.on_kill(self, monster)
+
+
+func _on_sr_stage_started(_stage_idx: int) -> void:
+	SpecialRuleDispatcherT.on_stage_start(self)
+	# 新关开始时，boss_target 可能改变了 → rebuild 让 boss 检测生效
+	_rebuild_upgrades()
 
 
 func _load_base_stats() -> void:
@@ -209,7 +338,8 @@ func get_effective_radius() -> float:
 
 
 func get_path_hit_pad() -> float:
-	return get_effective_radius() * PATH_HIT_PAD_RATIO
+	# Phase 6 sr=24 trail_multi：每张卡 extra_count 增加 hit pad，约等于"多重轨迹"扫描宽度
+	return get_effective_radius() * PATH_HIT_PAD_RATIO * (1.0 + float(trail_multi_count) * 0.6)
 
 
 func get_trigger_radius() -> float:
@@ -527,6 +657,14 @@ func _finish_attack(combat: CombatDirector) -> void:
 	_play_anim(SpriteHelper.ANIM_IDLE)
 	combat.consume_round_attack()
 	combat.begin_resolve(self)
+	# Phase 5 sr=22 combo_shuriken：斩击末段 spawn 辅助子弹
+	var battle := get_tree().get_first_node_in_group("battle")
+	if battle and battle.abilities:
+		SpecialRuleDispatcherT.on_slash_end(self, battle.abilities)
+		# Phase 6 sr=26 trail_slash_wave：末段 spawn 推开 AOE
+		SpecialRuleDispatcherT.on_slash_wave(self, battle.abilities, global_position)
+		# Phase 6 sr=25 trail_elem_field：沿 path 生成元素场域
+		SpecialRuleDispatcherT.on_trail_field_spawn(self, battle.abilities, attack_path)
 	attack_path.clear()
 	_update_path_line()
 
@@ -592,16 +730,12 @@ func update_combo_display(delta: float) -> void:
 
 
 func get_ability_damage(mult: float) -> int:
-	return int(max(1, round(base_attack * attack_power_scale * bonus_attack_mult * mult)))
+	# Sheet3 L1+L2 折叠进 raw：base × (1 + atk_pct_total) × scale × bonus_atk × weapon_mult
+	return int(max(1, round(base_attack * (1.0 + atk_pct_total) * attack_power_scale * bonus_attack_mult * mult)))
 
 
 func get_auto_bullet_damage() -> int:
-	var mult := float(GameConfig.get_player_value("auto_bullet_damage_mult", 0.2))
-	var dmg := float(get_ability_damage(1)) * turn_buff_attack_mult * mult
-	if get_upgrade_level("spirit_bomb") > 0:
-		var def := GameConfig.get_upgrade("spirit_bomb")
-		dmg *= float(def.get("apply_value", 1.3))
-	return int(max(1, round(dmg)))
+	return make_auto_bullet_damage().raw_amount
 
 
 func has_spirit_bomb() -> bool:
@@ -614,10 +748,6 @@ func has_pierce_bullet() -> bool:
 
 func has_mirror_bullet() -> bool:
 	return get_upgrade_level("mirror_bullet") > 0
-
-
-func get_bounce_bullet_count() -> int:
-	return get_upgrade_level("bounce_bullet")
 
 
 func get_laser_blast_chance() -> float:
@@ -634,6 +764,8 @@ func register_combo_hit() -> float:
 		return combo_count
 	combo_hit_count += 1
 	var inc := _combo_hit_increment()
+	# Phase 3 sr=19 combo_count_mult：连击数倍率
+	inc = SpecialRuleDispatcherT.transform_combo_inc(self, inc)
 	combo_count += inc
 	EventBus.combo_changed.emit(combo_hit_count)
 	return combo_count
@@ -652,13 +784,101 @@ func roll_crit_damage(raw: float) -> Dictionary:
 
 
 func get_attack_damage(combo: float) -> Dictionary:
-	var bonus := 1.0 + combo_damage_bonus * float(combo)
-	var raw := base_attack * attack_power_scale * turn_buff_attack_mult * bonus * slash_damage_mult * bonus_attack_mult
+	var info := make_slash_damage(combo)
+	return {"amount": info.raw_amount, "is_crit": info.is_crit_resolved}
+
+
+# === DamageInfo 工厂 ===
+# 通用工厂：构造 DamageInfo 并写入当前玩家面板快照。
+# Sheet3 L1+L2 已折叠到 raw_amount（emitter 端 base × (1+atk_pct_total) × weapon_mult）；
+# L3-L8 由 DamageResolver 基于此处快照独立计算。
+func make_damage(source: String, weapon_mult: float, category: String, element: String = "", can_crit: bool = true, is_dot: bool = false) -> DamageInfo:
+	var info := DamageInfo.make(source, category, weapon_mult, element, can_crit, is_dot)
+	# L1 ATK 已折叠到 emitter 端 raw_amount（见 get_ability_damage）；此字段仅给 ElementEffectManager 用作 DoT 基底
+	info.snapshot_atk_with_pct = base_attack * (1.0 + atk_pct_total) * attack_power_scale * bonus_attack_mult * turn_buff_attack_mult
+	info.snapshot_crit_rate = get_effective_crit_rate()
+	info.snapshot_crit_dmg = crit_damage + bonus_crit_damage
+	# L3 DMG 同层加和
+	var dmg_src_pct := 0.0
+	match category:
+		"slash":  dmg_src_pct = dmg_slash_pct
+		"bullet": dmg_src_pct = dmg_bullet_pct
+		"combo":  dmg_src_pct = dmg_combo_pct
+		"trail":  dmg_src_pct = dmg_trail_pct
+		"sword":  dmg_src_pct = dmg_sword_pct
+		"summon": dmg_src_pct = dmg_summon_pct
+		_: dmg_src_pct = 0.0
+	info.snapshot_dmg_all_pct = dmg_all_pct
+	info.snapshot_dmg_source_pct = dmg_src_pct
+	# L4 COMBO 默认 1.0；make_slash_damage 内单独覆盖
+	info.snapshot_combo_mult = 1.0
+	# L8 ELEM 同层加和
+	var elem_pct := 0.0
+	match element:
+		"fire":    elem_pct = elem_fire_pct
+		"ice":     elem_pct = elem_ice_pct
+		"thunder": elem_pct = elem_thunder_pct
+		"poison":  elem_pct = elem_poison_pct
+		_: elem_pct = 0.0
+	info.snapshot_elem_pct = (elem_all_pct + elem_pct) if element != "" else 0.0
+	# Sheet4 元素状态注入：按 category 查 current_applies；非伤害卡 path 没有 applies
+	var applies: Dictionary = current_applies.get(category, {})
+	info.applies_fire = bool(applies.get("fire", false))
+	info.applies_ice = bool(applies.get("ice", false))
+	info.applies_thunder = bool(applies.get("thunder", false))
+	info.applies_poison = bool(applies.get("poison", false))
+	info.snapshot_elem_proc_freq_pct = elem_proc_freq_pct
+	info.snapshot_slow_pct_bonus = slow_pct_bonus
+	info.snapshot_chain_targets_bonus = chain_targets_bonus
+	return info
+
+
+# 斩击主路径：raw = base × (1+atk_pct) × scale × bonus_atk × slash_dmg_mult；combo 进 snapshot_combo_mult
+func make_slash_damage(combo: float) -> DamageInfo:
+	var info := make_damage("slash_main", 1.0, "slash", "", true, false)
+	var raw := base_attack * (1.0 + atk_pct_total) * attack_power_scale * turn_buff_attack_mult * slash_damage_mult * bonus_attack_mult
 	var charge_lv := get_upgrade_level("charge_strike")
 	if charge_lv > 0 and charge_strike_time > 0.05:
+		# v5 charge_strike 仍可生效（v6 暂未定义；存在就用）
 		var charge_bonus := clampf(charge_strike_time / 3.0, 0.0, 1.0)
 		raw *= 1.0 + charge_bonus * (0.45 + 0.12 * float(charge_lv))
-	return roll_crit_damage(raw)
+	# Phase 7 sr=36 orb_glow：拾取后下一斩击吃 buff
+	if orb_glow_pending_active and orb_glow_dmg_pct > 0.0:
+		raw *= 1.0 + orb_glow_dmg_pct
+		orb_glow_pending_active = false
+	info.raw_amount = int(max(1, round(raw)))
+	# COMBO 层走 snapshot；resolver 计算 (1 + combo_damage_bonus × combo)
+	info.snapshot_combo_mult = 1.0 + combo_damage_bonus * float(combo)
+	# Phase 3 sr=23 combo_crit：连击里程碑必暴；预 set is_crit_resolved 让 resolver 跳 roll
+	if SpecialRuleDispatcherT.force_crit_on_combo(self, int(combo)):
+		info.is_crit_resolved = true
+	else:
+		info.is_crit_resolved = false
+	return info
+
+
+# 自动子弹路径：raw = base × (1+atk_pct) × scale × bonus_atk × auto_bullet_mult；不参与 combo
+func make_auto_bullet_damage() -> DamageInfo:
+	var has_spirit := get_upgrade_level("spirit_bomb") > 0
+	var source := "bullet_spirit" if has_spirit else "bullet_auto"
+	var info := make_damage(source, 0.5, "bullet", "", true, false)
+	var mult := float(GameConfig.get_player_value("auto_bullet_damage_mult", 0.2))
+	var dmg := float(get_ability_damage(1)) * turn_buff_attack_mult * mult
+	if has_spirit:
+		var def := GameConfig.get_upgrade("spirit_bomb")
+		dmg *= float(def.get("apply_value", 1.3))
+	info.raw_amount = int(max(1, round(dmg)))
+	info.is_crit_resolved = false
+	return info
+
+
+# 通用技能伤害工厂：raw 折叠 ATK × WEAPON_mult；crit/combo/dmg_*/elem_* 全部交 resolver
+func make_ability_damage(source: String, mult: float, category: String, element: String = "", can_crit: bool = true, is_dot: bool = false) -> DamageInfo:
+	var info := make_damage(source, mult, category, element, can_crit, is_dot)
+	info.raw_amount = get_ability_damage(mult)
+	# crit roll 留给 resolver
+	info.is_crit_resolved = false
+	return info
 
 
 func take_damage(amount: int) -> int:
@@ -672,8 +892,15 @@ func take_damage(amount: int) -> int:
 		if battle and battle.hud:
 			battle.hud.show_message("圣盾抵挡", 0.9)
 		return 0
-	var final_damage := int(max(1, round(float(amount) * maxf(0.2, 1.0 - bonus_damage_reduction))))
+	# Phase 5 sr=10 iframe_on_hit：CD ≤ 0 时本次伤害免疫；sr=1 on_hit_window：开启 buff 窗口
+	if SpecialRuleDispatcherT.on_player_damaged(self, amount):
+		return 0
+	var final_damage := DamageResolver.compute_player_incoming(amount, bonus_damage_reduction)
 	hp = maxi(0, hp - final_damage)
+	# Phase 3 sr=7 revive：致死前给一次机会
+	if hp <= 0:
+		if SpecialRuleDispatcherT.on_death(self):
+			final_damage = maxi(0, final_damage - 1)  # 复活：当次伤害不致死
 	invincible_timer = float(GameConfig.get_player_value("invincible_time", 0.45))
 	damage_flash_timer = 0.42
 	queue_redraw()
@@ -708,11 +935,9 @@ func apply_upgrade(upgrade: Dictionary) -> void:
 		chapter_acquired_once[id] = true
 	upgrade_stacks[id] = int(upgrade_stacks.get(id, 0)) + 1
 	_rebuild_upgrades()
-	if id == "super_mushroom":
-		hp = max_hp
-		queue_redraw()
-	elif id == "holy_shield":
-		grant_holy_shield_immediate()
+	# v6 sv_life_spring 等 on_pickup 卡：选卡瞬间也算一次拾取触发
+	if trigger_dispatcher != null and str(def.get("trigger", "")) == "on_pickup":
+		trigger_dispatcher.fire_on_pickup()
 
 
 func is_upgrade_pool_blocked(id: String) -> bool:
@@ -856,37 +1081,97 @@ func _rebuild_upgrades() -> void:
 	luck_roll_blue_offset = 0.0
 	luck_roll_purple_offset = 0.0
 	luck_roll_orange_offset = 0.0
-	for id in upgrade_stacks.keys():
-		var level := int(upgrade_stacks[id])
-		var def := GameConfig.get_upgrade(id)
-		if def.is_empty():
-			continue
-		var apply_type := str(def.get("apply_type", ""))
-		match apply_type:
-			"ki_mult":
-				base_ki = round(base_ki * pow(float(def.get("apply_value", 1.2)), level))
-			"bullet_count":
-				bullet_count += level
-			"crit_rate":
-				crit_rate += float(def.get("apply_value", 0.05)) * level
-			"godspeed":
-				attack_speed_mult *= pow(float(def.get("apply_value", 1.3)), level)
-				ki_regen_mult *= pow(0.85, float(level))
-			"luck_roll":
-				luck_roll_blue_offset -= 0.04 * float(level)
-				luck_roll_purple_offset += 0.03 * float(level)
-				luck_roll_orange_offset += 0.01 * float(level)
-			"super_mushroom":
-				if level > 0:
-					max_hp = int(round(float(max_hp) * 1.2))
-					size_scale *= 1.5
-					slash_damage_mult *= 1.3
-			"combo_mult":
-				pass
-			"barrage_king":
-				if level > 0:
-					bullet_count += 3
-					move_speed_penalty_mult *= 0.8
+	# v2 分层字段重置(每次 _rebuild_upgrades 都从零重建)
+	atk_pct_total = 0.0
+	dmg_all_pct = 0.0
+	dmg_slash_pct = 0.0
+	dmg_bullet_pct = 0.0
+	dmg_combo_pct = 0.0
+	dmg_trail_pct = 0.0
+	dmg_sword_pct = 0.0
+	dmg_summon_pct = 0.0
+	elem_all_pct = 0.0
+	elem_fire_pct = 0.0
+	elem_ice_pct = 0.0
+	elem_thunder_pct = 0.0
+	elem_poison_pct = 0.0
+	elem_proc_fire = 0.0
+	elem_proc_ice = 0.0
+	elem_proc_thunder = 0.0
+	elem_proc_poison = 0.0
+	# v6 表驱动 attr 累加字段重置
+	atk_speed_pct_total = 0.0
+	move_speed_pct_total = 0.0
+	max_hp_pct_total = 0.0
+	ki_max_pct_total = 0.0
+	ki_regen_pct_total = 0.0
+	dodge_pct_total = 0.0
+	luck_pct_total = 0.0
+	size_pct_total = 0.0
+	bullet_count_bonus = 0
+	elem_proc_freq_pct = 0.0
+	slow_pct_bonus = 0.0
+	chain_targets_bonus = 0
+	elem_fire_attach_atk_mult = 0.0
+	elem_ice_attach_atk_mult = 0.0
+	elem_thunder_attach_atk_mult = 0.0
+	elem_poison_attach_atk_mult = 0.0
+	cooldown_sec_total = 0.0
+	duration_sec_total = 0.0
+	tick_interval_sec_total = 0.0
+	# Phase 4 召唤
+	summon_king_count = 0
+	summon_god_count = 0
+	summon_gorilla_count = 0
+	summon_thunder_count = 0
+	summon_bear_count = 0
+	summon_snake_count = 0
+	summon_fire_count = 0
+	summon_size_pct = 0.0
+	summon_atk_speed_pct = 0.0
+	# Phase 5 SR 静态字段重置（动态计时不重置）
+	trail_width_pct_total = 0.0
+	bullet_homing_enabled = false
+	bullet_mirror_mult = 0.0
+	stand_guard_active = false
+	# Phase 6 SR 静态字段重置
+	trail_multi_count = 0
+	trail_pierce_obstacles = false
+	# Phase 7 sword 字段重置
+	sword_guard_count = 0
+	sword_blood_count = 0
+	sword_flame_count = 0
+	sword_thunder_count = 0
+	sword_poison_count = 0
+	sword_frost_count = 0
+	sword_count_mult = 1.0
+	sword_length_pct = 0.0
+	sword_speed_pct = 0.0
+	sword_dmg_pct = 0.0
+	# Phase 7 orb 字段重置（pending buff / dup_chance 等动态状态不重置）
+	orb_field_pct = 0.0
+	orb_pickup_radius_pct = 0.0
+	orb_line_magnet_pct = 0.0
+	orb_glow_dmg_pct = 0.0
+	orb_mark_dup_chance = 0.0
+	orb_tide_interval_sec = 0.0
+
+	# 表驱动写入：遍历所有 v6 卡，AttrEngine 按 trigger 判断是否激活
+	AttrEngineT.apply_cards(self, upgrade_stacks, GameConfig.upgrades_by_id)
+
+	# v6 attr 累加 -> 实际生效字段
+	attack_speed_mult = 1.0 + atk_speed_pct_total
+	ki_regen_mult = 1.0 + ki_regen_pct_total
+	move_speed_penalty_mult = maxf(0.05, 1.0 + move_speed_pct_total)
+	size_scale = maxf(0.1, 1.0 + size_pct_total)
+	bullet_count = maxi(0, bullet_count + bullet_count_bonus)
+	max_hp = maxi(1, int(round(float(max_hp) * (1.0 + max_hp_pct_total))))
+	base_ki = base_ki * (1.0 + ki_max_pct_total)
+	# 闪避 / 幸运 累加（暂以加法形式存入对应字段）
+	bonus_crit_rate += 0.0  # crit_rate 由 attr_code 7 直接累加到 crit_rate 字段（_is_active 决定）
+	# 幸运按 1% per luck_pct -> orange/purple offsets 简单转换：luck_pct 直接灌进 orange offset
+	luck_roll_orange_offset += luck_pct_total
+
 	if LobbyState:
 		var equip := LobbyState.get_battle_modifiers()
 		base_attack += float(equip.get("attack", 0.0))
@@ -899,6 +1184,77 @@ func _rebuild_upgrades() -> void:
 	_apply_sprite_scale()
 	sync_auto_bullet_anim_speed()
 	_queue_charge_flame_redraw()
+	# Phase 5 sr=29 trail_width：path_line 加宽
+	if path_line:
+		path_line.width = GameConfig.scale_world(PATH_LINE_WIDTH) * (1.0 + trail_width_pct_total)
+	# v6 元素状态注入：按 card_path 分组的 applies_<elem>
+	_rebuild_current_applies()
+	# Phase 3 SR 调整 player 字段（boss_target / kill_stack 累积等）
+	SpecialRuleDispatcherT.on_rebuild(self)
+	# 把 trigger 卡注册给 dispatcher
+	if trigger_dispatcher != null:
+		trigger_dispatcher.register(AttrEngineT.collect_trigger_bindings(upgrade_stacks, GameConfig.upgrades_by_id))
+
+
+# 遍历当前装备的 v6 卡：把 applies_<elem>=1 按 emitter category 累积到 current_applies。
+# 让 make_damage 按 emitter category 取出对应 4 个布尔写到 DamageInfo。
+#
+# 注：v6 表 card_path='element' 仅表示走 ELEM 层增伤，不代表 emitter 作用域。
+# 真实作用域按卡 id 前缀映射：
+#   elem_*_bullet, basic_flame_walk → "bullet"
+#   sword_*  → "sword"
+#   trail_*  → "trail"
+#   orb_*    → "trail"（球体生成场域 / 命中走轨迹通道；待 Phase 3 special_rule 细化）
+#   summon_* → "summon"
+#   combo_*  → "combo"（含 fireball/water_tornado/blade_storm/thunder）
+func _rebuild_current_applies() -> void:
+	current_applies = {}
+	for id in upgrade_stacks.keys():
+		var level := int(upgrade_stacks[id])
+		if level <= 0:
+			continue
+		var def: Dictionary = GameConfig.upgrades_by_id.get(id, {})
+		if def.is_empty():
+			continue
+		var has_any: bool = (int(def.get("applies_fire", 0)) != 0
+			or int(def.get("applies_ice", 0)) != 0
+			or int(def.get("applies_thunder", 0)) != 0
+			or int(def.get("applies_poison", 0)) != 0)
+		if not has_any:
+			continue
+		var cat: String = _infer_emitter_category(id, str(def.get("card_path", "")))
+		if cat.is_empty():
+			continue
+		var bucket: Dictionary = current_applies.get(cat, {"fire": false, "ice": false, "thunder": false, "poison": false})
+		if int(def.get("applies_fire", 0)) != 0:
+			bucket["fire"] = true
+		if int(def.get("applies_ice", 0)) != 0:
+			bucket["ice"] = true
+		if int(def.get("applies_thunder", 0)) != 0:
+			bucket["thunder"] = true
+		if int(def.get("applies_poison", 0)) != 0:
+			bucket["poison"] = true
+		current_applies[cat] = bucket
+
+
+func _infer_emitter_category(card_id: String, card_path: String) -> String:
+	if card_path == "combo":
+		return "combo"
+	if card_id.begins_with("elem_") and card_id.ends_with("_bullet"):
+		return "bullet"
+	if card_id == "basic_flame_walk":
+		return "bullet"
+	if card_id.begins_with("sword_"):
+		return "sword"
+	if card_id.begins_with("trail_"):
+		return "trail"
+	if card_id.begins_with("orb_"):
+		return "trail"
+	if card_id.begins_with("summon_"):
+		return "summon"
+	if card_id.begins_with("combo_"):
+		return "combo"
+	return ""
 
 
 func grant_force_legendary_upgrade() -> void:
@@ -1326,6 +1682,9 @@ func _update_fail_death_last_frame_speed(anim_sprite: AnimatedSprite2D) -> void:
 func _process(delta: float) -> void:
 	_update_draw_start_fx(delta)
 	_tick_charge_flame_anim(delta)
+	if trigger_dispatcher != null:
+		trigger_dispatcher.tick(delta)
+	SpecialRuleDispatcherT.on_tick(self, delta)
 	if is_fail_death_pose():
 		path_line.visible = false
 		queue_redraw()

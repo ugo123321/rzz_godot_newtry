@@ -229,17 +229,37 @@ func _apply_hit(player: BattlePlayer, hit: Dictionary) -> void:
 	var dash_ang: float = (hit.pos - player.global_position).angle()
 	spawn_afterimage(hit.pos, dash_ang)
 
-	var dmg_info: Dictionary = player.get_attack_damage(player.combo_count)
-	var result: Dictionary = monster.take_damage(int(dmg_info.amount), player.global_position)
+	# 斩击主路径迁移到 DamageInfo：category=slash，可暴击，no element
+	var info := player.make_slash_damage(player.combo_count)
+	var result: Dictionary = {}
+	if monster.has_method("take_damage_info"):
+		result = monster.take_damage_info(info, player.global_position)
+	else:
+		result = monster.take_damage(info.raw_amount, player.global_position)
 	if bool(result.get("blocked_by_shield", false)):
 		spawn_damage_number(hit.pos, 0, false, false, Color("#9fb8d8"))
 		return
+	# crit 由 resolver 统一 roll；这里读结果
+	var is_crit := bool(result.get("is_crit", false))
 	var dealt_damage := int(result.get("damage", 0))
+	# Sheet4 元素状态注入（仅当伤害实际生效；slash 通常无 applies_<elem>，但 future-proof）
+	if dealt_damage > 0:
+		ElementEffectManager.try_apply(monster, info, player)
 	if dealt_damage > 0 and not bool(result.get("started_dying", false)):
 		var extra_base := player.get_ability_damage(1.0)
 		var extra_damage := LobbyState.roll_weapon_extra_damage(extra_base)
 		if extra_damage > 0 and not _is_non_targetable(monster):
-			var extra_result: Dictionary = monster.take_damage(extra_damage, player.global_position)
+			# 武器额外伤害：物理 slash 类，标记为 is_extra，不暴击
+			var extra_info := DamageInfo.legacy(extra_damage)
+			extra_info.source = "slash_extra"
+			extra_info.category = "slash"
+			extra_info.is_extra = true
+			extra_info.can_crit = false
+			var extra_result: Dictionary = {}
+			if monster.has_method("take_damage_info"):
+				extra_result = monster.take_damage_info(extra_info, player.global_position)
+			else:
+				extra_result = monster.take_damage(extra_damage, player.global_position)
 			var actual_extra := int(extra_result.get("damage", 0))
 			if actual_extra > 0:
 				spawn_damage_number(hit.pos + Vector2(0.0, -10.0), actual_extra, false, false, Color("#ffd27a"))
@@ -247,17 +267,17 @@ func _apply_hit(player: BattlePlayer, hit: Dictionary) -> void:
 				result["started_dying"] = true
 			result["damage"] = dealt_damage + actual_extra
 	var combo_count: float = player.register_combo_hit()
-	spawn_damage_number(hit.pos, int(result.get("damage", 0)), bool(dmg_info.is_crit))
+	spawn_damage_number(hit.pos, int(result.get("damage", 0)), is_crit)
 	var battle := get_tree().get_first_node_in_group("battle")
 	if battle:
 		if int(result.get("damage", 0)) > 0:
-			var fx_scale := 1.15 if bool(dmg_info.is_crit) else 1.0
+			var fx_scale := 1.15 if is_crit else 1.0
 			spawn_slash_hit_fx(hit.pos, seg_ang, fx_scale)
-		if bool(dmg_info.is_crit):
+		if is_crit:
 			battle.shake_camera(6.0 + mini(float(combo_count) * 0.15, 4.0), 0.14)
 		else:
 			battle.shake_camera(3.0, 0.08)
-		AudioManager.play_hit(bool(dmg_info.is_crit))
+		AudioManager.play_hit(is_crit)
 	player.trigger_combo_abilities(int(combo_count), monster.global_position)
 
 	if battle and battle.abilities:
@@ -367,7 +387,8 @@ func try_ice_burst(player: BattlePlayer, center: Vector2) -> void:
 	if battle == null or battle.spawner == null:
 		return
 	var monsters: Array = battle.spawner.get_active_monsters()
-	var dmg := player.get_ability_damage(0.30)
+	# 冰冻爆破：category=combo, element=ice，可暴击。v2 时怪物 vuln_ice/elem_resist_ice 生效
+	var info := player.make_ability_damage("combo_ice_burst", 0.30, "combo", "ice", true, false)
 	var radius := 90.0
 	for m in monsters:
 		if not is_instance_valid(m) or m.get("alive") == false:
@@ -380,8 +401,12 @@ func try_ice_burst(player: BattlePlayer, center: Vector2) -> void:
 		if m is BattleMonster:
 			m.freeze(1.8)
 			m.vulnerable_mark = true
-		if m.has_method("take_damage"):
-			var result: Dictionary = m.take_damage(dmg, center)
+		var result: Dictionary = {}
+		if m.has_method("take_damage_info"):
+			result = m.take_damage_info(info, center)
+		elif m.has_method("take_damage"):
+			result = m.take_damage(info.raw_amount, center)
+		if not result.is_empty():
 			spawn_damage_number(m.global_position, int(result.get("damage", 0)), false)
 			if bool(result.get("started_dying", false)):
 				EventBus.monster_killed.emit(m)

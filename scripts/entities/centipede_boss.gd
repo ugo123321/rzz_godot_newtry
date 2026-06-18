@@ -24,6 +24,17 @@ var segment_radius := 23.0
 var death_fade_timer := 0.0
 var death_fade_dur := 0.35
 
+# v2 元素抗性/易伤(从 bosses.json 加载)
+var elem_resist_fire := 0.0
+var elem_resist_ice := 0.0
+var elem_resist_thunder := 0.0
+var elem_resist_poison := 0.0
+var vuln_physical := 0.0
+var vuln_fire := 0.0
+var vuln_ice := 0.0
+var vuln_thunder := 0.0
+var vuln_poison := 0.0
+
 var path_start := Vector2.ZERO
 var path_end := Vector2.ZERO
 var path_length := 1.0
@@ -74,6 +85,16 @@ func _init_segments() -> void:
 	var scale := GameConfig.stage_stat_scale(stage_index)
 	var hp_each := int(round(float(cfg.get("segment_hp", 320)) * scale.hp))
 	defense = maxi(1, int(round(float(cfg.get("segment_def", 3)) * scale.def)))
+	# v2 元素抗性/易伤(默认 0 = 中立)
+	elem_resist_fire = float(cfg.get("elem_resist_fire", 0.0))
+	elem_resist_ice = float(cfg.get("elem_resist_ice", 0.0))
+	elem_resist_thunder = float(cfg.get("elem_resist_thunder", 0.0))
+	elem_resist_poison = float(cfg.get("elem_resist_poison", 0.0))
+	vuln_physical = float(cfg.get("vuln_physical", 0.0))
+	vuln_fire = float(cfg.get("vuln_fire", 0.0))
+	vuln_ice = float(cfg.get("vuln_ice", 0.0))
+	vuln_thunder = float(cfg.get("vuln_thunder", 0.0))
+	vuln_poison = float(cfg.get("vuln_poison", 0.0))
 	var hp_scale := float(cfg.get("hp_scale", 3.5))
 	max_hp = int(round(count * hp_each * hp_scale))
 	hp = max_hp
@@ -141,15 +162,39 @@ func _update_segment_positions() -> void:
 
 
 func apply_damage(raw_damage: int, hit_segment, _from_pos: Vector2) -> Dictionary:
+	return _resolve_apply_damage(DamageInfo.legacy(raw_damage), hit_segment, _from_pos)
+
+
+# 新路径：接收 DamageInfo (供 v2 emitter 用)
+func apply_damage_info(info: DamageInfo, hit_segment, _from_pos: Vector2) -> Dictionary:
+	return _resolve_apply_damage(info, hit_segment, _from_pos)
+
+
+func _resolve_apply_damage(info: DamageInfo, hit_segment, _from_pos: Vector2) -> Dictionary:
 	if defeated or phase != Phase.ACTIVE:
 		return {"damage": 0, "is_crit": false}
-	var mult := 2.0 if hit_segment.vulnerable_mark else 1.0
-	hit_segment.vulnerable_mark = false
-	var actual := maxi(1, int(round((float(raw_damage) - float(defense)) * mult)))
+	var target_stats := {
+		"defense": defense,
+		"vulnerable_mark": hit_segment.vulnerable_mark,
+		"vuln_physical": vuln_physical,
+		"vuln_fire": vuln_fire,
+		"vuln_ice": vuln_ice,
+		"vuln_thunder": vuln_thunder,
+		"vuln_poison": vuln_poison,
+		"elem_resist_fire": elem_resist_fire,
+		"elem_resist_ice": elem_resist_ice,
+		"elem_resist_thunder": elem_resist_thunder,
+		"elem_resist_poison": elem_resist_poison,
+		"stage_index": stage_index,
+	}
+	var res: Dictionary = DamageResolver.compute_damage(target_stats, info)
+	if bool(res.get("vuln_consumed", false)):
+		hit_segment.vulnerable_mark = false
+	var actual := int(res.get("damage", 0))
 	hp = maxi(0, hp - actual)
 	if hp <= 0:
 		_defeat()
-	return {"damage": actual, "is_crit": false}
+	return {"damage": actual, "is_crit": bool(res.get("is_crit", false))}
 
 
 func apply_burn_dot(_duration: float, _dps: int) -> void:

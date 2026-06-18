@@ -20,11 +20,34 @@ func generate_choices(player: Node) -> void:
 	for i in range(3):
 		if available.is_empty():
 			var fallback := pool if not pool.is_empty() else _build_pool("", player)
-			choices.append(MathUtils.pick_random(fallback if not fallback.is_empty() else GameConfig.upgrades))
+			if fallback.is_empty():
+				fallback = GameConfig.upgrades
+			choices.append(_weighted_pick(fallback))
 		else:
-			var idx := randi() % available.size()
+			var idx := _weighted_index(available)
 			choices.append(available[idx])
 			available.remove_at(idx)
+
+
+func _weighted_index(arr: Array) -> int:
+	if arr.is_empty():
+		return 0
+	var total := 0.0
+	for u in arr:
+		total += maxf(0.0, float(u.get("pool_weight", 1.0)))
+	if total <= 0.0:
+		return randi() % arr.size()
+	var r := randf() * total
+	var acc := 0.0
+	for i in arr.size():
+		acc += maxf(0.0, float(arr[i].get("pool_weight", 1.0)))
+		if r <= acc:
+			return i
+	return arr.size() - 1
+
+
+func _weighted_pick(arr: Array) -> Dictionary:
+	return arr[_weighted_index(arr)]
 
 
 func _build_pool(rarity: String, player: Node) -> Array:
@@ -75,18 +98,23 @@ func select_upgrade(index: int, player: Node) -> Dictionary:
 func _roll_rarity(player: Node) -> String:
 	if player != null and player.has_method("consume_force_legendary_upgrade") and player.consume_force_legendary_upgrade():
 		return "orange"
+	var white_w := float(GameConfig.get_upgrade_fx("white").get("chance", 0.20))
 	var blue_w := float(GameConfig.get_upgrade_fx("blue").get("chance", 0.30))
 	var purple_w := float(GameConfig.get_upgrade_fx("purple").get("chance", 0.30))
 	var orange_w := float(GameConfig.get_upgrade_fx("orange").get("chance", 0.10))
+	if white_w <= 0.0:
+		white_w = 0.20
 	if player != null and player.has_method("get_luck_roll_offsets"):
 		var offsets: Dictionary = player.get_luck_roll_offsets()
 		blue_w = maxf(0.01, blue_w + float(offsets.get("blue", 0.0)))
 		purple_w = maxf(0.01, purple_w + float(offsets.get("purple", 0.0)))
 		orange_w = maxf(0.01, orange_w + float(offsets.get("orange", 0.0)))
-	var total: float = blue_w + purple_w + orange_w
+	var total: float = white_w + blue_w + purple_w + orange_w
 	var r := randf() * total
-	if r <= blue_w:
+	if r <= white_w:
+		return "white"
+	if r <= white_w + blue_w:
 		return "blue"
-	if r <= blue_w + purple_w:
+	if r <= white_w + blue_w + purple_w:
 		return "purple"
 	return "orange"

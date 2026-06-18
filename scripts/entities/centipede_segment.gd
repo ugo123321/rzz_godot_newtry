@@ -24,6 +24,13 @@ func take_damage(raw_damage: int, from_pos: Vector2) -> Dictionary:
 	return {"damage": 0, "is_crit": false}
 
 
+# 新路径：转发到 boss 的 apply_damage_info
+func take_damage_info(info: DamageInfo, from_pos: Vector2) -> Dictionary:
+	if boss_ref:
+		return boss_ref.apply_damage_info(info, self, from_pos)
+	return {"damage": 0, "is_crit": false}
+
+
 func apply_burn_dot(_duration: float, _dps: int) -> void:
 	pass
 

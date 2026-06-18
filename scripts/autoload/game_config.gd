@@ -11,6 +11,7 @@ var stages: Array = []
 var monsters: Dictionary = {}
 var player: Dictionary = {}
 var upgrades: Array = []
+var upgrades_by_id: Dictionary = {}
 var upgrade_fx: Dictionary = {}
 var tuning: Dictionary = {}
 var asset_mapping: Array = []
@@ -41,7 +42,10 @@ func reload() -> void:
 	player = {}
 	for row in _load_array("player"):
 		player[str(row.get("key", ""))] = row.get("value")
-	upgrades = _load_array("upgrades")
+	upgrades = _load_array("rewards_v6")
+	upgrades_by_id = {}
+	for u in upgrades:
+		upgrades_by_id[str(u.get("id", ""))] = u
 	upgrade_fx = {}
 	for row in _load_array("upgrade_fx"):
 		upgrade_fx[str(row.get("rarity", "blue"))] = row
@@ -110,10 +114,7 @@ func get_stage(index: int) -> Dictionary:
 
 
 func get_upgrade(id: String) -> Dictionary:
-	for u in upgrades:
-		if str(u.get("id", "")) == id:
-			return u
-	return {}
+	return upgrades_by_id.get(id, {})
 
 
 ## 升级特效是否在怪物图层下方绘制（1=下方，0=上方）。

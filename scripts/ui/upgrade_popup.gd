@@ -3,6 +3,7 @@ class_name UpgradePopup
 
 const ICON_SIZE := 48
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
+const PixelCardIconT = preload("res://scripts/ui/pixel_card_icon.gd")
 
 signal upgrade_picked(index: int)
 
@@ -26,8 +27,8 @@ func setup(battle_node: Node, manager: UpgradeManager) -> void:
 	_apply_panel_layout()
 	cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	cards.add_theme_constant_override("separation", 14)
-	_apply_label_font(title_label, 22)
-	_apply_label_font(rarity_label, 16)
+	_apply_label_font(title_label, 32)
+	_apply_label_font(rarity_label, 22)
 
 
 func _apply_label_font(label: Control, font_size: int) -> void:
@@ -118,51 +119,45 @@ func _calc_card_metrics(choice_count: int) -> Dictionary:
 	var sep := 14.0
 	var inner_pad := 18.0
 	var card_w: float = floor((panel_w - inner_pad * 2.0 - sep * float(n - 1)) / float(n))
-	card_w = clampf(card_w, 118.0, 188.0)
-	var card_h: float = clampf(panel_h * 0.52, 144.0, 220.0)
+	card_w = clampf(card_w, 140.0, 260.0)
+	var card_h: float = clampf(panel_h * 0.48, 280.0, 520.0)
+	var preview_h: float = clampf(card_h * 0.42, 110.0, 200.0)
 	return {
 		"card_size": Vector2(card_w, card_h),
-		"preview_h": clampf(card_h * 0.4, 64.0, 86.0),
-		"name_font": 16 if card_w < 150.0 else 18,
-		"desc_font": 12 if card_w < 150.0 else 14,
+		"preview_h": preview_h,
+		"icon_size": clampf(preview_h - 12.0, ICON_SIZE, preview_h),
+		"name_font": 20 if card_w < 170.0 else 24,
+		"desc_font": 14 if card_w < 170.0 else 17,
 	}
 
 
-func _create_icon_widget(upgrade: Dictionary) -> Control:
+func _create_icon_widget(upgrade: Dictionary, icon_size: float = float(ICON_SIZE)) -> Control:
 	var box := CenterContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
+	# 接入正式图：icon_file 指向 res://*.png 等
 	var icon_path := str(upgrade.get("icon_file", ""))
-	if icon_path.is_empty():
-		var fallback := Label.new()
-		fallback.text = str(upgrade.get("icon", "?"))
-		fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_apply_label_font(fallback, 26)
-		fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(fallback)
-		return box
+	if not icon_path.is_empty():
+		var texture := load(icon_path) as Texture2D
+		if texture != null:
+			var icon := TextureRect.new()
+			icon.texture = texture
+			icon.custom_minimum_size = Vector2(icon_size, icon_size)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			box.add_child(icon)
+			return box
 
-	var texture := load(icon_path) as Texture2D
-	if texture == null:
-		var missing := Label.new()
-		missing.text = str(upgrade.get("icon", "?"))
-		missing.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		missing.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_apply_label_font(missing, 26)
-		missing.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(missing)
-		return box
-
-	var icon := TextureRect.new()
-	icon.texture = texture
-	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(icon)
+	# 占位：像素图标（按 id 前缀 + applies_<elem> 程序化绘制）
+	var pixel := PixelCardIconT.new()
+	pixel.upgrade = upgrade
+	pixel.icon_size = icon_size
+	pixel.custom_minimum_size = Vector2(icon_size, icon_size)
+	pixel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(pixel)
 	return box
 
 
@@ -178,6 +173,7 @@ func _rebuild_cards() -> void:
 	var metrics: Dictionary = _calc_card_metrics(choice_count)
 	var card_size: Vector2 = metrics["card_size"]
 	var preview_h: float = metrics["preview_h"]
+	var icon_size: float = metrics["icon_size"]
 	var name_font: int = metrics["name_font"]
 	var desc_font: int = metrics["desc_font"]
 	var card_glow := float(_fx.get("card_glow", 0.12))
@@ -197,7 +193,7 @@ func _rebuild_cards() -> void:
 		vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		btn.add_child(vbox)
 
-		var icon_box := _create_icon_widget(upgrade)
+		var icon_box := _create_icon_widget(upgrade, icon_size)
 		icon_box.custom_minimum_size = Vector2(0, preview_h)
 		vbox.add_child(icon_box)
 
@@ -214,7 +210,10 @@ func _rebuild_cards() -> void:
 		vbox.add_child(name_label)
 
 		var desc_label := Label.new()
-		desc_label.text = str(upgrade.get("desc_cn", ""))
+		var desc_text := str(upgrade.get("desc_cn", ""))
+		if _is_element_applier(upgrade):
+			desc_text += "\n（元素附加效果将在下一版本生效）"
+		desc_label.text = desc_text
 		if stack > 0:
 			desc_label.text += "\nLv.%d" % (stack + 1)
 		desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -262,3 +261,11 @@ func _pick(index: int) -> void:
 
 func _ease_out(t: float) -> float:
 	return 1.0 - (1.0 - t) * (1.0 - t)
+
+
+# v6 schema：当卡的 applies_<elem> 任一为 1 时，提示玩家元素效果暂未生效（Phase 2 接通）
+func _is_element_applier(upgrade: Dictionary) -> bool:
+	return int(upgrade.get("applies_fire", 0)) != 0 \
+		or int(upgrade.get("applies_ice", 0)) != 0 \
+		or int(upgrade.get("applies_thunder", 0)) != 0 \
+		or int(upgrade.get("applies_poison", 0)) != 0

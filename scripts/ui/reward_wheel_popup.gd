@@ -7,7 +7,17 @@ const SLOT_COUNT := 6
 const SLOT_ANGLE := TAU / float(SLOT_COUNT)
 const SPIN_DURATION := 2.7
 const RESULT_HOLD_TIME := 1.25
-const WHEEL_RADIUS := 124.0
+const PANEL_MARGIN := 30.0
+const PANEL_MIN_SIZE := Vector2(350.0, 520.0)
+const WHEEL_PADDING := 16.0
+const BASE_WHEEL_RADIUS := 124.0
+const BASE_TITLE_FONT := 16
+const BASE_TIP_FONT := 14
+const BASE_SLOT_FONT := 10
+const BASE_SPIN_BTN_FONT := 16
+const BASE_SLOT_SIZE := Vector2(86.0, 66.0)
+const BASE_SLOT_ICON := 28.0
+const BASE_SPIN_BTN_HEIGHT := 42.0
 
 signal reward_finished(reward_text: String)
 
@@ -16,6 +26,7 @@ var _entries: Array[Dictionary] = []
 var _result_timer := 0.0
 var _selected_index := -1
 var _spinning := false
+var _wheel_radius := 124.0
 
 var _overlay: ColorRect
 var _panel: PanelContainer
@@ -108,7 +119,7 @@ func _build_ui() -> void:
 	add_child(_overlay)
 
 	_panel = PanelContainer.new()
-	_panel.custom_minimum_size = Vector2(350, 520)
+	_panel.custom_minimum_size = PANEL_MIN_SIZE
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_panel)
@@ -119,19 +130,29 @@ func _build_ui() -> void:
 	panel_style.set_border_width_all(3)
 	_panel.add_theme_stylebox_override("panel", panel_style)
 
+	var panel_margin := MarginContainer.new()
+	panel_margin.add_theme_constant_override("margin_left", 18)
+	panel_margin.add_theme_constant_override("margin_right", 18)
+	panel_margin.add_theme_constant_override("margin_top", 16)
+	panel_margin.add_theme_constant_override("margin_bottom", 16)
+	_panel.add_child(panel_margin)
+
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 12)
-	_panel.add_child(root)
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel_margin.add_child(root)
 
 	_title_label = Label.new()
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title_label.text = "奖励关 · 转盘房"
-	_title_label.add_theme_font_size_override("font_size", 16)
+	_title_label.add_theme_font_size_override("font_size", BASE_TITLE_FONT)
 	root.add_child(_title_label)
 
 	_wheel_wrap = Control.new()
-	_wheel_wrap.custom_minimum_size = Vector2(320, 360)
+	_wheel_wrap.custom_minimum_size = Vector2(280, 280)
 	_wheel_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_wheel_wrap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_wheel_wrap.clip_contents = false
 	_wheel_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_wheel_wrap)
@@ -157,12 +178,13 @@ func _build_ui() -> void:
 	_tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tip_label.text = ""
-	_tip_label.add_theme_font_size_override("font_size", 14)
+	_tip_label.add_theme_font_size_override("font_size", BASE_TIP_FONT)
 	root.add_child(_tip_label)
 
 	_spin_btn = Button.new()
 	_spin_btn.text = "抽 奖"
-	_spin_btn.custom_minimum_size = Vector2(0, 42)
+	_spin_btn.custom_minimum_size = Vector2(0, BASE_SPIN_BTN_HEIGHT)
+	_spin_btn.add_theme_font_size_override("font_size", BASE_SPIN_BTN_FONT)
 	_spin_btn.pressed.connect(_on_spin_pressed)
 	root.add_child(_spin_btn)
 
@@ -179,11 +201,11 @@ func _build_slots() -> void:
 	for i in range(_entries.size()):
 		var slot := VBoxContainer.new()
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.custom_minimum_size = Vector2(86, 66)
-		slot.size = slot.custom_minimum_size
+		slot.custom_minimum_size = BASE_SLOT_SIZE
+		slot.size = BASE_SLOT_SIZE
 
 		var icon := TextureRect.new()
-		icon.custom_minimum_size = Vector2(28, 28)
+		icon.custom_minimum_size = Vector2(BASE_SLOT_ICON, BASE_SLOT_ICON)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -195,7 +217,7 @@ func _build_slots() -> void:
 		var text := Label.new()
 		text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		text.text = str(_entries[i].get("display", ""))
-		text.add_theme_font_size_override("font_size", 10)
+		text.add_theme_font_size_override("font_size", BASE_SLOT_FONT)
 		slot.add_child(text)
 
 		PixelUi.apply_ui_font_tree(slot)
@@ -207,7 +229,7 @@ func _build_slots() -> void:
 
 func _layout_slots() -> void:
 	var center := _wheel.size * 0.5
-	var ring_r := WHEEL_RADIUS * 0.67
+	var ring_r := _wheel_radius * 0.67
 	for i in range(_slot_nodes.size()):
 		var node := _slot_nodes[i]
 		var ang := -PI * 0.5 + SLOT_ANGLE * float(i)
@@ -221,14 +243,14 @@ func _draw_wheel() -> void:
 		var a0 := -PI * 0.5 + float(i) * SLOT_ANGLE - SLOT_ANGLE * 0.5
 		var a1 := a0 + SLOT_ANGLE
 		var color := Color("#5a3f58") if i % 2 == 0 else Color("#4b334a")
-		_draw_fan(_wheel, c, WHEEL_RADIUS, a0, a1, color)
-		_draw_fan(_wheel, c, WHEEL_RADIUS * 0.22, a0, a1, Color("#382c3d"))
-		var edge := c + Vector2(cos(a0), sin(a0)) * WHEEL_RADIUS
+		_draw_fan(_wheel, c, _wheel_radius, a0, a1, color)
+		_draw_fan(_wheel, c, _wheel_radius * 0.22, a0, a1, Color("#382c3d"))
+		var edge := c + Vector2(cos(a0), sin(a0)) * _wheel_radius
 		_wheel.draw_line(c, edge, Color("#2a1f2f"), 2.0)
-	_wheel.draw_arc(c, WHEEL_RADIUS, 0.0, TAU, 64, Color("#e8d088"), 6.0)
-	_wheel.draw_arc(c, WHEEL_RADIUS - 8.0, 0.0, TAU, 64, Color("#241a28"), 2.0)
-	_wheel.draw_circle(c, WHEEL_RADIUS * 0.18, Color("#d9b86f"))
-	_wheel.draw_circle(c, WHEEL_RADIUS * 0.1, Color("#332533"))
+	_wheel.draw_arc(c, _wheel_radius, 0.0, TAU, 64, Color("#e8d088"), 6.0)
+	_wheel.draw_arc(c, _wheel_radius - 8.0, 0.0, TAU, 64, Color("#241a28"), 2.0)
+	_wheel.draw_circle(c, _wheel_radius * 0.18, Color("#d9b86f"))
+	_wheel.draw_circle(c, _wheel_radius * 0.1, Color("#332533"))
 
 
 func _draw_wheel_pointer() -> void:
@@ -237,7 +259,7 @@ func _draw_wheel_pointer() -> void:
 	var wheel_size := _wheel.size
 	var wheel_center := _wheel.position + wheel_size * 0.5
 	var cx := wheel_center.x
-	var rim_top := wheel_center.y - WHEEL_RADIUS
+	var rim_top := wheel_center.y - _wheel_radius
 	var tip_y := rim_top + 16.0
 	var base_y := rim_top - 20.0
 	var half_w := 17.0
@@ -270,8 +292,16 @@ func _sync_root_size() -> void:
 func _relayout_panel() -> void:
 	if _panel == null:
 		return
-	var panel_size := _panel.custom_minimum_size
-	var center := size * 0.5
+	var vp := size
+	if vp.x <= 0.0 or vp.y <= 0.0:
+		vp = get_viewport_rect().size
+	var panel_size := Vector2(
+		maxf(PANEL_MIN_SIZE.x, vp.x - PANEL_MARGIN * 2.0),
+		maxf(PANEL_MIN_SIZE.y, vp.y - PANEL_MARGIN * 2.0)
+	)
+	panel_size.x = minf(panel_size.x, vp.x)
+	panel_size.y = minf(panel_size.y, vp.y)
+	var center := vp * 0.5
 	_panel.position = center - panel_size * 0.5
 	_panel.size = panel_size
 	_layout_wheel_area()
@@ -287,7 +317,11 @@ func _layout_wheel_area() -> void:
 	var wrap_size := _wheel_wrap.size
 	if wrap_size.x <= 0.0 or wrap_size.y <= 0.0:
 		return
-	var wheel_size := _wheel.size
+	var wheel_edge := maxf(120.0, minf(wrap_size.x, wrap_size.y) - WHEEL_PADDING * 2.0)
+	var wheel_size := Vector2(wheel_edge, wheel_edge)
+	_wheel.size = wheel_size
+	_wheel.pivot_offset = wheel_size * 0.5
+	_wheel_radius = wheel_edge * 0.5 - 4.0
 	_wheel.position = Vector2(
 		(wrap_size.x - wheel_size.x) * 0.5,
 		(wrap_size.y - wheel_size.y) * 0.5
@@ -296,7 +330,31 @@ func _layout_wheel_area() -> void:
 		_pointer_overlay.size = wrap_size
 		_pointer_overlay.position = Vector2.ZERO
 		_pointer_overlay.queue_redraw()
+	_apply_scale()
 	_layout_slots()
+	_wheel.queue_redraw()
+
+
+func _apply_scale() -> void:
+	var s := clampf(_wheel_radius / BASE_WHEEL_RADIUS, 1.0, 3.0)
+	if _title_label:
+		_title_label.add_theme_font_size_override("font_size", int(round(BASE_TITLE_FONT * s)))
+	if _tip_label:
+		_tip_label.add_theme_font_size_override("font_size", int(round(BASE_TIP_FONT * s)))
+	if _spin_btn:
+		_spin_btn.add_theme_font_size_override("font_size", int(round(BASE_SPIN_BTN_FONT * s)))
+		_spin_btn.custom_minimum_size = Vector2(0, BASE_SPIN_BTN_HEIGHT * s)
+	var slot_size := BASE_SLOT_SIZE * s
+	var slot_font := int(round(BASE_SLOT_FONT * s))
+	var icon_edge := BASE_SLOT_ICON * s
+	for slot in _slot_nodes:
+		slot.custom_minimum_size = slot_size
+		slot.size = slot_size
+		for child in slot.get_children():
+			if child is TextureRect:
+				(child as TextureRect).custom_minimum_size = Vector2(icon_edge, icon_edge)
+			elif child is Label:
+				(child as Label).add_theme_font_size_override("font_size", slot_font)
 
 
 func _on_wheel_wrap_resized() -> void:

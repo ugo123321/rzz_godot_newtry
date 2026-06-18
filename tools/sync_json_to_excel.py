@@ -12,6 +12,7 @@ from export_config import (
     EXCEL_DIR,
     JSON_DIR,
     MONSTER_HEADERS,
+    REWARDS_V6_HEADERS,
     STAGE_HEADERS,
     UPGRADE_FX_HEADERS,
     UPGRADE_HEADERS,
@@ -48,6 +49,17 @@ def _upgrade_row(item: dict) -> list:
 
 def _upgrade_fx_row(item: dict) -> list:
     return [item.get(h, "") for h in UPGRADE_FX_HEADERS]
+
+
+def _reward_v6_row(item: dict) -> list:
+    """rewards_v6.json 里 extra_params 是 dict，要回写成 JSON 字符串再进 Excel 单元格。"""
+    row: list = []
+    for h in REWARDS_V6_HEADERS:
+        val = item.get(h, "")
+        if h == "extra_params" and isinstance(val, dict):
+            val = json.dumps(val, ensure_ascii=False, sort_keys=True) if val else ""
+        row.append(val)
+    return row
 
 
 def _rewrite_sheet(path: Path, headers: list[str], rows: list[list]) -> None:
@@ -92,6 +104,15 @@ def main() -> None:
         UPGRADE_FX_HEADERS,
         [_upgrade_fx_row(u) for u in upgrade_fx],
     )
+    # rewards_v6: JSON 为权威源，回写到 Excel 便于策划编辑
+    rewards_v6_path = JSON_DIR / "rewards_v6.json"
+    if rewards_v6_path.exists():
+        rewards_v6 = _load_json("rewards_v6")
+        _rewrite_sheet(
+            EXCEL_DIR / "rewards_v6.xlsx",
+            REWARDS_V6_HEADERS,
+            [_reward_v6_row(r) for r in rewards_v6],
+        )
     print("Done.")
 
 

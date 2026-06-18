@@ -90,7 +90,11 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "elem_resist_fire": 0.2,
+    "elem_resist_ice": 0.2,
+    "elem_resist_thunder": 0.2,
+    "elem_resist_poison": 0.2
   },
   {
     "kind_id": "FIRE_MAGE",
@@ -121,7 +125,9 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "elem_resist_fire": 0.6,
+    "vuln_ice": 0.3
   },
   {
     "kind_id": "SHIELD",
@@ -152,7 +158,9 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "elem_resist_fire": 0.3,
+    "vuln_thunder": 0.2
   },
   {
     "kind_id": "CROSS_SHOOTER",
@@ -214,7 +222,9 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "vuln_fire": 0.4,
+    "vuln_thunder": 0.2
   },
   {
     "kind_id": "SHOTGUN",
