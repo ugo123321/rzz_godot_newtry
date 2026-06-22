@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bmdhmwtgbrqfu"
+path="res://.godot/imported/Elite Orc.aseprite-b811ef4d3ab0991ba0b094f22e73dd24.res"
+
+[deps]
+
+source_file="res://assets/Characters/Aseprite file/Elite Orc.aseprite"
+dest_files=["res://.godot/imported/Elite Orc.aseprite-b811ef4d3ab0991ba0b094f22e73dd24.res"]
+
+[params]
+

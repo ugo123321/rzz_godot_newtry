@@ -174,9 +174,11 @@ var duration := EffectHelper.one_shot_anim_duration(frames)
 
 ---
 
-## 6. 升级配置里的 effect 字段
+## 6. 升级配置里的 effect 字段（v5 已废弃）
 
-`config/json/upgrades.json`（Excel 导出）相关字段：
+> **注意：本节描述 v5 工作流。v6 已不再使用 `effect_name` / `effect_pack` / `icon_file` 字段，因此 6/7 两节仅作历史归档。当前 VFX 走 `ability_manager.gd:_draw_pixel_fireball` 同款"豪火球术配方"（CLAUDE.md 第九条）：自定义像素 + 多色分层 + 周期闪烁 + 外发光圆晕 + 命中爆。新增 / 修改卡片视觉时按此配方做，不要再去配 `effects/...` 素材包路径。**
+
+v5 历史字段（`config/json/upgrades.json` 已删除）：
 
 | 字段 | 说明 |
 |------|------|
@@ -184,11 +186,11 @@ var duration := EffectHelper.one_shot_anim_duration(frames)
 | `effect_pack` | 素材包相对路径 `effects/...`；`build_upgrade_preview_frames()` 用 |
 | `icon_file` | 升级卡片静态图标（当前 UI 主要用这个） |
 
-**注意**：升级弹窗 `_create_icon_widget` 目前显示的是 `icon_file` 静态图；`build_upgrade_preview_frames()` 已实现但 UI 未接动画预览。若以后要卡片内播动画，在 `upgrade_popup.gd` 接 `EffectHelper.build_upgrade_preview_frames(upgrade)`。
-
 ---
 
-## 7. 替换已有特效（Checklist）
+## 7. 替换已有特效（v5 历史 Checklist）
+
+> **v6 不再走这条路。**仅保留作历史参考，如果你在改 `effect_helper.gd` 里那批仍然存活的角色 / boss 序列帧（不是升级卡），步骤依然适用。
 
 以把黑洞换成 Pack 7 的 vfx-d 为例：
 
@@ -196,7 +198,6 @@ var duration := EffectHelper.one_shot_anim_duration(frames)
 - [ ] 无 json 时用 `tools/setup_vfx_d_black_hole.py` 或 Aseprite 导出 json
 - [ ] 修改 `effect_helper.gd` → `EFFECT_ATLAS["black_hole"]` 的 json/sheet/fallback/fps/max_frames
 - [ ] 若只改素材、不改 key：**不必改** `ability_manager.gd`
-- [ ] 同步 `config/json/upgrades.json` 与 `tools/export_config.py` 里的 `effect_pack`（防 Excel 重导覆盖）
 - [ ] 若需去掉程序化绘制（圆/弧）：改对应 Manager 的 `_draw_*`，只保留 `SpriteHelper` 画精灵
 - [ ] 若需与 gameplay 范围对齐：在 `_draw_*` 里用 `{半径} * 2 / tex.get_size()` 算 scale
 - [ ] Godot 重载项目 → `EffectHelper.clear_cache()` → 进战斗验证
@@ -205,12 +206,14 @@ var duration := EffectHelper.one_shot_anim_duration(frames)
 
 ## 8. 新增战斗特效（Checklist）
 
+**v6 卡片视觉**：直接照 `ability_manager.gd:_draw_pixel_fireball` 同款写法手撕像素，**不要**加 `EFFECT_ATLAS` 条目（也不要写 `effect_name` / `effect_pack`），见 CLAUDE.md 第九条。
+
+**非卡片特效**（角色动画、boss 投射物等）：
+
 - [ ] 复制素材到 `assets/effects/...`
 - [ ] `effect_helper.gd` → `EFFECT_ATLAS` 新增 key
 - [ ] 在使用处 `_ready`/`setup` 预加载：`var _foo_frames = EffectHelper.build_effect_frames("foo")`
 - [ ] 在对应 Manager 增加 spawn / update / draw（选 5.1~5.3 一种模式）
-- [ ] 需要升级关联时：在 `upgrades.json` 填 `effect_name` / `effect_pack`，必要时加 `PREVIEW_PATHS` / `SEARCH_ALIASES`
-- [ ] 登记 `tools/copy_used_assets.py`（若项目有维护复制清单）
 
 ---
 

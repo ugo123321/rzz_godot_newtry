@@ -1122,13 +1122,16 @@ func block_projectiles_on_path_segment(
 	from: Vector2,
 	to: Vector2,
 	segment_index: int,
-	actor: BattlePlayer
+	actor: BattlePlayer,
+	offsets: Array = [0.0],
 ) -> void:
 	if projectiles == null or actor == null:
 		return
 	if from.distance_squared_to(to) < 0.000001:
 		return
 	var block_pad := actor.get_effective_radius() * 0.38
+	var seg_dir: Vector2 = (to - from).normalized()
+	var normal: Vector2 = Vector2(-seg_dir.y, seg_dir.x)
 	for child in projectiles.get_children():
 		if not child is EnemyArrow:
 			continue
@@ -1138,8 +1141,19 @@ func block_projectiles_on_path_segment(
 		var key := "%d:%d" % [arrow.get_instance_id(), segment_index]
 		if actor.hit_projectiles_this_attack.has(key):
 			continue
-		var dist := MathUtils.point_segment_distance(arrow.global_position, from, to)
-		if dist > EnemyArrow.HIT_RADIUS + block_pad:
+		var blocked: bool = false
+		var hit_from: Vector2 = from
+		var hit_to: Vector2 = to
+		for off in offsets:
+			var a: Vector2 = from + normal * float(off)
+			var b: Vector2 = to + normal * float(off)
+			var dist := MathUtils.point_segment_distance(arrow.global_position, a, b)
+			if dist <= EnemyArrow.HIT_RADIUS + block_pad:
+				blocked = true
+				hit_from = a
+				hit_to = b
+				break
+		if not blocked:
 			continue
 		actor.hit_projectiles_this_attack[key] = true
-		arrow.destroy_blocked(from, to)
+		arrow.destroy_blocked(hit_from, hit_to)

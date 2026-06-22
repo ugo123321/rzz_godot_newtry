@@ -72,9 +72,13 @@ python D:\workspace\godot1\renzhezhan\tools\export_config.py --init-excel
 | stages.xlsx | stages.json | 8 关怪物数量、boss_id、splitter 等 |
 | monsters.xlsx | monsters.json | 7 种怪 + SPLITTER |
 | player.xlsx | player.json | 主角数值、sprite_scale |
-| upgrades.xlsx | upgrades.json | 22 个升级 |
-| upgrade_fx.xlsx | upgrade_fx.json | 升级弹窗稀有度特效 |
+| rewards_v6.xlsx | rewards_v6.json | v6 卡池（约 96 张卡，唯一 live 升级源） |
+| rewards_v6_compact.xlsx | — | 程序员评审用紧凑表（`tools/build_rewards_v6_compact.py`） |
+| rewards_v6_detailed.xlsx | — | 策划评审用详表（`tools/build_rewards_v6_detailed.py`） |
+| upgrade_fx.xlsx | upgrade_fx.json | 升级弹窗稀有度特效（按 rarity 索引，与卡 ID 解耦） |
 | game_tuning.xlsx | game_tuning.json | 屏宽、zoom、火柱参数 … |
+
+> **历史**：v5 时代用 `upgrades.xlsx → upgrades.json`（22 张卡），现已废弃。所有运行时升级数据走 `rewards_v6.json`（96 张卡，`special_rule` 代码见 `tools/build_rewards_v6_compact.py:SPECIAL_RULE_CODES` 与 `scripts/core/special_rule_dispatcher.gd:IMPLEMENTED_SR`）。
 
 **当前缩放（像素清晰）**：`sprite_scale=2`，`monster_sprite_scale=2`，**`camera_zoom=1`**（正常显示；改大后会整体放大）。缩放请用 **0.5 步进**，camera_zoom 用 **整数**。
 
@@ -111,8 +115,8 @@ python D:\workspace\godot1\renzhezhan\tools\export_config.py --init-excel
 - [x] 音效钩子 audio_manager（**占位，素材待接**）
 - [x] Ki 回复结算期间暂停、火法师 vs 弓箭投射物区分（弓箭仍保留给 ARCHER）
 
-### 升级（22 个均已接逻辑）
-全部 upgrades.json 中的升级均有对应运行时逻辑。
+### 升级（v6 卡池 96 张，全部走 special_rule_dispatcher）
+全部 `rewards_v6.json` 中的卡均由 `attr_engine.gd` 注属性 + `special_rule_dispatcher.gd` 跑机制。新增/调整 sr 时：在 `tools/build_rewards_v6_compact.py:SPECIAL_RULE_CODES` 加 schema → 在 `scripts/core/special_rule_dispatcher.gd:IMPLEMENTED_SR` 实现 → 重跑 `python tools/build_rewards_v6_compact.py` + `python tools/export_rewards_v6_compact_json.py`。
 
 ### 近期完成（2026-05-23 批次 · UI / 战斗 / 特效）
 
@@ -189,7 +193,7 @@ python D:\workspace\godot1\renzhezhan\tools\export_config.py --init-excel
 
 **换特效后仍显示旧图**：调试控制台执行 `EffectHelper.clear_cache()`，或重启 Godot（`static var _cache`）。
 
-`upgrades.json` 中 `water_tornado` 的 `effect_pack` 已指向 Pack 8；`black_hole` 指向 Pack 7 vfx-d。重导 Excel 时以 `tools/export_config.py` 为准。
+> **v5 历史**：旧 `upgrades.json` 通过 `effect_pack`/`effect_name` 字段为每张卡绑序列帧（如 `water_tornado→Pack 8`、`black_hole→Pack 7 vfx-d`）。**v6 已废弃**这套：升级特效改走 `ability_manager.gd:_draw_pixel_fireball` 同款"豪火球术配方"——自定义像素 + 多色分层 + 周期闪烁 + 外发光圆晕 + 命中爆（详见 CLAUDE.md 第九条）。`upgrade_fx.json` 仍然在用，但只按 `rarity`（white/blue/purple/orange）索引卡片底框光效，与具体卡 ID 解耦。
 
 ---
 

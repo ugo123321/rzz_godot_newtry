@@ -171,10 +171,6 @@ static func _dedupe_loops(loops: Array) -> Array:
 	return result
 
 
-static func path_forms_closed_loop(path: Array, close_dist: float = 36.0, min_points: int = 5, min_area: float = 800.0) -> bool:
-	return not path_extract_closed_loop(path, close_dist, min_points, min_area).is_empty()
-
-
 static func points_centroid(points: Array) -> Vector2:
 	if points.is_empty():
 		return Vector2.ZERO
@@ -210,10 +206,3 @@ static func path_loop_centroid(path: Array) -> Vector2:
 	if loop.is_empty():
 		return points_centroid(path)
 	return polygon_centroid(loop)
-
-
-static func path_loop_radius(path: Array, center: Vector2) -> float:
-	var max_r := 0.0
-	for p in path:
-		max_r = maxf(max_r, center.distance_to(Vector2(p)))
-	return maxf(24.0, max_r)

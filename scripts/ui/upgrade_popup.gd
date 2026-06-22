@@ -126,8 +126,8 @@ func _calc_card_metrics(choice_count: int) -> Dictionary:
 		"card_size": Vector2(card_w, card_h),
 		"preview_h": preview_h,
 		"icon_size": clampf(preview_h - 12.0, ICON_SIZE, preview_h),
-		"name_font": 20 if card_w < 170.0 else 24,
-		"desc_font": 14 if card_w < 170.0 else 17,
+		"name_font": 24 if card_w < 170.0 else 28,
+		"desc_font": 18 if card_w < 170.0 else 22,
 	}
 
 

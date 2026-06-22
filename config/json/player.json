@@ -92,7 +92,12 @@
   {
     "key": "auto_bullet_life",
     "value": 0.9,
-    "description": "普攻子弹存活时间"
+    "description": "普攻子弹存活时间（已弃用：当前由 auto_bullet_range 控制飞行距离，保留仅供绘制兜底）"
+  },
+  {
+    "key": "auto_bullet_range",
+    "value": 378,
+    "description": "普攻子弹有效射程(px)：怪进入此距离才开火，子弹飞行此距离后消失"
   },
   {
     "key": "character_folder",
@@ -112,6 +117,6 @@
   {
     "key": "auto_bullet_pierce_range_mul",
     "value": 0.85,
-    "description": "穿透子弹攻击距离倍率(相对 speed×life)"
+    "description": "穿透子弹攻击距离倍率(相对 auto_bullet_range)"
   }
 ]

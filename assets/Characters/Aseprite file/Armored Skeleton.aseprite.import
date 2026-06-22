@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bf24cahw2yfh0"
+path="res://.godot/imported/Armored Skeleton.aseprite-10a71e398ed37ace6f7f04cd3ffdf25b.res"
+
+[deps]
+
+source_file="res://assets/Characters/Aseprite file/Armored Skeleton.aseprite"
+dest_files=["res://.godot/imported/Armored Skeleton.aseprite-10a71e398ed37ace6f7f04cd3ffdf25b.res"]
+
+[params]
+

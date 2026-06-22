@@ -51,6 +51,8 @@ var attack_path: Array[Vector2] = []
 var path_index := 0
 var path_progress := 0.0
 var _path_hit_inside: Dictionary = {}
+# sr=24 trail_multi：平行轨迹的额外 Line2D（不含主线），按 _trail_offsets() 顺序对应
+var _trail_extra_lines: Array[Line2D] = []
 var _last_attack_pos := Vector2.ZERO
 var _attack_hits_primmed := false
 var hit_projectiles_this_attack: Dictionary = {}
@@ -64,11 +66,6 @@ var collected_orb_buffs: Array = []
 var ki_at_draw_start := 0.0
 
 var bullet_count := 1
-var water_tornado_charge := 0
-var whirl_charge := 0
-var holy_shield_timer := 0.0
-var holy_shield_charges := 0
-var charge_strike_time := 0.0
 var attack_speed_mult := 1.0
 var ki_regen_mult := 1.0
 var slash_damage_mult := 1.0
@@ -135,15 +132,6 @@ var _draw_start_fx_frames: SpriteFrames
 var _draw_start_fx_t := -1.0
 var _draw_start_fx_duration := 0.0
 var _draw_start_fx_sprite: Sprite2D
-var _charge_flame_frames: SpriteFrames
-var _charge_flame_anim_t := 0.0
-var desperate_counter_timer := 0.0
-var desperate_counter_bonus := 0.0
-var steadfast_stand_timer := 0.0
-var steadfast_active := false
-var stillness_stack_timer := 0.0
-var stillness_move_grace_timer := 0.0
-var stillness_stacks := 0
 
 
 var trigger_dispatcher: Node = null
@@ -207,8 +195,6 @@ var orb_glow_dmg_pct: float = 0.0        # sr=36 orb_glow：拾取后下一斩�
 var orb_glow_pending_active: bool = false  # 下一斩击是否启用 orb_glow buff
 var orb_mark_dup_chance: float = 0.0     # sr=32 orb_mark：拾取后复制概率
 var orb_tide_interval_sec: float = 0.0   # sr=31 orb_tide：周期生成间隔（>0 启用）
-const STILLNESS_MAX_STACKS := 15
-const STILLNESS_CRIT_PER_STACK := 0.03
 var _last_position := Vector2.ZERO
 var _joystick_locomotion_active := false
 
@@ -222,7 +208,6 @@ func _ready() -> void:
 	_draw_start_fx_frames = EffectHelper.build_effect_frames("air_slash")
 	if _draw_start_fx_frames != null:
 		_draw_start_fx_duration = EffectHelper.one_shot_anim_duration(_draw_start_fx_frames)
-	_charge_flame_frames = EffectHelper.build_effect_frames("flame_loop")
 	home_position = global_position
 	_last_position = global_position
 	_setup_sprite()
@@ -338,8 +323,8 @@ func get_effective_radius() -> float:
 
 
 func get_path_hit_pad() -> float:
-	# Phase 6 sr=24 trail_multi：每张卡 extra_count 增加 hit pad，约等于"多重轨迹"扫描宽度
-	return get_effective_radius() * PATH_HIT_PAD_RATIO * (1.0 + float(trail_multi_count) * 0.6)
+	# sr=24 trail_multi 现已改为真正的平行多线打击（见 _record_path_crossings），此处不再加胖度
+	return get_effective_radius() * PATH_HIT_PAD_RATIO
 
 
 func get_trigger_radius() -> float:
@@ -383,12 +368,7 @@ func is_attack_invincible() -> bool:
 
 
 func get_auto_bullet_cycle_interval() -> float:
-	var interval := 1.0 / maxf(0.01, basic_attack_speed * attack_speed_mult * bonus_attack_speed_mult * move_speed_penalty_mult)
-	var charge_lv := get_upgrade_level("charge_strike")
-	if charge_lv > 0 and charge_strike_time > 0.05:
-		var charge_bonus := clampf(charge_strike_time / 3.0, 0.0, 1.0)
-		interval /= 1.0 + charge_bonus * (0.35 + 0.08 * float(charge_lv))
-	return interval
+	return 1.0 / maxf(0.01, basic_attack_speed * attack_speed_mult * bonus_attack_speed_mult * move_speed_penalty_mult)
 
 
 func sync_auto_bullet_anim_speed() -> void:
@@ -451,8 +431,6 @@ func begin_stage() -> void:
 	combo_display_peak = 0
 	combo_display_weight = 0.0
 	combo_display_fading = false
-	water_tornado_charge = 0
-	whirl_charge = 0
 	_auto_bullet_cycle_active = false
 	_auto_bullet_released = false
 	turn_buff_attack_mult = 1.0
@@ -556,7 +534,6 @@ func start_attack() -> void:
 	if battle and battle.buff_orbs:
 		battle.buff_orbs.commit_draw_session()
 	state = State.ATTACKING
-	_reset_charge_strike()
 	combo_count = 0.0
 	combo_hit_count = 0
 	if battle and battle.combat:
@@ -608,16 +585,29 @@ func update_attack(delta: float, combat: CombatDirector, monsters: Array) -> boo
 func _prime_path_start_hits(combat: CombatDirector, monsters: Array) -> void:
 	var hit_pad := get_path_hit_pad()
 	var start := attack_path[0]
+	# 起点法线：用 path 第一段方向
+	var first_dir: Vector2 = Vector2.RIGHT
+	if attack_path.size() >= 2:
+		first_dir = (attack_path[1] - attack_path[0]).normalized()
+	var normal: Vector2 = Vector2(-first_dir.y, first_dir.x)
+	var distances: Array = [0.0]
+	distances.append_array(_trail_offset_distances())
+	var line_count: int = distances.size()
 	for monster in monsters:
 		if not is_instance_valid(monster) or not monster.is_combat_targetable():
 			continue
 		var hit_r: float = monster.get_hitbox_radius() + hit_pad
 		var id: int = monster.get_instance_id()
-		if start.distance_to(monster.global_position) <= hit_r:
-			_path_hit_inside[id] = true
-			combat.queue_hit(monster, 0, monster.global_position)
-		else:
-			_path_hit_inside[id] = false
+		var inside_arr: Array = []
+		var queued: bool = false
+		for li in range(line_count):
+			var sp: Vector2 = start + normal * float(distances[li])
+			var ins: bool = sp.distance_to(monster.global_position) <= hit_r
+			inside_arr.append(ins)
+			if ins and not queued:
+				combat.queue_hit(monster, 0, monster.global_position)
+				queued = true
+		_path_hit_inside[id] = inside_arr
 
 
 func _record_path_crossings(
@@ -630,24 +620,42 @@ func _record_path_crossings(
 	if prev.distance_squared_to(curr) < 0.0001:
 		return
 	var hit_pad := get_path_hit_pad()
+	# sr=24 trail_multi：1 条主线 + N 条平行线，每条独立扫描 / 独立 inside 状态
+	var distances: Array = [0.0]
+	distances.append_array(_trail_offset_distances())
+	var seg_dir: Vector2 = (curr - prev).normalized()
+	var normal: Vector2 = Vector2(-seg_dir.y, seg_dir.x)
+	var line_count: int = distances.size()
 	for monster in monsters:
 		if not is_instance_valid(monster) or not monster.is_combat_targetable():
 			continue
 		var hit_r: float = monster.get_hitbox_radius() + hit_pad
 		var center: Vector2 = monster.global_position
 		var id: int = monster.get_instance_id()
-		var inside: bool = bool(_path_hit_inside.get(id, prev.distance_to(center) <= hit_r))
-		for ev in MathUtils.segment_circle_crossings(prev, curr, center, hit_r):
-			if bool(ev.get("enter", false)):
-				if not inside:
-					combat.queue_hit(monster, segment_index, center)
-				inside = true
-			else:
-				inside = false
-		_path_hit_inside[id] = inside
+		var inside_arr: Array = _path_hit_inside.get(id, [])
+		if inside_arr.size() != line_count:
+			# 首次或线数变化：按当前距离初始化
+			inside_arr = []
+			for li in range(line_count):
+				var p0: Vector2 = prev + normal * float(distances[li])
+				inside_arr.append(p0.distance_to(center) <= hit_r)
+		for li in range(line_count):
+			var off: float = float(distances[li])
+			var a: Vector2 = prev + normal * off
+			var b: Vector2 = curr + normal * off
+			var inside: bool = bool(inside_arr[li])
+			for ev in MathUtils.segment_circle_crossings(a, b, center, hit_r):
+				if bool(ev.get("enter", false)):
+					if not inside:
+						combat.queue_hit(monster, segment_index, center)
+					inside = true
+				else:
+					inside = false
+			inside_arr[li] = inside
+		_path_hit_inside[id] = inside_arr
 	var battle := get_tree().get_first_node_in_group("battle") as BattleController
 	if battle:
-		battle.block_projectiles_on_path_segment(prev, curr, segment_index, self)
+		battle.block_projectiles_on_path_segment(prev, curr, segment_index, self, distances)
 
 
 func _finish_attack(combat: CombatDirector) -> void:
@@ -687,8 +695,7 @@ func get_combo_bonus_percent(_combo: int = -1) -> int:
 
 
 func _combo_hit_increment() -> float:
-	var multi_combo_lv := get_upgrade_level("multi_combo")
-	return turn_buff_combo_mult * (1.0 + 0.2 * float(multi_combo_lv))
+	return turn_buff_combo_mult
 
 
 func clear_drawing_combo_preview() -> void:
@@ -736,26 +743,6 @@ func get_ability_damage(mult: float) -> int:
 
 func get_auto_bullet_damage() -> int:
 	return make_auto_bullet_damage().raw_amount
-
-
-func has_spirit_bomb() -> bool:
-	return get_upgrade_level("spirit_bomb") > 0
-
-
-func has_pierce_bullet() -> bool:
-	return get_upgrade_level("pierce") > 0
-
-
-func has_mirror_bullet() -> bool:
-	return get_upgrade_level("mirror_bullet") > 0
-
-
-func get_laser_blast_chance() -> float:
-	var lv := get_upgrade_level("laser_blast")
-	if lv <= 0:
-		return 0.0
-	var def := GameConfig.get_upgrade("laser_blast")
-	return minf(0.45, float(def.get("apply_value", 0.06)) * float(lv))
 
 
 func register_combo_hit() -> float:
@@ -837,11 +824,6 @@ func make_damage(source: String, weapon_mult: float, category: String, element: 
 func make_slash_damage(combo: float) -> DamageInfo:
 	var info := make_damage("slash_main", 1.0, "slash", "", true, false)
 	var raw := base_attack * (1.0 + atk_pct_total) * attack_power_scale * turn_buff_attack_mult * slash_damage_mult * bonus_attack_mult
-	var charge_lv := get_upgrade_level("charge_strike")
-	if charge_lv > 0 and charge_strike_time > 0.05:
-		# v5 charge_strike 仍可生效（v6 暂未定义；存在就用）
-		var charge_bonus := clampf(charge_strike_time / 3.0, 0.0, 1.0)
-		raw *= 1.0 + charge_bonus * (0.45 + 0.12 * float(charge_lv))
 	# Phase 7 sr=36 orb_glow：拾取后下一斩击吃 buff
 	if orb_glow_pending_active and orb_glow_dmg_pct > 0.0:
 		raw *= 1.0 + orb_glow_dmg_pct
@@ -859,14 +841,9 @@ func make_slash_damage(combo: float) -> DamageInfo:
 
 # 自动子弹路径：raw = base × (1+atk_pct) × scale × bonus_atk × auto_bullet_mult；不参与 combo
 func make_auto_bullet_damage() -> DamageInfo:
-	var has_spirit := get_upgrade_level("spirit_bomb") > 0
-	var source := "bullet_spirit" if has_spirit else "bullet_auto"
-	var info := make_damage(source, 0.5, "bullet", "", true, false)
+	var info := make_damage("bullet_auto", 0.5, "bullet", "", true, false)
 	var mult := float(GameConfig.get_player_value("auto_bullet_damage_mult", 0.2))
 	var dmg := float(get_ability_damage(1)) * turn_buff_attack_mult * mult
-	if has_spirit:
-		var def := GameConfig.get_upgrade("spirit_bomb")
-		dmg *= float(def.get("apply_value", 1.3))
 	info.raw_amount = int(max(1, round(dmg)))
 	info.is_crit_resolved = false
 	return info
@@ -884,14 +861,6 @@ func make_ability_damage(source: String, mult: float, category: String, element:
 func take_damage(amount: int) -> int:
 	if invincible_timer > 0.0 or is_attack_invincible():
 		return 0
-	if holy_shield_charges > 0:
-		holy_shield_charges -= 1
-		holy_shield_timer = _get_holy_shield_interval()
-		queue_redraw()
-		var battle := get_tree().get_first_node_in_group("battle")
-		if battle and battle.hud:
-			battle.hud.show_message("圣盾抵挡", 0.9)
-		return 0
 	# Phase 5 sr=10 iframe_on_hit：CD ≤ 0 时本次伤害免疫；sr=1 on_hit_window：开启 buff 窗口
 	if SpecialRuleDispatcherT.on_player_damaged(self, amount):
 		return 0
@@ -908,7 +877,6 @@ func take_damage(amount: int) -> int:
 		_auto_bullet_cycle_active = false
 		_auto_bullet_released = false
 		_play_anim(SpriteHelper.ANIM_HURT)
-	_on_player_damaged_trigger()
 	EventBus.player_damaged.emit(final_damage, hp)
 	AudioManager.play_player_hurt()
 	var battle := get_tree().get_first_node_in_group("battle")
@@ -961,82 +929,6 @@ func get_luck_roll_offsets() -> Dictionary:
 
 func on_chapter_started(_chapter_id: int) -> void:
 	chapter_acquired_once.clear()
-
-
-func _reset_charge_strike() -> void:
-	charge_strike_time = 0.0
-	_charge_flame_anim_t = 0.0
-	_queue_charge_flame_redraw()
-
-
-func _accumulate_charge_strike(delta: float, time_scale: float) -> void:
-	if get_upgrade_level("charge_strike") <= 0:
-		return
-	if state != State.IDLE:
-		return
-	var battle := get_tree().get_first_node_in_group("battle")
-	if battle == null or battle.combat == null:
-		return
-	if battle.state == GameState.LEVEL_UP:
-		return
-	var was_charging := charge_strike_time > 0.0
-	if global_position.distance_to(home_position) > 14.0:
-		charge_strike_time = maxf(0.0, charge_strike_time - delta * time_scale * 0.5)
-	else:
-		charge_strike_time = minf(6.0, charge_strike_time + delta * time_scale)
-	if was_charging != (charge_strike_time > 0.0):
-		_queue_charge_flame_redraw()
-
-
-func _ensure_charge_flame_frames() -> SpriteFrames:
-	if _charge_flame_frames == null or _charge_flame_frames.get_frame_count(EffectHelper.ANIM_PREVIEW) <= 0:
-		_charge_flame_frames = EffectHelper.build_effect_frames("flame_loop")
-	return _charge_flame_frames
-
-
-func _queue_charge_flame_redraw() -> void:
-	queue_redraw()
-
-
-func _tick_charge_flame_anim(delta: float) -> void:
-	if get_upgrade_level("charge_strike") <= 0:
-		return
-	if state != State.IDLE or charge_strike_time <= 0.0:
-		return
-	_charge_flame_anim_t += delta
-	queue_redraw()
-
-
-func _draw_charge_flame() -> void:
-	if get_upgrade_level("charge_strike") <= 0:
-		return
-	var frames := _ensure_charge_flame_frames()
-	if frames == null or frames.get_frame_count(EffectHelper.ANIM_PREVIEW) <= 0:
-		return
-	var battle := get_tree().get_first_node_in_group("battle")
-	if battle != null and battle.state == GameState.LEVEL_UP:
-		return
-	if state != State.IDLE or charge_strike_time <= 0.0:
-		return
-	var charge_t := clampf(charge_strike_time / 3.0, 0.0, 1.0)
-	var tex := EffectHelper.animation_frame_texture(frames, _charge_flame_anim_t)
-	if tex == null:
-		return
-	var size := tex.get_size()
-	var size_scale_t := lerpf(1.15, 1.5, charge_t)
-	var draw_scale := (get_effective_radius() * 3.75 * size_scale_t) / maxf(size.x, size.y)
-	var low := Color(1.0, 0.98, 0.62, 0.78)
-	var high := Color(1.0, 0.38, 0.08, 0.95)
-	var color_t := pow(charge_t, 0.55)
-	var modulate := low.lerp(high, color_t)
-	var feet_local := Vector2(0.0, get_effective_radius() * 0.35)
-	SpriteHelper.draw_effect_texture_bottom_center(
-		self,
-		tex,
-		feet_local,
-		Vector2.ONE * draw_scale,
-		modulate
-	)
 
 
 func get_upgrade_level(id: String) -> int:
@@ -1183,10 +1075,10 @@ func _rebuild_upgrades() -> void:
 	_update_trigger_radius()
 	_apply_sprite_scale()
 	sync_auto_bullet_anim_speed()
-	_queue_charge_flame_redraw()
 	# Phase 5 sr=29 trail_width：path_line 加宽
 	if path_line:
 		path_line.width = GameConfig.scale_world(PATH_LINE_WIDTH) * (1.0 + trail_width_pct_total)
+	_update_trail_extra_lines()
 	# v6 元素状态注入：按 card_path 分组的 applies_<elem>
 	_rebuild_current_applies()
 	# Phase 3 SR 调整 player 字段（boss_target / kill_stack 累积等）
@@ -1358,10 +1250,8 @@ func update_idle(delta: float, time_scale: float) -> void:
 	if damage_flash_timer > 0.0:
 		damage_flash_timer -= delta
 	_apply_combat_modulate()
-	_accumulate_charge_strike(delta, time_scale)
 	if _can_regen_ki():
 		ki = minf(ki_max, ki + ki_regen_speed * delta * time_scale)
-	_update_holy_shield(delta)
 
 
 func _can_regen_ki() -> bool:
@@ -1384,14 +1274,6 @@ func reset_for_new_run() -> void:
 	run_acquired_once.clear()
 	chapter_acquired_once.clear()
 	force_legendary_upgrade_count = 0
-	desperate_counter_timer = 0.0
-	desperate_counter_bonus = 0.0
-	steadfast_stand_timer = 0.0
-	steadfast_active = false
-	stillness_stack_timer = 0.0
-	stillness_move_grace_timer = 0.0
-	stillness_stacks = 0
-	charge_strike_time = 0.0
 	clear_fail_death_visuals()
 	_load_base_stats()
 	hp = max_hp
@@ -1399,42 +1281,6 @@ func reset_for_new_run() -> void:
 	home_position = global_position
 	begin_stage()
 	_rebuild_upgrades()
-
-
-func _get_holy_shield_max_charges() -> int:
-	if get_upgrade_level("holy_shield") <= 0:
-		return 0
-	return 5
-
-
-func _get_holy_shield_interval() -> float:
-	var lv := get_upgrade_level("holy_shield")
-	if lv <= 0:
-		return 0.0
-	return maxf(1.0, 15.0 - float(holy_shield_charges))
-
-
-func grant_holy_shield_immediate() -> void:
-	if get_upgrade_level("holy_shield") <= 0:
-		return
-	var max_charges := _get_holy_shield_max_charges()
-	if holy_shield_charges < max_charges:
-		holy_shield_charges += 1
-	holy_shield_timer = _get_holy_shield_interval()
-	queue_redraw()
-
-
-func _update_holy_shield(delta: float) -> void:
-	if get_upgrade_level("holy_shield") <= 0:
-		return
-	var max_charges := _get_holy_shield_max_charges()
-	if holy_shield_charges >= max_charges:
-		return
-	holy_shield_timer -= delta
-	if holy_shield_timer <= 0.0:
-		holy_shield_charges += 1
-		holy_shield_timer = _get_holy_shield_interval()
-		queue_redraw()
 
 
 func on_enemy_killed(_kill_pos: Vector2) -> void:
@@ -1445,137 +1291,23 @@ func get_bonus_damage_reduction() -> float:
 	return clampf(bonus_damage_reduction, 0.0, 0.8)
 
 
-func get_desperate_counter_ratio() -> float:
-	if desperate_counter_timer <= 0.0:
-		return 0.0
-	return desperate_counter_bonus
-
-
-func get_steadfast_ratio() -> float:
-	return get_bonus_damage_reduction() if steadfast_active else 0.0
-
-
-func get_stillness_stacks() -> int:
-	return stillness_stacks
-
-
 func is_near_stationary() -> bool:
 	return global_position.distance_to(_last_position) <= 2.0
 
 
-func get_total_summons_count() -> int:
-	var total := 0
-	for id in ["wild_wolf", "wild_bull", "divine_god"]:
-		var lv := get_upgrade_level(id)
-		if lv <= 0:
-			continue
-		var def := GameConfig.get_upgrade(id)
-		var per_level := maxi(1, int(def.get("apply_value", 1)))
-		total += lv * per_level * (2 if get_upgrade_level("nurturing_heart") > 0 else 1)
-	return total
-
-
 func on_summon_hit() -> void:
-	if get_upgrade_level("bloodthirst") <= 0:
-		return
-	var chance := 0.08
-	if randf() <= chance:
-		heal_percent(0.01)
+	pass
 
 
-func _on_player_damaged_trigger() -> void:
-	var lv := get_upgrade_level("desperate_counter")
-	if lv <= 0:
-		return
-	desperate_counter_bonus = 0.2 + 0.05 * float(maxi(0, lv - 1))
-	desperate_counter_timer = 4.0
-
-
-func _update_new_upgrade_states(delta: float) -> void:
+func _update_new_upgrade_states(_delta: float) -> void:
+	# 每帧重置 bonus_* 字段。这些字段被 sr=9 stand_guard / attr_engine id=11 等
+	# 累加式写入；必须每帧清零，否则会无限堆叠。
 	bonus_attack_mult = 1.0
 	bonus_attack_speed_mult = 1.0
 	bonus_crit_rate = 0.0
 	bonus_crit_damage = 0.0
 	bonus_damage_reduction = 0.0
-	_update_desperate_counter(delta)
-	_update_steadfast_guard(delta)
-	_update_stillness_heart(delta)
-	_update_wild_call()
-	_update_adversity_heart()
 	_last_position = global_position
-
-
-func _update_desperate_counter(delta: float) -> void:
-	if desperate_counter_timer > 0.0:
-		desperate_counter_timer = maxf(0.0, desperate_counter_timer - delta)
-	if desperate_counter_timer > 0.0:
-		bonus_crit_rate = desperate_counter_bonus
-		bonus_attack_speed_mult *= 1.0 + desperate_counter_bonus
-	else:
-		bonus_crit_rate = 0.0
-
-
-func _update_steadfast_guard(delta: float) -> void:
-	var lv := get_upgrade_level("steadfast_guard")
-	var prev_active := steadfast_active
-	if lv <= 0:
-		steadfast_stand_timer = 0.0
-		steadfast_active = false
-		if prev_active != steadfast_active:
-			queue_redraw()
-		return
-	if is_near_stationary() and state == State.IDLE:
-		steadfast_stand_timer += delta
-		if steadfast_stand_timer >= 1.5:
-			steadfast_active = true
-	else:
-		steadfast_stand_timer = 0.0
-		steadfast_active = false
-	if steadfast_active:
-		bonus_damage_reduction = minf(0.6, 0.3 + 0.05 * float(maxi(0, lv - 1)))
-	else:
-		bonus_damage_reduction = 0.0
-	if prev_active != steadfast_active:
-		queue_redraw()
-
-
-func _update_stillness_heart(delta: float) -> void:
-	if get_upgrade_level("stillness_heart") <= 0:
-		stillness_stacks = 0
-		stillness_stack_timer = 0.0
-		stillness_move_grace_timer = 0.0
-		bonus_crit_damage = 0.0
-		return
-	if is_near_stationary() and state == State.IDLE:
-		stillness_move_grace_timer = 3.0
-		stillness_stack_timer += delta
-		while stillness_stack_timer >= 0.5:
-			stillness_stack_timer -= 0.5
-			stillness_stacks = mini(stillness_stacks + 1, STILLNESS_MAX_STACKS)
-	else:
-		stillness_stack_timer = 0.0
-		stillness_move_grace_timer = maxf(0.0, stillness_move_grace_timer - delta)
-		if stillness_move_grace_timer <= 0.0:
-			stillness_stacks = 0
-	bonus_crit_rate += STILLNESS_CRIT_PER_STACK * float(stillness_stacks)
-	bonus_crit_damage = STILLNESS_CRIT_PER_STACK * float(stillness_stacks)
-
-
-func _update_wild_call() -> void:
-	var lv := get_upgrade_level("wild_call")
-	if lv <= 0:
-		return
-	var per := 0.06 + 0.02 * float(maxi(0, lv - 1))
-	var pet_cnt := get_total_summons_count()
-	bonus_attack_speed_mult *= 1.0 + per * float(pet_cnt)
-
-
-func _update_adversity_heart() -> void:
-	var lv := get_upgrade_level("adversity_heart")
-	if lv <= 0:
-		return
-	if hp < int(round(float(max_hp) * 0.5)):
-		bonus_attack_mult = 1.0 + (0.15 + 0.05 * float(maxi(0, lv - 1)))
 
 
 func _apply_path_line_color() -> void:
@@ -1587,6 +1319,79 @@ func _update_path_line() -> void:
 	for p in attack_path:
 		path_line.add_point(p)
 	_apply_path_line_color()
+	_update_trail_extra_lines()
+
+
+# sr=24 trail_multi：返回平行线偏移距离（不含主线 0）。i%2==0 走 +侧，i%2==1 走 -侧
+func _trail_offset_distances() -> Array:
+	var distances: Array = []
+	var extra_count: int = trail_multi_count
+	if extra_count <= 0:
+		return distances
+	var spacing: float = GameConfig.scale_world(28.0)
+	for i in range(extra_count):
+		var d: float = spacing * float(i / 2 + 1) * (1.0 if i % 2 == 0 else -1.0)
+		distances.append(d)
+	return distances
+
+
+# 把 attack_path 沿"顶点法线"偏移 offset 像素，得到平行 polyline。
+# 顶点法线 = 前后段法线平均，端点用所在段法线
+func _offset_polyline(offset: float) -> Array:
+	var n: int = attack_path.size()
+	if n < 2 or absf(offset) < 0.001:
+		return attack_path.duplicate()
+	var out: Array = []
+	for i in range(n):
+		var prev_dir: Vector2 = Vector2.ZERO
+		var next_dir: Vector2 = Vector2.ZERO
+		if i > 0:
+			prev_dir = (attack_path[i] - attack_path[i - 1]).normalized()
+		if i < n - 1:
+			next_dir = (attack_path[i + 1] - attack_path[i]).normalized()
+		var tan: Vector2
+		if prev_dir == Vector2.ZERO:
+			tan = next_dir
+		elif next_dir == Vector2.ZERO:
+			tan = prev_dir
+		else:
+			tan = (prev_dir + next_dir).normalized()
+		if tan == Vector2.ZERO:
+			tan = Vector2.RIGHT
+		var normal: Vector2 = Vector2(-tan.y, tan.x)
+		out.append(attack_path[i] + normal * offset)
+	return out
+
+
+func _update_trail_extra_lines() -> void:
+	var distances: Array = _trail_offset_distances()
+	var needed: int = distances.size()
+	# 同步节点数量
+	while _trail_extra_lines.size() < needed:
+		var line := Line2D.new()
+		line.top_level = true
+		line.z_index = path_line.z_index
+		line.joint_mode = Line2D.LINE_JOINT_ROUND
+		line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		line.end_cap_mode = Line2D.LINE_CAP_ROUND
+		add_child(line)
+		_trail_extra_lines.append(line)
+	while _trail_extra_lines.size() > needed:
+		var line: Line2D = _trail_extra_lines.pop_back()
+		line.queue_free()
+	if needed == 0:
+		return
+	var base_color: Color = path_line.default_color
+	var base_width: float = path_line.width
+	for i in range(needed):
+		var line: Line2D = _trail_extra_lines[i]
+		line.clear_points()
+		if attack_path.size() >= 2:
+			for p in _offset_polyline(distances[i]):
+				line.add_point(p)
+		line.default_color = Color(base_color.r, base_color.g, base_color.b, base_color.a * 0.78)
+		line.width = base_width * 0.88
+		line.visible = path_line.visible
 
 
 func begin_fail_death(info: Dictionary) -> void:
@@ -1594,6 +1399,8 @@ func begin_fail_death(info: Dictionary) -> void:
 	death_anim["active"] = true
 	_trigger_ring_fade_t = 0.0
 	path_line.visible = false
+	for _l in _trail_extra_lines:
+		_l.visible = false
 	modulate = Color.WHITE
 	z_index = 2
 	var anim_sprite := _get_sprite()
@@ -1681,18 +1488,21 @@ func _update_fail_death_last_frame_speed(anim_sprite: AnimatedSprite2D) -> void:
 
 func _process(delta: float) -> void:
 	_update_draw_start_fx(delta)
-	_tick_charge_flame_anim(delta)
 	if trigger_dispatcher != null:
 		trigger_dispatcher.tick(delta)
 	SpecialRuleDispatcherT.on_tick(self, delta)
 	if is_fail_death_pose():
 		path_line.visible = false
+		for _l in _trail_extra_lines:
+			_l.visible = false
 		queue_redraw()
 		return
 	if state == State.IDLE:
 		_apply_combat_modulate()
 	_update_new_upgrade_states(delta)
 	path_line.visible = attack_path.size() >= 2
+	for _l in _trail_extra_lines:
+		_l.visible = path_line.visible
 	_update_trigger_ring_fade(delta)
 
 
@@ -1729,39 +1539,6 @@ func _draw_hp_bar() -> void:
 	)
 
 
-func _draw_holy_shield() -> void:
-	if holy_shield_charges <= 0:
-		return
-	var radius := get_effective_radius() + 10.0
-	draw_circle(Vector2.ZERO, radius, Color(0.353, 0.667, 1.0, 0.18))
-	_draw_closed_ring(Vector2.ZERO, radius, 64, Color(0.471, 0.784, 1.0, 0.85), 2.5)
-
-
-func _draw_desperate_counter_fx() -> void:
-	if desperate_counter_timer <= 0.0:
-		return
-	var pulse := 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.012)
-	var r := get_effective_radius() + 16.0 + pulse * 3.0
-	_draw_closed_ring(Vector2.ZERO, r, 48, Color(1.0, 0.55, 0.28, 0.85), 2.0)
-	draw_circle(Vector2.ZERO, r * 0.45, Color(1.0, 0.35, 0.25, 0.12))
-
-
-func _draw_steadfast_guard_fx() -> void:
-	if not steadfast_active:
-		return
-	var r := get_effective_radius() + 22.0
-	_draw_closed_ring(Vector2.ZERO, r, 56, Color(0.4, 0.95, 0.78, 0.9), 2.6)
-	draw_circle(Vector2.ZERO, r * 0.58, Color(0.26, 0.65, 0.55, 0.12))
-
-
-func _draw_stillness_heart_fx() -> void:
-	if get_upgrade_level("stillness_heart") <= 0 or stillness_stacks <= 0:
-		return
-	var r := get_effective_radius() + 8.0 + float(stillness_stacks) * 1.8
-	var a := 0.28 + minf(0.45, 0.03 * float(stillness_stacks))
-	_draw_closed_ring(Vector2.ZERO, r, 64, Color(0.72, 0.9, 1.0, a), 1.8)
-
-
 func _draw_closed_ring(center: Vector2, radius: float, point_count: int, color: Color, width: float) -> void:
 	# draw_arc at exactly [0, TAU] can show a visible seam at 0 angle on some scales.
 	# Expand a tiny angle on both sides so both caps overlap and hide the gap.
@@ -1772,13 +1549,8 @@ func _draw_closed_ring(center: Vector2, radius: float, point_count: int, color: 
 func _draw() -> void:
 	if is_fail_death_pose():
 		return
-	_draw_charge_flame()
 	if _should_show_hp_bar():
 		_draw_hp_bar()
-	_draw_holy_shield()
-	_draw_desperate_counter_fx()
-	_draw_steadfast_guard_fx()
-	_draw_stillness_heart_fx()
 	var ring_alpha := _get_trigger_ring_alpha()
 	if ring_alpha <= 0.0:
 		return

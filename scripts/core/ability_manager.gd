@@ -190,9 +190,6 @@ func clear_death_presentation() -> void:
 func on_resolve_started() -> void:
 	black_hole_spawned_this_resolve = false
 	combo_fireball_milestone = 0
-	if battle and battle.player:
-		battle.player.water_tornado_charge = 0
-		battle.player.whirl_charge = 0
 
 
 func has_active_fx() -> bool:
@@ -220,37 +217,6 @@ func on_combo_hit(combo: float, hit_pos: Vector2, seg_ang: float, player: Battle
 	if player == null or battle == null or not battle.combat.is_resolving():
 		return
 	var combo_floor := int(floor(combo))
-
-	if player.get_upgrade_level("shuriken") > 0 and combo_floor > 0:
-		_spawn_combo_shurikens(hit_pos, seg_ang)
-
-	var fire_milestone := int(floor(combo_floor / 12.0)) * 12
-	if player.get_upgrade_level("great_fireball") > 0 and fire_milestone >= 12 and fire_milestone > combo_fireball_milestone:
-		combo_fireball_milestone = fire_milestone
-		_spawn_combo_fireballs(hit_pos, seg_ang, player)
-
-	if player.get_upgrade_level("lightning_chain") > 0 and combo_floor > 0 and combo_floor % 8 == 0:
-		var monsters: Array = battle.spawner.get_active_monsters() if battle and battle.spawner else []
-		_spawn_lightning_chain(hit_pos, player, monsters)
-
-	if player.get_upgrade_level("water_tornado") > 0:
-		player.water_tornado_charge += 1
-		while player.water_tornado_charge >= 5:
-			player.water_tornado_charge -= 5
-			var cnt := player.get_upgrade_level("water_tornado")
-			for i in range(cnt):
-				_spawn_water_tornado(hit_pos, seg_ang, player, i, cnt)
-
-	if player.get_upgrade_level("black_hole") > 0 and combo_floor == 8 and not black_hole_spawned_this_resolve:
-		_spawn_black_hole(hit_pos, player)
-		black_hole_spawned_this_resolve = true
-
-	if player.get_upgrade_level("blade_whirl") > 0:
-		player.whirl_charge += 1
-		while player.whirl_charge >= 8:
-			player.whirl_charge -= 8
-			_spawn_whirl(hit_pos, player)
-
 	# Phase 6 sr=20 combo_milestone_spell：5 张 v6 combo_* 卡按 trigger_value 触发
 	SpecialRuleDispatcher.on_combo_milestone(player, self, combo_floor, hit_pos, seg_ang)
 
@@ -287,48 +253,22 @@ func _spawn_auto_bullet_volley(player: BattlePlayer, monsters: Array) -> void:
 		return
 	var base_ang := _nearest_monster_angle(player.global_position, -PI * 0.5, monsters)
 	var dmg := player.get_auto_bullet_damage()
-	var is_spirit := player.has_spirit_bomb()
 	var count := maxi(1, player.bullet_count)
 	for i in range(count):
 		var ang := base_ang
 		if count > 1:
 			ang = base_ang + (float(i) - (count - 1) * 0.5) * AUTO_BULLET_FAN_SPREAD
-		_spawn_bullet_from_angle(player, ang, dmg, is_spirit, 1.0)
+		_spawn_bullet_from_angle(player, ang, dmg, false, 1.0)
 	# Phase 3 sr=17 bullet_side：dispatcher 返回斜射额外角度
 	var extra_angles: Array = SpecialRuleDispatcher.collect_extra_bullet_angles(player, base_ang)
 	for ang2 in extra_angles:
-		_spawn_bullet_from_angle(player, float(ang2), dmg, is_spirit, 1.0)
-	_try_spawn_laser_blast(player, monsters)
+		_spawn_bullet_from_angle(player, float(ang2), dmg, false, 1.0)
 
 
 func _on_auto_bullet_released() -> void:
 	if battle == null or battle.player == null or battle.spawner == null:
 		return
 	_spawn_auto_bullet_volley(battle.player, battle.spawner.get_active_monsters())
-
-
-func _try_spawn_laser_blast(player: BattlePlayer, monsters: Array) -> void:
-	if player == null or battle == null:
-		return
-	if randf() >= player.get_laser_blast_chance():
-		return
-	var spawn_pos := player.global_position
-	var ang := _nearest_monster_angle(spawn_pos, -PI * 0.5, monsters)
-	var dir := Vector2(cos(ang), sin(ang))
-	var exit_dist := _ray_playfield_exit_distance(spawn_pos, dir)
-	var beam_length := exit_dist + GameConfig.scale_world(72.0) * FX_SCALE
-	lasers.append(_with_upgrade_fx_layer({
-		"kind": "laser",
-		"tail": spawn_pos,
-		"origin": spawn_pos,
-		"dir": dir,
-		"exit_dist": exit_dist,
-		"beam_length": beam_length,
-		"vel": dir * 960.0,
-		"damage": player.get_auto_bullet_damage(),
-		"hit": {},
-		"rot": ang,
-	}, "laser_blast"))
 
 
 func _is_out_of_playfield(pos: Vector2) -> bool:
@@ -380,25 +320,12 @@ func _apply_laser_hits(s: Dictionary, player: BattlePlayer, monsters: Array) -> 
 		_apply_projectile_hit(s, m, player)
 
 
-func _auto_pierce_max_range(s: Dictionary) -> float:
-	return Vector2(s.get("vel", Vector2.ZERO)).length() * float(s.get("max_life", GameConfig.get_player_value("auto_bullet_life", 0.9)))
-
-
-func _auto_travel_distance(s: Dictionary) -> float:
-	var origin: Vector2 = s.get("origin", s.get("pos", Vector2.ZERO))
-	return Vector2(s.get("pos", Vector2.ZERO)).distance_to(origin)
-
-
-func _auto_reached_pierce_max_range(s: Dictionary) -> bool:
-	return _auto_travel_distance(s) >= _auto_pierce_max_range(s)
-
-
 func _auto_outbound_mirror_pending(s: Dictionary, player: BattlePlayer) -> bool:
 	if player == null or _projectile_kind(s) != "auto":
 		return false
 	if bool(s.get("returning", false)) or bool(s.get("mirror_used", false)):
 		return false
-	return player.has_mirror_bullet()
+	return float(player.bullet_mirror_mult) > 0.0
 
 
 func _start_mirror_return(s: Dictionary, player: BattlePlayer) -> void:
@@ -411,11 +338,8 @@ func _start_mirror_return(s: Dictionary, player: BattlePlayer) -> void:
 func _try_start_outbound_mirror_return(s: Dictionary, player: BattlePlayer) -> bool:
 	if not _auto_outbound_mirror_pending(s, player):
 		return false
-	# 穿透+镜像：飞到穿透最大攻击距离后折返；仅镜像：出屏后折返
-	if player.has_pierce_bullet():
-		if not _auto_reached_pierce_max_range(s):
-			return false
-	elif not _is_out_of_playfield(Vector2(s.get("pos", Vector2.ZERO))):
+	# 仅镜像：出屏后折返
+	if not _is_out_of_playfield(Vector2(s.get("pos", Vector2.ZERO))):
 		return false
 	_start_mirror_return(s, player)
 	return true
@@ -426,16 +350,18 @@ func _auto_projectile_should_remove(s: Dictionary, player: BattlePlayer, out_of_
 		if player == null:
 			return true
 		return Vector2(s.pos).distance_to(player.global_position) <= player.get_effective_radius() + 10.0
-	if player != null and _auto_outbound_mirror_pending(s, player) and player.has_pierce_bullet():
-		if _auto_reached_pierce_max_range(s):
-			return not _try_start_outbound_mirror_return(s, player)
-		return false
 	if out_of_bounds:
 		if _try_start_outbound_mirror_return(s, player):
 			return false
 		return true
 	if _auto_outbound_mirror_pending(s, player):
 		return false
+	# 普攻主子弹：飞行距离达到 auto_bullet_range 后消失；split/bounce 仍按 life
+	if not bool(s.get("is_split", false)) and not bool(s.get("is_bounce", false)):
+		var origin: Vector2 = Vector2(s.get("origin", s.get("pos", Vector2.ZERO)))
+		var traveled: float = Vector2(s.get("pos", Vector2.ZERO)).distance_to(origin)
+		var range_px: float = float(s.get("range_px", GameConfig.get_player_value("auto_bullet_range", 378)))
+		return traveled >= range_px
 	return float(s.life) <= 0.0
 
 
@@ -448,27 +374,6 @@ func try_abyss_explosion(player: BattlePlayer, path: Array) -> void:
 	var anim_life := EffectHelperScript.one_shot_anim_duration(_explosion_frames)
 	if anim_life <= 0.0:
 		anim_life = 0.55
-	# v5 abyss_explosion 卡（v6 失活）
-	var v5_lv := player.get_upgrade_level("abyss_explosion")
-	if v5_lv > 0:
-		var def := GameConfig.get_upgrade("abyss_explosion")
-		var dmg_mul := pow(float(def.get("apply_value", 1.2)), float(v5_lv))
-		for loop in loops:
-			var center := MathUtils.polygon_centroid(loop)
-			var radius := MathUtils.path_loop_radius(loop, center)
-			var explosion := _with_upgrade_fx_layer({
-				"kind": "abyss_explosion",
-				"pos": center,
-				"radius": radius,
-				"life": anim_life,
-				"max_life": anim_life,
-				"anim_t": 0.0,
-				"dmg_mul": 1 * dmg_mul,
-				"hit": {},
-			}, "abyss_explosion")
-			explosion["damage_applied"] = false
-			abyss_explosions.append(explosion)
-			_skill_burst(center, 9.0, 0.2, Color("#ff6020"), 24)
 	# Phase 6 sr=27 trail_loop_explode：v6 卡按 weapon_mult 爆炸
 	var v6_explosions: Array = SpecialRuleDispatcher.on_loop_explode(player, self, loops)
 	for ex in v6_explosions:
@@ -496,6 +401,12 @@ func _update_auto_bullets(delta: float, player: BattlePlayer, monsters: Array) -
 		return
 	if monsters.is_empty():
 		return
+	var nearest = _find_nearest_monster(player.global_position, monsters)
+	if nearest == null:
+		return
+	var range_px := float(GameConfig.get_player_value("auto_bullet_range", 378))
+	if player.global_position.distance_to(nearest.global_position) > range_px:
+		return
 	_connect_auto_bullet_release()
 	auto_bullet_cooldown -= delta
 	if auto_bullet_cooldown > 0.0:
@@ -509,8 +420,7 @@ func _spawn_bullet_from_angle(player: BattlePlayer, ang: float, damage: int, is_
 	var dir := Vector2(cos(ang), sin(ang))
 	var spawn_pos := player.global_position + dir * (player.get_effective_radius() + GameConfig.scale_world(AUTO_BULLET_SPAWN_OFFSET))
 	var max_life := float(GameConfig.get_player_value("auto_bullet_life", 0.9))
-	if player.has_pierce_bullet():
-		max_life *= float(GameConfig.get_player_value("auto_bullet_pierce_range_mul", 0.85))
+	var range_px := float(GameConfig.get_player_value("auto_bullet_range", 378))
 	shurikens.append(_with_upgrade_fx_layer({
 		"kind": "auto",
 		"pos": spawn_pos,
@@ -518,6 +428,7 @@ func _spawn_bullet_from_angle(player: BattlePlayer, ang: float, damage: int, is_
 		"vel": dir * float(GameConfig.get_player_value("auto_bullet_speed", 420)),
 		"life": max_life,
 		"max_life": max_life,
+		"range_px": range_px,
 		"damage": damage,
 		"hit": {},
 		"rot": ang,
@@ -974,128 +885,6 @@ func _trail_field_color(element: String, alpha: float) -> Color:
 		_:         return Color(0.9, 0.9, 0.9, alpha)
 
 
-func _spawn_combo_shurikens(pos: Vector2, seg_ang: float) -> void:
-	for i in range(2):
-		var spread := seg_ang + MathUtils.rand_range(-0.55, 0.55)
-		var spd := MathUtils.rand_range(340.0, 500.0)
-		shurikens.append(_with_upgrade_fx_layer({
-			"kind": "skill",
-			"pos": pos + Vector2(randf_range(-4, 4), randf_range(-4, 4)),
-			"vel": Vector2(cos(spread), sin(spread)) * spd,
-			"life": MathUtils.rand_range(0.42, 0.62),
-			"damage": 0,
-			"hit": {},
-			"rot": randf() * TAU,
-			"spin": MathUtils.rand_range(10.0, 18.0) * (-1.0 if randf() < 0.5 else 1.0),
-			"dmg_mul": 0.10,
-		}, "shuriken"))
-	_skill_burst(pos, 4.5, 0.1, Color("#b8cce8"), 8)
-
-
-func _spawn_combo_fireballs(pos: Vector2, seg_ang: float, player: BattlePlayer) -> void:
-	var lv := player.get_upgrade_level("great_fireball")
-	var cnt := 3 + maxi(0, lv - 1)
-	for i in range(cnt):
-		var a := seg_ang + MathUtils.rand_range(-0.9, 0.9)
-		shurikens.append(_with_upgrade_fx_layer({
-			"kind": "fireball",
-			"pos": pos,
-			"vel": Vector2(cos(a), sin(a)) * 280.0,
-			"life": 0.95,
-			"damage": 0,
-			"hit": {},
-			"rot": a,
-			"spin": 0.0,
-			"dmg_mul": 1.0,
-			"visual_scale": 1.5,
-		}, "great_fireball"))
-	_skill_burst(pos, 6.5, 0.16, Color("#ff7020"), 18)
-
-
-func _spawn_water_tornado(pos: Vector2, seg_ang: float, player: BattlePlayer, idx: int, total: int) -> void:
-	var lv := player.get_upgrade_level("water_tornado")
-	var spread := 0.0 if total <= 1 else (float(idx) - (total - 1) * 0.5) * 0.22
-	var monsters: Array = battle.spawner.get_active_monsters() if battle and battle.spawner else []
-	var ang := _nearest_monster_angle(pos, seg_ang, monsters) + spread
-	water_tornados.append(_with_upgrade_fx_layer({
-		"kind": "water_tornado",
-		"pos": pos,
-		"vel": Vector2(cos(ang), sin(ang)) * 360.0,
-		"life": 1.85,
-		"max_life": 1.85,
-		"anim_t": 0.0,
-		"hit": {},
-		"dmg_mul": 0.55 + 0.1 * float(lv),
-	}, "water_tornado"))
-	_skill_burst(pos, 5.5, 0.14, Color("#58d8ff"), 14)
-
-
-func _spawn_black_hole(pos: Vector2, player: BattlePlayer) -> void:
-	var lv := player.get_upgrade_level("black_hole")
-	black_holes.append(_with_upgrade_fx_layer({
-		"kind": "black_hole",
-		"pos": pos,
-		"radius": GameConfig.scale_world(49.2 + float(lv) * 24.0) * FX_SCALE,
-		"life": 1.9,
-		"max_life": 1.9,
-		"anim_t": 0.0,
-		"pull": 220.0 + float(lv) * 65.0,
-		"dmg_timer": 0.0,
-		"hit": {},
-		"dmg_mul": 0.45 + 0.08 * float(lv),
-	}, "black_hole"))
-	_skill_burst(pos, 8.0, 0.2, Color("#9040d8"), 20)
-
-
-func _spawn_whirl(pos: Vector2, player: BattlePlayer) -> void:
-	var lv := player.get_upgrade_level("blade_whirl")
-	var base_r := GameConfig.scale_world((68.0 + float(lv) * 8.0) * 1.12) * FX_SCALE
-	whirls.append(_with_upgrade_fx_layer({
-		"kind": "whirl",
-		"pos": pos,
-		"radius": base_r * 0.55,
-		"max_radius": base_r,
-		"life": 0.9,
-		"max_life": 0.9,
-		"anim_t": 0.0,
-		"hit": {},
-		"dmg_mul": 0.35 + float(lv) * 0.12,
-	}, "blade_whirl"))
-	_skill_burst(pos, 6.0, 0.15, Color("#ffe060"), 16)
-
-
-func _spawn_lightning_chain(from_pos: Vector2, player: BattlePlayer, monsters: Array) -> void:
-	_skill_burst(from_pos, 7.5, 0.17, Color("#a8e8ff"), 12)
-	var targets: Array = []
-	for m in monsters:
-		if is_instance_valid(m) and m.get("alive") != false:
-			targets.append(m)
-	targets.sort_custom(func(a, b): return from_pos.distance_to(a.global_position) < from_pos.distance_to(b.global_position))
-	var chain_count := mini(3 + player.get_upgrade_level("lightning_chain"), targets.size())
-	# 迁移到 DamageInfo 路径：v6 dmg_layer=COMBO + element=thunder (硬编码 bypass 已修正，
-	# 现可正常吃 bonus_attack_mult 等加成；v==2 时怪物的 vuln_thunder / elem_resist_thunder 也会生效)
-	var info := player.make_ability_damage("combo_lightning", 0.6, "combo", "thunder", false, false)
-	var chain_from := from_pos
-	for i in range(chain_count):
-		var m = targets[i]
-		var to_pos: Vector2 = m.global_position
-		if battle and battle.particles:
-			battle.particles.lightning_effect(chain_from, to_pos)
-		var result: Dictionary = {}
-		if m.has_method("take_damage_info"):
-			result = m.take_damage_info(info, chain_from)
-		elif m.has_method("take_damage"):
-			result = m.take_damage(info.raw_amount, chain_from)
-		if not result.is_empty():
-			if battle and battle.combat:
-				battle.combat.spawn_damage_number(to_pos, int(result.get("damage", 0)), false, false, Color("#f8d020"))
-			if battle and battle.particles:
-				battle.particles.hit_spark(to_pos, false)
-			if bool(result.get("started_dying", false)):
-				EventBus.monster_killed.emit(m)
-		chain_from = to_pos
-
-
 func _projectile_kind(s: Dictionary) -> String:
 	return str(s.get("kind", ""))
 
@@ -1129,16 +918,12 @@ func _should_remove_auto_projectile(s: Dictionary, player: BattlePlayer, monster
 	if bool(s.get("returning", false)):
 		var dist := Vector2(s.pos).distance_to(player.global_position)
 		return dist <= player.get_effective_radius() + 10.0
-	var pierce := player.has_pierce_bullet()
 	# Phase 5 sr=16 bullet_mirror：命中后回弹（mult>0 启用；split/bounce 不参与）
 	if not bool(s.get("is_split", false)) and not bool(s.get("is_bounce", false)) and float(player.bullet_mirror_mult) > 0.0 and not bool(s.get("mirror_used", false)):
 		s["damage"] = int(max(1, round(float(s.get("damage", 1)) * float(player.bullet_mirror_mult))))
 		_start_mirror_return(s, player)
 		return false
-	if player.has_mirror_bullet() and not bool(s.get("mirror_used", false)) and not pierce:
-		_start_mirror_return(s, player)
-		return false
-	return not pierce
+	return true
 
 
 func _redirect_auto_to_player(s: Dictionary, player: BattlePlayer) -> void:
@@ -1207,7 +992,6 @@ func _apply_projectile_hit(s: Dictionary, m, player: BattlePlayer) -> bool:
 		if kind == "auto":
 			var fx_scale := float(s.get("visual_scale", 1.0))
 			_spawn_auto_hit_fx(m, fx_scale)
-			_apply_auto_bullet_upgrade_effects(s, m, player, int(result.get("damage", 0)))
 		if bool(result.get("started_dying", false)):
 			EventBus.monster_killed.emit(m)
 	return true
@@ -1250,64 +1034,6 @@ func _build_projectile_damage_info(kind: String, dmg: int, is_crit: bool, player
 	info.raw_amount = dmg
 	info.is_crit_resolved = is_crit
 	return info
-
-
-func _apply_auto_bullet_upgrade_effects(s: Dictionary, m, player: BattlePlayer, dealt_damage: int) -> void:
-	if player == null:
-		return
-	# 注：bullet_burn v5 hardcode 已删除（v6 走 ElementEffectManager.try_apply 通过 applies_fire）。
-	var close_lv := player.get_upgrade_level("close_range_shot")
-	if close_lv > 0 and dealt_damage > 0:
-		var travel := Vector2(s.get("pos", Vector2.ZERO)).distance_to(Vector2(s.get("origin", Vector2.ZERO)))
-		var max_range := maxf(24.0, _auto_pierce_max_range(s))
-		var near_ratio := clampf(1.0 - travel / max_range, 0.0, 1.0)
-		var tier_bonus := _close_range_tier_bonus(near_ratio)
-		var bonus_mul := (0.35 + 0.12 * float(maxi(0, close_lv - 1))) * tier_bonus
-		if bonus_mul > 0.0:
-			# close_range_shot 第二个命中事件：category=bullet，可暴击(原代码会 roll)
-			var extra_roll: Dictionary = player.roll_crit_damage(float(dealt_damage) * bonus_mul)
-			var extra := int(extra_roll.get("amount", 1))
-			var extra_crit := bool(extra_roll.get("is_crit", false))
-			var extra_info := player.make_damage("bullet_close", 1.0, "bullet", "", true, false)
-			extra_info.raw_amount = extra
-			extra_info.is_crit_resolved = extra_crit
-			var pos_v: Vector2 = s.get("pos", Vector2.ZERO)
-			var result: Dictionary = {}
-			if m.has_method("take_damage_info"):
-				result = m.take_damage_info(extra_info, pos_v)
-			elif m.has_method("take_damage"):
-				result = m.take_damage(extra, pos_v)
-			if not result.is_empty():
-				if battle and battle.combat:
-					battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), extra_crit)
-				if bool(result.get("started_dying", false)):
-					EventBus.monster_killed.emit(m)
-
-
-func _close_range_tier_bonus(near_ratio: float) -> float:
-	# 近距离射击做 10 段细分，避免出现“飞一段没变化”的体感。
-	var r := clampf(near_ratio, 0.0, 1.0)
-	if r >= 0.95:
-		return 1.00
-	if r >= 0.85:
-		return 0.90
-	if r >= 0.75:
-		return 0.80
-	if r >= 0.65:
-		return 0.70
-	if r >= 0.55:
-		return 0.60
-	if r >= 0.45:
-		return 0.50
-	if r >= 0.35:
-		return 0.40
-	if r >= 0.25:
-		return 0.30
-	if r >= 0.15:
-		return 0.20
-	if r >= 0.05:
-		return 0.10
-	return 0.05
 
 
 func _update_shurikens(delta: float, player: BattlePlayer, monsters: Array) -> void:
@@ -1558,8 +1284,16 @@ func _draw_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
 	var draw_scale := float(s.get("visual_scale", 1.0)) * AUTO_BULLET_DRAW_SCALE
 	if bool(s.get("is_spirit", false)):
 		draw_scale *= 1.15
-	var max_life := float(s.get("max_life", GameConfig.get_player_value("auto_bullet_life", 0.9)))
-	var life_t := clampf(float(s.life) / maxf(0.001, max_life), 0.0, 1.0)
+	var life_t: float
+	if not bool(s.get("is_split", false)) and not bool(s.get("is_bounce", false)) and not bool(s.get("returning", false)):
+		# 普攻主子弹：按飞行距离剩余比例计算视觉淡出
+		var origin: Vector2 = Vector2(s.get("origin", s.get("pos", Vector2.ZERO)))
+		var traveled: float = Vector2(s.get("pos", Vector2.ZERO)).distance_to(origin)
+		var range_px: float = float(s.get("range_px", GameConfig.get_player_value("auto_bullet_range", 378)))
+		life_t = clampf(1.0 - traveled / maxf(0.001, range_px), 0.0, 1.0)
+	else:
+		var max_life := float(s.get("max_life", GameConfig.get_player_value("auto_bullet_life", 0.9)))
+		life_t = clampf(float(s.life) / maxf(0.001, max_life), 0.0, 1.0)
 	var modulate := Color(1.0, 1.0, 1.0, 0.82 + life_t * 0.18)
 	if bool(s.get("returning", false)):
 		modulate = Color(0.75, 0.95, 1.0, modulate.a)
