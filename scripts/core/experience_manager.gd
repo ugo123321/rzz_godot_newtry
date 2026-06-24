@@ -22,6 +22,8 @@ func _calc_exp_to_next(current_level: int) -> int:
 
 
 func get_kill_reward(monster: Node) -> int:
+	if not (monster is BattleMonster):
+		return 0
 	var kind_id := str(monster.kind_id)
 	var row := GameConfig.get_monster(kind_id)
 	return int(row.get("exp_reward", 2))

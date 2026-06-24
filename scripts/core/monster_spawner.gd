@@ -9,6 +9,8 @@ var _spawn_queue: Array = []
 var _spawn_timer := 0.0
 var _pending_boss_stage := -1
 var _pending_boss_id := ""
+var _infinite_stage_index := -1
+var infinite_spawn := false
 
 
 func reset() -> void:
@@ -21,6 +23,8 @@ func reset() -> void:
 	if is_instance_valid(boss):
 		boss.queue_free()
 	boss = null
+	infinite_spawn = false
+	_infinite_stage_index = -1
 
 
 func spawn_stage(stage_index: int, battle: Node) -> void:
@@ -31,6 +35,26 @@ func spawn_stage(stage_index: int, battle: Node) -> void:
 func append_stage(stage_index: int, battle: Node) -> void:
 	_purge_inactive_monsters()
 	_spawn_stage_content(stage_index, battle)
+
+
+func begin_infinite(stage_index: int, battle: Node) -> void:
+	reset()
+	infinite_spawn = true
+	_infinite_stage_index = stage_index
+	_spawn_stage_content(stage_index, battle)
+
+
+func stop_infinite() -> void:
+	infinite_spawn = false
+	_infinite_stage_index = -1
+	_spawn_queue.clear()
+
+
+func clear_active_monsters() -> void:
+	for m in monsters:
+		if is_instance_valid(m):
+			m.queue_free()
+	monsters.clear()
 
 
 func is_spawning() -> bool:
@@ -49,12 +73,48 @@ func update_spawns(delta: float, battle: Node) -> void:
 		_pending_boss_stage = -1
 		_pending_boss_id = ""
 		return
+	if _spawn_queue.is_empty():
+		if infinite_spawn and _infinite_stage_index >= 0:
+			_refill_queue_for_infinite(_infinite_stage_index)
+		else:
+			return
 	if _spawn_queue.is_empty() or _spawn_timer > 0.0:
 		return
 	var entry: Dictionary = _spawn_queue.pop_front()
 	_spawn_monster(str(entry.get("kind_id", "NORMAL")), int(entry.get("stage_index", 0)), battle)
 	if not _spawn_queue.is_empty():
-		_spawn_timer = _spawn_interval()
+		_spawn_timer = _infinite_spawn_interval() if infinite_spawn else _spawn_interval()
+
+
+func _refill_queue_for_infinite(stage_index: int) -> void:
+	var stage := GameConfig.get_stage(stage_index)
+	if stage.is_empty():
+		return
+	var counts := {
+		"NORMAL": maxi(0, int(stage.get("normal", 0))),
+		"ELITE": maxi(0, int(stage.get("elite", 0))),
+		"SHIELD": maxi(0, int(stage.get("shield", 0))),
+		"BERSERKER": maxi(0, int(stage.get("berserker", 0))),
+		"SPLITTER": maxi(0, int(stage.get("splitter", 0))),
+		"ARCHER": maxi(0, int(stage.get("archer", 0))),
+		"FIRE_MAGE": maxi(0, int(stage.get("fire_mage", 0))),
+		"SHOTGUN": maxi(0, int(stage.get("shotgun", 0))),
+		"CROSS_SHOOTER": maxi(0, int(stage.get("cross_shooter", 0))),
+		"BOUNCE_SLIME": maxi(0, int(stage.get("bounce_slime", 0))),
+	}
+	var has_any := false
+	for kind_id in counts.keys():
+		var c: int = counts[kind_id]
+		if c <= 0:
+			continue
+		has_any = true
+		for i in range(c):
+			_spawn_queue.append({"kind_id": kind_id, "stage_index": stage_index})
+	if not has_any:
+		_spawn_queue.append({"kind_id": "NORMAL", "stage_index": stage_index})
+	_spawn_queue.shuffle()
+	if _spawn_timer <= 0.0:
+		_spawn_timer = _infinite_wave_delay()
 
 
 func _purge_inactive_monsters() -> void:
@@ -75,7 +135,8 @@ func _spawn_stage_content(stage_index: int, battle: Node) -> void:
 	var stage := GameConfig.get_stage(stage_index)
 	if stage.is_empty():
 		return
-	_spawn_timer = maxf(_spawn_timer, _spawn_wave_delay())
+	var wave_delay := _infinite_wave_delay() if infinite_spawn else _spawn_wave_delay()
+	_spawn_timer = maxf(_spawn_timer, wave_delay)
 	var boss_id := str(stage.get("boss_id", ""))
 	if not boss_id.is_empty():
 		_pending_boss_stage = stage_index
@@ -157,6 +218,14 @@ func _spawn_interval() -> float:
 
 func _spawn_wave_delay() -> float:
 	return float(GameConfig.get_tuning("monster_spawn_wave_delay", 0.55))
+
+
+func _infinite_spawn_interval() -> float:
+	return float(GameConfig.get_tuning("infinite_spawn_interval", 2.4))
+
+
+func _infinite_wave_delay() -> float:
+	return float(GameConfig.get_tuning("infinite_spawn_wave_delay", 4.5))
 
 
 func _init_clusters(battle: Node) -> void:

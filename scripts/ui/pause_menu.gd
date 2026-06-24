@@ -9,9 +9,11 @@ var battle
 var view := View.PAUSE
 var debug_level := 1
 var debug_stage := 1
+var debug_wood := 0
 var debug_upgrade_levels: Dictionary = {}
 var _level_label: Label
 var _stage_label: Label
+var _wood_label: Label
 var _upgrades_list: VBoxContainer
 
 
@@ -113,6 +115,39 @@ func _build_ui() -> void:
 	st_plus.pressed.connect(func(): _adjust_debug_stage(1))
 	st_row.add_child(st_plus)
 
+	var wd_row := HBoxContainer.new()
+	debug_box.add_child(wd_row)
+	var wd_minus := Button.new()
+	wd_minus.text = "木-10"
+	wd_minus.pressed.connect(func(): _adjust_debug_wood(-10))
+	wd_row.add_child(wd_minus)
+	var wd_label := Label.new()
+	wd_label.name = "WoodLabel"
+	wd_label.text = "木材: 0"
+	wd_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wd_row.add_child(wd_label)
+	_wood_label = wd_label
+	var wd_plus := Button.new()
+	wd_plus.text = "木+10"
+	wd_plus.pressed.connect(func(): _adjust_debug_wood(10))
+	wd_row.add_child(wd_plus)
+
+	var wd_quick_row := HBoxContainer.new()
+	debug_box.add_child(wd_quick_row)
+	var wd_plus_50 := Button.new()
+	wd_plus_50.text = "+50"
+	wd_plus_50.pressed.connect(func(): _adjust_debug_wood(50))
+	wd_quick_row.add_child(wd_plus_50)
+	var wd_plus_100 := Button.new()
+	wd_plus_100.text = "+100"
+	wd_plus_100.pressed.connect(func(): _adjust_debug_wood(100))
+	wd_quick_row.add_child(wd_plus_100)
+	var wd_zero := Button.new()
+	wd_zero.text = "清零"
+	wd_zero.pressed.connect(_zero_debug_wood)
+	wd_quick_row.add_child(wd_zero)
+
 	var upgrades_btn := Button.new()
 	upgrades_btn.text = "升级奖励"
 	upgrades_btn.pressed.connect(_open_debug_upgrades)
@@ -122,6 +157,11 @@ func _build_ui() -> void:
 	apply_btn.text = "应用并跳关"
 	apply_btn.pressed.connect(_apply_debug)
 	debug_box.add_child(apply_btn)
+
+	var enter_house_btn := Button.new()
+	enter_house_btn.text = "直接进入盖房子阶段"
+	enter_house_btn.pressed.connect(_apply_enter_build_house)
+	debug_box.add_child(enter_house_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "返回"
@@ -184,6 +224,7 @@ func _open_debug() -> void:
 	if battle:
 		debug_level = battle.experience.level
 		debug_stage = battle.stage_index + 1
+	debug_wood = LobbyState.wood
 	_sync_debug_upgrade_levels()
 	_sync_debug_labels()
 	view = View.DEBUG
@@ -239,6 +280,8 @@ func _sync_debug_labels() -> void:
 		_level_label.text = "等级: %d" % debug_level
 	if _stage_label:
 		_stage_label.text = "关卡: %d" % debug_stage
+	if _wood_label:
+		_wood_label.text = "木材: %d" % debug_wood
 
 
 func _sync_debug_upgrade_levels() -> void:
@@ -325,6 +368,18 @@ func _adjust_debug_stage(delta: int) -> void:
 	_sync_debug_labels()
 
 
+func _adjust_debug_wood(delta: int) -> void:
+	debug_wood = clampi(debug_wood + delta, 0, 99999)
+	LobbyState.set_wood(debug_wood)
+	_sync_debug_labels()
+
+
+func _zero_debug_wood() -> void:
+	debug_wood = 0
+	LobbyState.set_wood(0)
+	_sync_debug_labels()
+
+
 func _apply_debug_upgrades() -> void:
 	if battle and battle.player:
 		battle.player.rebuild_upgrades_from_stacks(debug_upgrade_levels, false)
@@ -338,6 +393,15 @@ func _apply_debug() -> void:
 	close_menu()
 	if battle:
 		battle.resume_from_pause()
+
+
+func _apply_enter_build_house() -> void:
+	if battle == null:
+		return
+	if battle.player:
+		battle.player.rebuild_upgrades_from_stacks(debug_upgrade_levels, true)
+	battle.enter_build_house_debug(debug_stage - 1)
+	close_menu()
 
 
 func _on_resume_pressed() -> void:

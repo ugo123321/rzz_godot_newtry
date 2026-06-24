@@ -65,6 +65,9 @@ func _is_upgrade_available(def: Dictionary, player: Node) -> bool:
 	var id := str(def.get("id", ""))
 	if id.is_empty():
 		return false
+	# 强化球系统已禁用，过滤掉该 group 的所有升级
+	if str(def.get("group", "")) == "强化球":
+		return false
 	if player == null:
 		return true
 	if player.has_method("is_upgrade_pool_blocked") and player.is_upgrade_pool_blocked(id):

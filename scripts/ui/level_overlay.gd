@@ -5,9 +5,11 @@ var battle
 var stage_intro: Dictionary = {}
 var clear_flash: Dictionary = {}
 var fail_intro: Dictionary = {}
+var phase_fade: Dictionary = {}
 var show_complete := false
 
 var _intro_callback: Callable
+var _phase_fade_callback: Callable
 var _fail_retry_button: Button
 var _fail_back_button: Button
 var _fail_actions_box: HBoxContainer
@@ -69,6 +71,26 @@ func show_fail_intro(on_retry: Callable, on_back: Callable, initial_overlay_alph
 	queue_redraw()
 
 
+func show_phase_fade(title: String, subtitle: String, on_mid: Callable, fade_in: float = 0.55, hold: float = 0.7, fade_out: float = 0.55) -> void:
+	phase_fade = {
+		"title": title,
+		"subtitle": subtitle,
+		"phase": "fade_in",
+		"timer": fade_in,
+		"fade_in_dur": fade_in,
+		"hold_dur": hold,
+		"fade_out_dur": fade_out,
+		"alpha": 0.0,
+		"mid_fired": false,
+	}
+	_phase_fade_callback = on_mid
+	queue_redraw()
+
+
+func is_phase_fade_active() -> bool:
+	return not phase_fade.is_empty()
+
+
 func show_game_complete() -> void:
 	show_complete = true
 	_set_fail_actions_visible(false)
@@ -84,6 +106,7 @@ func reset_all() -> void:
 	stage_intro.clear()
 	clear_flash.clear()
 	fail_intro.clear()
+	phase_fade.clear()
 	show_complete = false
 	_set_fail_actions_visible(false)
 	queue_redraw()
@@ -104,7 +127,9 @@ func update_overlay(delta: float) -> void:
 		_update_clear_flash(delta)
 	if not fail_intro.is_empty():
 		_update_fail_intro(delta)
-	if not stage_intro.is_empty() or not clear_flash.is_empty() or not fail_intro.is_empty() or show_complete:
+	if not phase_fade.is_empty():
+		_update_phase_fade(delta)
+	if not stage_intro.is_empty() or not clear_flash.is_empty() or not fail_intro.is_empty() or not phase_fade.is_empty() or show_complete:
 		queue_redraw()
 
 
@@ -154,6 +179,33 @@ func _update_fail_intro(delta: float) -> void:
 		_set_fail_actions_visible(true)
 
 
+func _update_phase_fade(delta: float) -> void:
+	if phase_fade.is_empty():
+		return
+	phase_fade["timer"] = float(phase_fade.get("timer", 0.0)) - delta
+	match str(phase_fade.get("phase", "")):
+		"fade_in":
+			var t := 1.0 - clampf(float(phase_fade.get("timer", 0.0)) / float(phase_fade.get("fade_in_dur", 0.55)), 0.0, 1.0)
+			phase_fade["alpha"] = t
+			if float(phase_fade.get("timer", 0.0)) <= 0.0:
+				phase_fade["phase"] = "hold"
+				phase_fade["timer"] = float(phase_fade.get("hold_dur", 0.7))
+				if not bool(phase_fade.get("mid_fired", false)):
+					phase_fade["mid_fired"] = true
+					if _phase_fade_callback.is_valid():
+						_phase_fade_callback.call()
+		"hold":
+			phase_fade["alpha"] = 1.0
+			if float(phase_fade.get("timer", 0.0)) <= 0.0:
+				phase_fade["phase"] = "fade_out"
+				phase_fade["timer"] = float(phase_fade.get("fade_out_dur", 0.55))
+		"fade_out":
+			var t := clampf(float(phase_fade.get("timer", 0.0)) / float(phase_fade.get("fade_out_dur", 0.55)), 0.0, 1.0)
+			phase_fade["alpha"] = t
+			if float(phase_fade.get("timer", 0.0)) <= 0.0:
+				phase_fade.clear()
+
+
 func _draw() -> void:
 	var w := size.x if size.x > 0 else float(GameConfig.get_tuning("logical_width", 720))
 	var h := size.y if size.y > 0 else float(GameConfig.get_tuning("logical_height", 1280))
@@ -164,8 +216,23 @@ func _draw() -> void:
 		_draw_clear_flash(cx, h * 0.5)
 	if not fail_intro.is_empty():
 		_draw_fail_overlay(w, h)
+	if not phase_fade.is_empty():
+		_draw_phase_fade(w, h)
 	if show_complete:
 		_draw_complete(w, h)
+
+
+func _draw_phase_fade(w: float, h: float) -> void:
+	var alpha := float(phase_fade.get("alpha", 0.0))
+	if alpha <= 0.0:
+		return
+	draw_rect(Rect2(Vector2.ZERO, Vector2(w, h)), Color(0.05, 0.05, 0.08, alpha * 0.85))
+	var title := str(phase_fade.get("title", ""))
+	var subtitle := str(phase_fade.get("subtitle", ""))
+	if not title.is_empty():
+		_draw_pixel_text(title, Vector2(w * 0.5, h * 0.46), 32, Color("#ffe8a8"), alpha)
+	if not subtitle.is_empty():
+		_draw_pixel_text(subtitle, Vector2(w * 0.5, h * 0.46 + 40.0), 16, Color("#f4e8da"), alpha)
 
 
 func _draw_stage_intro(cx: float, w: float, h: float) -> void:

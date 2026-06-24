@@ -3,18 +3,21 @@
     "chapter_id": 1,
     "chapter_name": "第一章",
     "stages_per_chapter": 4,
+    "chapter_target_height_m": 50,
     "description": "入门章节"
   },
   {
     "chapter_id": 2,
     "chapter_name": "第二章",
     "stages_per_chapter": 6,
+    "chapter_target_height_m": 75,
     "description": "Boss 与高强度混合战"
   },
   {
     "chapter_id": 3,
     "chapter_name": "第三章",
     "stages_per_chapter": 10,
+    "chapter_target_height_m": 120,
     "description": "新怪种逐步登场，终局对战千足虫"
   }
 ]

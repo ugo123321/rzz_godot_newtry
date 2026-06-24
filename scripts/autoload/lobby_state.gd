@@ -30,11 +30,18 @@ const QUALITY_NAMES := ["普通", "稀有", "史诗", "传奇"]
 const QUALITY_COLORS := ["#f2f2f2", "#57a8ff", "#b172ff", "#ffa640"]
 
 const DROP_RATE := 0.10
+const EQUIPMENT_DROP_ENABLED := true
 
 var gold: int = 0
+var wood: int = 0
 var equipment_inventory: Array[Dictionary] = []
 var equipped_by_slot: Dictionary = {}
 var _next_item_uid := 1
+
+# Chapter-scoped tower persistence (build house phases accumulate within a chapter)
+var chapter_active_id: int = 0  # 0 = no active chapter
+var chapter_tower_height: float = 0.0
+var chapter_tower_blocks: Array = []  # each: {pos: Vector2, angle: float}
 
 var equipment_defs := {
 	"short_dagger": {
@@ -78,6 +85,7 @@ func consume_battle_launch() -> bool:
 func _emit_all_state() -> void:
 	if EventBus:
 		EventBus.gold_changed.emit(gold)
+		EventBus.wood_changed.emit(wood)
 		EventBus.equipment_changed.emit()
 
 
@@ -104,6 +112,51 @@ func spend_gold(amount: int) -> bool:
 	if EventBus:
 		EventBus.gold_changed.emit(gold)
 	return true
+
+
+func add_wood(amount: int) -> void:
+	if amount <= 0:
+		return
+	wood += amount
+	if EventBus:
+		EventBus.wood_changed.emit(wood)
+
+
+func spend_wood(amount: int) -> bool:
+	if amount <= 0:
+		return true
+	if wood < amount:
+		return false
+	wood -= amount
+	if EventBus:
+		EventBus.wood_changed.emit(wood)
+	return true
+
+
+func set_wood(amount: int) -> void:
+	wood = maxi(0, amount)
+	if EventBus:
+		EventBus.wood_changed.emit(wood)
+
+
+func reset_wood() -> void:
+	set_wood(0)
+
+
+func reset_chapter_tower(chapter_id: int) -> void:
+	chapter_active_id = chapter_id
+	chapter_tower_height = 0.0
+	chapter_tower_blocks.clear()
+
+
+func save_chapter_tower(height_m: float, blocks: Array) -> void:
+	chapter_tower_height = height_m
+	chapter_tower_blocks = blocks
+
+
+func ensure_chapter_tower(chapter_id: int) -> void:
+	if chapter_active_id != chapter_id:
+		reset_chapter_tower(chapter_id)
 
 
 func get_slot_display_name(slot: String) -> String:
@@ -157,6 +210,8 @@ func add_equipment(def_id: String, quality: int = QUALITY_COMMON, level: int = 1
 
 
 func try_drop_random_equipment() -> Dictionary:
+	if not EQUIPMENT_DROP_ENABLED:
+		return {}
 	if randf() > DROP_RATE:
 		return {}
 	var keys := equipment_defs.keys()

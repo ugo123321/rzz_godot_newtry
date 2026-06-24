@@ -18,6 +18,7 @@ var v6_projectiles: Array = []
 const TRAIL_STEP_PX := 60.0             # 玩家每移动 60px 入账一个 trail 点，召唤物之间的物理间距
 const TRAIL_HISTORY_MAX := 32           # 按点数：够 ~12 只召唤 × 1 槽 + 余量
 var _player_trail: Array = []          # Vector2，距离采样：仅当玩家移动 >= TRAIL_STEP_PX 时 push
+var _trail_partial_dist := 0.0         # 玩家自上次 push 后又移动的距离（0~TRAIL_STEP_PX），用于 anchor 连续插值
 # Sheet5 sr=45 规格（同 rewards_v6.json 中的 special_values）：写死避免每次重新查
 const V6_SUMMON_SPEC: Dictionary = {
 	"summon_king":     {"kind": "king",     "atk_mult": 2.5, "interval": 2.0, "range": 600.0, "element": "",        "mechanic": "ranged_aoe",    "p1": 200.0, "p2": 0.0,  "count_field": "summon_king_count"},
@@ -39,6 +40,7 @@ func reset(keep_companions := false) -> void:
 		v6_companions.clear()
 	v6_projectiles.clear()
 	_player_trail.clear()
+	_trail_partial_dist = 0.0
 
 
 func has_active_fx() -> bool:
@@ -56,12 +58,16 @@ func update(delta: float, player: BattlePlayer, monsters: Array) -> void:
 	if delta <= 0.0 or player.state == BattlePlayer.State.BULLET_TIME:
 		return
 	# 记录玩家轨迹（用于 v6 召唤物的距离尾随）：玩家每移动 TRAIL_STEP_PX 才入账一个点
+	# _trail_partial_dist 跟踪自上次 push 后又走了多少，用于 anchor 连续插值（去抖）
 	if _player_trail.is_empty():
 		_player_trail.append(player.global_position)
+		_trail_partial_dist = 0.0
 	else:
 		var last_pt: Vector2 = _player_trail[_player_trail.size() - 1]
-		if last_pt.distance_to(player.global_position) >= TRAIL_STEP_PX:
+		_trail_partial_dist = last_pt.distance_to(player.global_position)
+		if _trail_partial_dist >= TRAIL_STEP_PX:
 			_player_trail.append(player.global_position)
+			_trail_partial_dist = 0.0
 			if _player_trail.size() > TRAIL_HISTORY_MAX:
 				_player_trail.remove_at(0)
 	# Phase 4 v6 召唤系统：按 player.summon_*_count 自驱
@@ -161,11 +167,11 @@ func _update_v6_summons(delta: float, player: BattlePlayer, monsters: Array) -> 
 	for i in range(total):
 		var c: Dictionary = v6_companions[i]
 		var anchor := _v6_anchor_for(player, i, total)
-		# 平滑跟随
-		var to: Vector2 = anchor - Vector2(c.pos)
-		# 锚点本身已经是延迟的历史点，跟随速度放快让召唤物能贴上历史位置（延迟感来自 anchor，不来自速度）
-		var step: float = minf(to.length(), 600.0 * delta)
-		c.pos = Vector2(c.pos) + (to.normalized() * step if to.length() > 0.5 else Vector2.ZERO)
+		# 平滑跟随：指数衰减 lerp（frame-rate independent），紧贴连续 anchor
+		# anchor 已连续插值（不再 60px 一跳），lerp 主要消除瞬时数值抖动
+		var follow_speed := 22.0
+		var lerp_t: float = 1.0 - exp(-follow_speed * delta)
+		c.pos = Vector2(c.pos).lerp(anchor, lerp_t)
 		# 攻击计时
 		c.atk_timer = float(c.atk_timer) - delta * atk_speed_factor
 		if float(c.atk_timer) <= 0.0:
@@ -176,21 +182,35 @@ func _update_v6_summons(delta: float, player: BattlePlayer, monsters: Array) -> 
 	_update_v6_projectiles(delta, player)
 
 
-# v6 召唤跟随位置：距离链—第 index 个跟在玩家身后 (index+1) 个 TRAIL_STEP_PX 距离点
+# v6 召唤跟随位置：距离链—第 index 个跟在玩家身后 (index+1) × TRAIL_STEP_PX 距离处。
+# 沿玩家路径连续回溯（用 _trail_partial_dist 在两个 trail 点之间插值），避免 anchor 离散跳变。
 func _v6_anchor_for(player: BattlePlayer, index: int, _total: int) -> Vector2:
 	if _player_trail.is_empty():
 		return player.global_position
-	# trail.back() 是最新（≈玩家当前），往前每个点距离 TRAIL_STEP_PX
-	var sample_idx: int = _player_trail.size() - 1 - (index + 1)
-	if sample_idx < 0:
-		# trail 还不够长（玩家刚出生 / 没怎么动）：用最早那个点 + 玩家朝向反向延伸补距离
-		var earliest: Vector2 = _player_trail[0]
-		var need: int = (index + 1) - (_player_trail.size() - 1)
-		var dir_back: Vector2 = (earliest - player.global_position).normalized()
-		if dir_back == Vector2.ZERO:
-			dir_back = Vector2.DOWN
-		return earliest + dir_back * (TRAIL_STEP_PX * float(need))
-	return _player_trail[sample_idx]
+	var want_dist: float = float(index + 1) * TRAIL_STEP_PX
+	# 第 0 段：player → trail.back()，长度 = _trail_partial_dist
+	var prev_pt: Vector2 = player.global_position
+	var seg_len: float = _trail_partial_dist
+	var cur_idx: int = _player_trail.size() - 1
+	# 把 want_dist 沿路径一段一段回溯掉
+	while cur_idx >= 0:
+		if want_dist <= seg_len:
+			# 在 prev_pt → _player_trail[cur_idx] 这段上，回溯 want_dist 后的位置
+			if seg_len <= 0.0:
+				return _player_trail[cur_idx]
+			var next_pt: Vector2 = _player_trail[cur_idx]
+			return prev_pt.lerp(next_pt, want_dist / seg_len)
+		want_dist -= seg_len
+		prev_pt = _player_trail[cur_idx]
+		cur_idx -= 1
+		if cur_idx >= 0:
+			seg_len = prev_pt.distance_to(_player_trail[cur_idx])
+	# trail 还不够长（玩家刚出生 / 没怎么动）：从最早点沿玩家朝向反向延伸补距离
+	var earliest: Vector2 = _player_trail[0]
+	var dir_back: Vector2 = (earliest - player.global_position).normalized()
+	if dir_back == Vector2.ZERO:
+		dir_back = Vector2.DOWN
+	return earliest + dir_back * want_dist
 
 
 # 攻击主分发

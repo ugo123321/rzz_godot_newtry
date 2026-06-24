@@ -21,7 +21,15 @@ var _pause_btn_pressed := false
 var _last_ki_draw := -1.0
 var _redraw_timer := 0.0
 var _gold := 0
+var _wood := 0
 var _coin_icon: Texture2D
+var _countdown_remaining := 0.0
+var _countdown_show := false
+var _build_height_m := 0.0
+var _build_target_m := 0.0
+var _build_show := false
+var _click_to_start_show := false
+var _click_to_start_t := 0.0
 
 
 func _ui_scale() -> float:
@@ -38,10 +46,14 @@ func _ready() -> void:
 	z_index = 20
 	EventBus.exp_changed.connect(_on_exp_changed)
 	EventBus.gold_changed.connect(_on_gold_changed)
+	EventBus.wood_changed.connect(_on_wood_changed)
+	EventBus.stage_countdown_changed.connect(_on_countdown_changed)
+	EventBus.tower_height_changed.connect(_on_tower_height_changed)
 	EventBus.player_damaged.connect(_on_player_damaged)
 	EventBus.player_healed.connect(_on_player_healed)
 	_load_coin_icon()
 	_sync_gold_from_lobby()
+	_sync_wood_from_lobby()
 	_build_pause_button()
 	call_deferred("_sync_exp_from_battle")
 
@@ -87,6 +99,58 @@ func _load_coin_icon() -> void:
 func _sync_gold_from_lobby() -> void:
 	if LobbyState:
 		_gold = int(LobbyState.gold)
+		queue_redraw()
+
+
+func _sync_wood_from_lobby() -> void:
+	if LobbyState:
+		_wood = int(LobbyState.wood)
+		queue_redraw()
+
+
+func show_countdown(remaining: float) -> void:
+	_countdown_remaining = maxf(0.0, remaining)
+	_countdown_show = true
+	queue_redraw()
+
+
+func hide_countdown() -> void:
+	_countdown_show = false
+	queue_redraw()
+
+
+func show_click_to_start() -> void:
+	_click_to_start_show = true
+	_click_to_start_t = 0.0
+
+
+func hide_click_to_start() -> void:
+	_click_to_start_show = false
+	queue_redraw()
+
+
+func show_build_house_hud(_target_m: float) -> void:
+	_build_target_m = _target_m
+	_build_height_m = 0.0
+	_build_show = true
+	queue_redraw()
+
+
+func hide_build_house_hud() -> void:
+	_build_show = false
+	queue_redraw()
+
+
+func _on_countdown_changed(remaining: float) -> void:
+	if _countdown_show:
+		_countdown_remaining = maxf(0.0, remaining)
+		queue_redraw()
+
+
+func _on_tower_height_changed(height_m: float, target_m: float) -> void:
+	_build_height_m = height_m
+	_build_target_m = target_m
+	if _build_show:
 		queue_redraw()
 
 
@@ -155,11 +219,15 @@ func _process(delta: float) -> void:
 		if _message_timer <= 0.0:
 			_message_text = ""
 		need_redraw = true
+	if _click_to_start_show:
+		_click_to_start_t += delta
+		need_redraw = true
 	_redraw_timer -= delta
 	var battle := get_tree().get_first_node_in_group("battle") as BattleController
 	if battle and _pause_btn:
 		var show_pause: bool = (
-			battle.state == GameState.PLAYING or battle.state == GameState.STAGE_INTRO
+			battle.state == GameState.PLAYING
+			or battle.state == GameState.STAGE_INTRO
 		)
 		if _pause_btn.visible != show_pause:
 			_pause_btn.visible = show_pause
@@ -172,6 +240,8 @@ func _process(delta: float) -> void:
 			need_redraw = true
 		if battle.player.is_ki_full():
 			need_redraw = true
+	if _countdown_show:
+		need_redraw = true
 	if need_redraw or _redraw_timer <= 0.0:
 		_redraw_timer = 0.033
 		queue_redraw()
@@ -182,13 +252,23 @@ func _draw() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		viewport_size = get_viewport_rect().size
 
-	_draw_gold_widget()
+	_draw_wood_widget()
+
+	if _countdown_show:
+		_draw_countdown(viewport_size)
+
+	if _build_show:
+		_draw_build_house_hud(viewport_size)
+
+	if _click_to_start_show:
+		_draw_click_to_start(viewport_size)
 
 	var battle := get_tree().get_first_node_in_group("battle")
 	var player: BattlePlayer = battle.player if battle else null
 	var boss: Node = null
 	if battle and battle.spawner:
 		boss = battle.spawner.boss
+	var in_build_house: bool = battle != null and battle.state in [GameState.BUILD_HOUSE, GameState.BUILD_HOUSE_DONE]
 
 	PixelUi.draw_pixel_text(
 		self,
@@ -203,7 +283,7 @@ func _draw() -> void:
 
 	var layout := PixelUi.compute_hud_layout(viewport_size, player, boss)
 
-	if player:
+	if player and not in_build_house:
 		var ki_ratio := clampf(player.ki / maxf(1.0, player.ki_max), 0.0, 1.0)
 		var ki_ready := player.is_ki_full()
 		UiSprites.draw_ki_bar(
@@ -217,7 +297,7 @@ func _draw() -> void:
 		)
 
 	PixelUi.draw_boss_hp_bar(self, boss, layout)
-	if player:
+	if player and not in_build_house:
 		PixelUi.draw_turn_buff_icons(self, player, layout)
 		PixelUi.draw_combo_banner(self, player, layout, viewport_size.x)
 
@@ -234,7 +314,8 @@ func _draw() -> void:
 		PixelUi.draw_message_panel(self, _message_text, Vector2(viewport_size.x * 0.5, msg_y), msg_alpha)
 
 	# 经验条最后绘制，避免被提示条遮挡
-	UiSprites.draw_exp_bar(self, viewport_size, _exp_level, _exp_value, _exp_to_next)
+	if not in_build_house:
+		UiSprites.draw_exp_bar(self, viewport_size, _exp_level, _exp_value, _exp_to_next)
 
 
 func _draw_gold_widget() -> void:
@@ -252,6 +333,87 @@ func _draw_gold_widget() -> void:
 	)
 
 
+func _draw_wood_widget() -> void:
+	# Wood icon: small pixel stick crossed with brown palette
+	var icon_x := _scaled(12.0)
+	var icon_y := _scaled(10.0)
+	var icon_size := _scaled(18.0)
+	# panel
+	var p_bg := Color("#3a2010")
+	var p_mid := Color("#5a3a22")
+	var p_light := Color("#a06a3a")
+	var p_hl := Color("#c08a52")
+	draw_rect(Rect2(icon_x, icon_y, icon_size, icon_size), p_bg)
+	draw_rect(Rect2(icon_x + 2.0, icon_y + 2.0, icon_size - 4.0, icon_size - 4.0), p_mid)
+	draw_rect(Rect2(icon_x + 4.0, icon_y + 4.0, icon_size - 8.0, icon_size - 8.0), p_light)
+	# grain lines
+	var grain_y := icon_y + icon_size * 0.4
+	draw_rect(Rect2(icon_x + 4.0, grain_y, icon_size - 8.0, 1.0), p_bg)
+	var grain2 := icon_y + icon_size * 0.7
+	draw_rect(Rect2(icon_x + 4.0, grain2, icon_size - 8.0, 1.0), p_bg)
+	# highlight stripe
+	draw_rect(Rect2(icon_x + 4.0, icon_y + 4.0, icon_size - 8.0, 2.0), p_hl)
+	PixelUi.draw_pixel_text(
+		self,
+		str(_wood),
+		Vector2(_scaled(34.0), _scaled(19.0)),
+		PixelUi.snap_pixel_font_size(int(round(_scaled(10.0)))),
+		Color("#c08a52"),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		VERTICAL_ALIGNMENT_CENTER
+	)
+
+
+func _draw_countdown(viewport_size: Vector2) -> void:
+	var total := int(ceil(_countdown_remaining))
+	var txt := "%d" % total
+	var col := Color("#ffe090")
+	if total <= 10:
+		col = Color("#ff6060") if (int(Time.get_ticks_msec() / 250) % 2 == 0) else Color("#ffe090")
+	var center_y := _scaled(82.0 + 17.0)
+	PixelUi.draw_pixel_text(
+		self,
+		txt,
+		Vector2(viewport_size.x * 0.5, center_y),
+		PixelUi.snap_pixel_font_size(int(round(_scaled(28.0)))),
+		col,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		VERTICAL_ALIGNMENT_CENTER,
+		true
+	)
+
+
+func _draw_build_house_hud(viewport_size: Vector2) -> void:
+	var txt := "高度 %.1f / %dm" % [_build_height_m, int(_build_target_m)]
+	PixelUi.draw_pixel_text(
+		self,
+		txt,
+		Vector2(viewport_size.x - _scaled(16.0), _scaled(22.0)),
+		PixelUi.snap_pixel_font_size(int(round(_scaled(13.0)))),
+		Color("#ffe090"),
+		HORIZONTAL_ALIGNMENT_RIGHT,
+		VERTICAL_ALIGNMENT_CENTER,
+		true
+	)
+
+
+func _draw_click_to_start(viewport_size: Vector2) -> void:
+	var t := fposmod(_click_to_start_t, 0.9) / 0.9
+	var alpha := 0.45 + 0.55 * (0.5 + 0.5 * sin(t * TAU))
+	var col := Color("#ffe090")
+	col.a = alpha
+	PixelUi.draw_pixel_text(
+		self,
+		"点击屏幕开始游戏",
+		Vector2(viewport_size.x * 0.5, viewport_size.y * 0.55),
+		PixelUi.snap_pixel_font_size(int(round(_scaled(22.0)))),
+		col,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		VERTICAL_ALIGNMENT_CENTER,
+		true
+	)
+
+
 func _on_exp_changed(level: int, exp_value: int, exp_to_next: int) -> void:
 	_exp_level = level
 	_exp_value = exp_value
@@ -261,6 +423,11 @@ func _on_exp_changed(level: int, exp_value: int, exp_to_next: int) -> void:
 
 func _on_gold_changed(total_gold: int) -> void:
 	_gold = total_gold
+	queue_redraw()
+
+
+func _on_wood_changed(total_wood: int) -> void:
+	_wood = total_wood
 	queue_redraw()
 
 

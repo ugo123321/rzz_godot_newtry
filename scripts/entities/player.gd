@@ -1217,7 +1217,8 @@ func update_joystick_locomotion(dir: Vector2, delta: float, battle: Node) -> voi
 		return
 	var speed := float(GameConfig.get_player_value("move_speed", 120.0)) * move_speed_penalty_mult
 	var next_pos := global_position + dir.normalized() * speed * delta
-	if battle != null and battle.has_method("is_in_bounds") and battle.is_in_bounds(next_pos):
+	var blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(next_pos)
+	if battle != null and battle.has_method("is_in_bounds") and battle.is_in_bounds(next_pos) and not blocked:
 		global_position = next_pos
 		home_position = global_position
 	var anim_sprite := _get_sprite()

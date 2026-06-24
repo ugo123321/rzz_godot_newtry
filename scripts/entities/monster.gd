@@ -198,6 +198,29 @@ func get_head_top_global_position() -> Vector2:
 	)
 
 
+# 被树夹住时的脱困方向：把所有"挡住自己 next-pos"的树的反向推力相加并归一
+func _escape_dir_from_trees(battle: Node) -> Vector2:
+	if battle == null or not battle.has_method("get_active_trees"):
+		return Vector2.ZERO
+	var push := Vector2.ZERO
+	for t in battle.get_active_trees():
+		if not is_instance_valid(t):
+			continue
+		var to_self: Vector2 = global_position - t.global_position
+		var d: float = to_self.length()
+		if d <= 0.0001:
+			push += Vector2(1.0, 0.0)
+			continue
+		var r: float = t.get_block_radius() + hitbox_radius
+		if d < r + 8.0:
+			# 离这棵树越近，推力越强（线性衰减）
+			var weight: float = 1.0 - clampf(d / (r + 8.0), 0.0, 1.0)
+			push += to_self / d * (0.4 + weight)
+	if push == Vector2.ZERO:
+		return Vector2.ZERO
+	return push.normalized()
+
+
 func _melee_attack_range(player: BattlePlayer) -> float:
 	if player == null:
 		return GameConfig.scale_world(30.0)
@@ -453,7 +476,31 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 		if dist > stop_dist:
 			# 冰减速：当前速度 = move_speed × (1 - slow_pct_active)
 			var eff_speed: float = move_speed * maxf(0.0, 1.0 - slow_pct_active)
-			global_position += to_player.normalized() * eff_speed * delta
+			var dir: Vector2 = to_player.normalized()
+			var step_len: float = eff_speed * delta
+			var next_pos := global_position + dir * step_len
+			var blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(next_pos)
+			if blocked:
+				# 双向 perp 都试：选可通且更靠近玩家的一边
+				var perp_a := Vector2(-dir.y, dir.x)
+				var perp_b := -perp_a
+				var alt_a := global_position + perp_a * step_len
+				var alt_b := global_position + perp_b * step_len
+				var alt_a_blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(alt_a)
+				var alt_b_blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(alt_b)
+				if not alt_a_blocked and not alt_b_blocked:
+					global_position = alt_a if alt_a.distance_to(player.global_position) <= alt_b.distance_to(player.global_position) else alt_b
+				elif not alt_a_blocked:
+					global_position = alt_a
+				elif not alt_b_blocked:
+					global_position = alt_b
+				else:
+					# 两边 perp 都堵：被树夹住或卡在树根，沿"远离最近树"方向脱困
+					var escape_dir := _escape_dir_from_trees(battle)
+					if escape_dir != Vector2.ZERO:
+						global_position += escape_dir * step_len
+			else:
+				global_position = next_pos
 			if not preserve_anim:
 				_play_anim(SpriteHelper.ANIM_WALK)
 		elif not preserve_anim:

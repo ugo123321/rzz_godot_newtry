@@ -14,6 +14,10 @@ const GrassSystemScript = preload("res://scripts/systems/grass_system.gd")
 const EnemyArrowScript = preload("res://scripts/entities/enemy_arrow.gd")
 const RewardWheelPopupScript = preload("res://scripts/ui/reward_wheel_popup.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
+const TreeSpawnerScript = preload("res://scripts/systems/tree_spawner.gd")
+const PortalSpawnerScript = preload("res://scripts/systems/portal_spawner.gd")
+const BuildHouseDirectorScript = preload("res://scripts/systems/build_house_director.gd")
+const WoodDropScript = preload("res://scripts/entities/wood_drop.gd")
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const MAIN_SCENE := "res://scenes/main.tscn"
@@ -57,7 +61,17 @@ var grass_field
 var sakura_field
 var reward_wheel_popup
 var _pending_reward_stage_index := -1
-
+var tree_spawner
+var portal_spawner
+var build_house
+var tree_container: Node2D
+var portal_container: Node2D
+var wood_drops_container: Node2D
+var build_house_container: Node2D
+var _portal_paused_remaining := -1.0
+var _initial_camera_y := 640.0
+var _initial_camera_x := 360.0
+var _portal_active_pause := false
 var _current_chapter_id := -1
 var hit_fx_overlay: Node2D
 var under_monster_fx_overlay: Node2D
@@ -67,6 +81,9 @@ var stage_intro_timer := 0.0
 var _lobby_entry_intro_active := false
 var _lobby_intro_phase := ""
 var _lobby_intro_timer := 0.0
+# 当玩家在"点击开始"等待界面时，世界（地块/草地/樱花/树）已经预先生成好。
+# 点击进入 _start_run 时跳过这些重建步骤，避免视觉上的"场景重置"。
+var _world_pre_populated := false
 
 const LOBBY_INTRO_FADE_IN := 0.55
 const LOBBY_INTRO_HOLD := 0.75
@@ -157,6 +174,32 @@ func _ready() -> void:
 	$UI.add_child(reward_wheel_popup)
 	reward_wheel_popup.setup(self)
 	reward_wheel_popup.reward_finished.connect(_on_reward_wheel_finished)
+	tree_container = Node2D.new()
+	tree_container.name = "Trees"
+	tree_container.z_index = 0
+	$Entities.add_child(tree_container)
+	wood_drops_container = Node2D.new()
+	wood_drops_container.name = "WoodDrops"
+	wood_drops_container.z_index = 3
+	$Entities.add_child(wood_drops_container)
+	portal_container = Node2D.new()
+	portal_container.name = "Portals"
+	portal_container.z_index = 4
+	$Entities.add_child(portal_container)
+	build_house_container = Node2D.new()
+	build_house_container.name = "BuildHouse"
+	build_house_container.z_index = 30
+	build_house_container.visible = false
+	add_child(build_house_container)
+	tree_spawner = TreeSpawnerScript.new()
+	tree_spawner.name = "TreeSpawner"
+	add_child(tree_spawner)
+	portal_spawner = PortalSpawnerScript.new()
+	portal_spawner.name = "PortalSpawner"
+	add_child(portal_spawner)
+	build_house = BuildHouseDirectorScript.new()
+	build_house.name = "BuildHouseDirector"
+	build_house_container.add_child(build_house)
 	virtual_joystick = VirtualJoystickScript.new()
 	virtual_joystick.name = "VirtualJoystick"
 	$UI.add_child(virtual_joystick)
@@ -199,10 +242,12 @@ func _ready() -> void:
 	player.apply_config()
 	hud.bind_player(player)
 	intro_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_initial_camera_x = camera.position.x
+	_initial_camera_y = camera.position.y
 	if LobbyState.consume_battle_launch():
 		_begin_from_lobby()
 	else:
-		start_game()
+		_enter_wait_start()
 
 
 func _setup_viewport() -> void:
@@ -236,6 +281,46 @@ func start_game() -> void:
 	state = GameState.MENU
 	hud.show_message("点击屏幕开始", 999.0)
 	intro_label.text = "忍者斩"
+
+
+func _enter_wait_start() -> void:
+	stage_index = 0
+	_current_chapter_id = -1
+	experience.reset()
+	player.reset_for_new_run()
+	LobbyState.reset_wood()
+	LobbyState.reset_chapter_tower(0)
+	if fail_animator:
+		fail_animator.reset()
+	if level_overlay:
+		level_overlay.reset_all()
+	if sakura_field:
+		sakura_field.stop_field()
+	if blood_stains:
+		blood_stains.clear()
+	if equipment_drop_fx:
+		equipment_drop_fx.clear()
+	if tree_spawner:
+		tree_spawner.begin(self)
+	if portal_spawner:
+		portal_spawner.reset()
+	_clear_projectiles()
+	# Pre-populate the battle background so the player sees the actual scene
+	_apply_stage_meta(false)
+	if terrain:
+		terrain.setup_for_stage(stage_index, _get_safe_zone())
+	_sync_background_layer()
+	_refresh_stage_ambience()
+	intro_label.visible = false
+	hud.hide_message()
+	hud.show_click_to_start()
+	_world_pre_populated = true
+	state = GameState.WAIT_START
+
+
+func _exit_wait_start_and_begin() -> void:
+	hud.hide_click_to_start()
+	_start_run()
 
 
 func _begin_from_lobby() -> void:
@@ -319,6 +404,8 @@ func _trigger_lobby_start_upgrade() -> void:
 
 func _start_run() -> void:
 	pending_stage_clear = false
+	var skip_world_setup := _world_pre_populated
+	_world_pre_populated = false
 	if fail_animator:
 		fail_animator.reset()
 	player.begin_stage()
@@ -332,17 +419,259 @@ func _start_run() -> void:
 		hud.hide_message()
 		return
 	spawner.spawn_stage(stage_index, self)
-	if terrain:
-		terrain.setup_for_stage(stage_index, _get_safe_zone())
-	_sync_background_layer()
-	_refresh_stage_ambience()
+	if not skip_world_setup:
+		if terrain:
+			terrain.setup_for_stage(stage_index, _get_safe_zone())
+		_sync_background_layer()
+		_refresh_stage_ambience()
 	_apply_stage_meta(true)
+	if not skip_world_setup and tree_spawner:
+		tree_spawner.begin(self)
+	if portal_spawner:
+		portal_spawner.begin()
 	state = GameState.PLAYING
 	intro_label.visible = false
 	hud.hide_message()
 	if experience:
 		EventBus.exp_changed.emit(experience.level, experience.exp, experience.exp_to_next)
 	EventBus.stage_started.emit(stage_index)
+
+
+func _enter_build_house() -> void:
+	state = GameState.BUILD_HOUSE
+	# 清空残留战斗特效（伤害数字、残影、粒子、命中 fx、投射物、地表 fx 等）
+	_clear_stage_transition_presentation(true)
+	# Hide combat entities
+	monster_container.visible = false
+	projectiles.visible = false
+	if tree_container:
+		tree_container.visible = false
+	if portal_container:
+		portal_container.visible = false
+	if wood_drops_container:
+		wood_drops_container.visible = false
+	player.visible = false
+	if terrain:
+		terrain.visible = false
+	if grass_field:
+		grass_field.visible = false
+	if sakura_field:
+		sakura_field.visible = false
+	if background:
+		background.visible = false
+	build_house_container.visible = true
+	var chapter := GameConfig.get_chapter_for_stage(stage_index)
+	var chapter_id := int(chapter.get("chapter_id", 1))
+	var chapter_target: float = float(chapter.get("chapter_target_height_m", 200))
+	LobbyState.ensure_chapter_tower(chapter_id)
+	build_house.begin(
+		self,
+		chapter_target,
+		LobbyState.chapter_tower_height,
+		LobbyState.chapter_tower_blocks.duplicate(true)
+	)
+
+
+func on_build_house_phase_done(height_m: float, blocks: Array) -> void:
+	state = GameState.BUILD_HOUSE_DONE
+	# Persist tower state into LobbyState
+	LobbyState.save_chapter_tower(height_m, blocks)
+	var chapter := GameConfig.get_chapter_for_stage(stage_index)
+	var chapter_target: float = float(chapter.get("chapter_target_height_m", 200))
+	var chapter_id := int(chapter.get("chapter_id", 1))
+	if height_m >= chapter_target:
+		_announce_chapter_complete(chapter_id, height_m, chapter_target)
+		return
+	# Not done — check if there's a next stage in this chapter
+	var next_idx := stage_index + 1
+	var has_next := next_idx < GameConfig.stages.size()
+	var next_in_same_chapter := false
+	if has_next:
+		var next_stage := GameConfig.get_stage(next_idx)
+		next_in_same_chapter = int(next_stage.get("chapter_id", -1)) == chapter_id
+	if not next_in_same_chapter:
+		# Last stage of chapter, target not reached → chapter failed
+		_announce_chapter_fail(chapter_id, height_m, chapter_target)
+		return
+	# Advance to next stage in chapter (carry tower over)
+	if level_overlay:
+		level_overlay.show_phase_fade(
+			"进入下一关",
+			"已建 %.1fm / %dm" % [height_m, int(chapter_target)],
+			Callable(self, "_advance_after_build"),
+			0.55, 0.6, 0.55
+		)
+
+
+func _announce_chapter_complete(chapter_id: int, height_m: float, target_m: float) -> void:
+	if level_overlay:
+		level_overlay.show_phase_fade(
+			"第%d章 完成！" % chapter_id,
+			"塔高 %.1fm / 目标 %dm" % [height_m, int(target_m)],
+			Callable(self, "_back_to_menu_after_chapter"),
+			0.8, 1.5, 0.8
+		)
+
+
+func _announce_chapter_fail(chapter_id: int, height_m: float, target_m: float) -> void:
+	if level_overlay:
+		level_overlay.show_phase_fade(
+			"第%d章 未达成" % chapter_id,
+			"塔高 %.1fm / 目标 %dm" % [height_m, int(target_m)],
+			Callable(self, "_back_to_menu_after_chapter"),
+			0.8, 1.5, 0.8
+		)
+
+
+func _back_to_menu_after_chapter() -> void:
+	_exit_build_house()
+	LobbyState.reset_wood()
+	LobbyState.reset_chapter_tower(0)
+	_enter_wait_start()
+
+
+func _exit_build_house() -> void:
+	build_house_container.visible = false
+	build_house.reset()
+	monster_container.visible = true
+	projectiles.visible = true
+	if tree_container:
+		tree_container.visible = true
+	if portal_container:
+		portal_container.visible = true
+	if wood_drops_container:
+		wood_drops_container.visible = true
+	player.visible = true
+	if terrain:
+		terrain.visible = true
+	if grass_field:
+		grass_field.visible = true
+	if sakura_field:
+		sakura_field.visible = true
+	if background:
+		background.visible = true
+	# Restore camera
+	camera.global_position = Vector2(_initial_camera_x, _initial_camera_y)
+	# All wood consumed during build
+	LobbyState.reset_wood()
+
+
+func _advance_after_build() -> void:
+	_exit_build_house()
+	EventBus.stage_cleared.emit(stage_index)
+	stage_index += 1
+	if stage_index >= GameConfig.stages.size():
+		_clear_stage_transition_presentation(true)
+		state = GameState.COMPLETE
+		if level_overlay:
+			level_overlay.show_game_complete()
+		hud.hide_message()
+		return
+	if _try_enter_reward_room(stage_index):
+		return
+	_clear_stage_transition_presentation(stage_index > 0)
+	spawner.spawn_stage(stage_index, self)
+	_apply_stage_meta(false)
+	if tree_spawner:
+		tree_spawner.begin(self)
+	if portal_spawner:
+		portal_spawner.begin()
+	state = GameState.PLAYING
+	EventBus.stage_started.emit(stage_index)
+
+
+func _fail_back_to_main() -> void:
+	_exit_build_house()
+	LobbyState.reset_wood()
+	LobbyState.reset_chapter_tower(0)
+	_enter_wait_start()
+
+
+# Trees / wood / portal helpers exposed to entities
+func get_active_trees() -> Array:
+	if tree_spawner == null:
+		return []
+	return tree_spawner.get_active_trees()
+
+
+func get_combat_targets() -> Array:
+	# 斩击/划线命中：包含树（树可被斩击）
+	var targets := spawner.get_active_monsters()
+	for t in get_active_trees():
+		targets.append(t)
+	return targets
+
+
+func get_ability_targets() -> Array:
+	# 普攻/技能/召唤/球的锁定与命中：只含怪物，树不参与
+	return spawner.get_active_monsters()
+
+
+func is_blocked_by_tree(pos: Vector2) -> bool:
+	for t in get_active_trees():
+		if pos.distance_to(t.global_position) < t.get_block_radius():
+			return true
+	return false
+
+
+func _nudge_player_out_of_trees() -> void:
+	if player == null:
+		return
+	var pos: Vector2 = player.global_position
+	for t in get_active_trees():
+		var d: float = pos.distance_to(t.global_position)
+		var r: float = t.get_block_radius() + 4.0
+		if d < r and d > 0.0001:
+			var push_dir: Vector2 = (pos - t.global_position).normalized()
+			pos = t.global_position + push_dir * r
+		elif d <= 0.0001:
+			pos = t.global_position + Vector2(r, 0.0)
+	if pos != player.global_position:
+		player.global_position = pos
+		player.home_position = pos
+
+
+func spawn_wood_drop(pos: Vector2, amount: int) -> void:
+	if wood_drops_container == null:
+		return
+	# Split into multiple smaller drops for visual flair
+	var drops := mini(3, maxi(1, int(round(amount / 8.0))))
+	var per := maxi(1, int(round(float(amount) / float(drops))))
+	for i in range(drops):
+		var d = WoodDropScript.new()
+		wood_drops_container.add_child(d)
+		var jitter := Vector2(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0))
+		d.setup(pos + jitter, per)
+
+
+func spawn_wood_popup(pos: Vector2, amount: int) -> void:
+	if combat:
+		combat.spawn_damage_number(pos + Vector2(0.0, -16.0), amount, false, true, Color("#c08a52"))
+
+
+func on_tree_killed(tree_node: Node) -> void:
+	# 不立即 queue_free —— BattleTree 内部播放倒下动画并在动画结束时自行 queue_free()。
+	# tree_spawner 会等所有实例真正释放后再补刷一波。
+	pass
+
+
+func on_portal_entered(portal_node: Node) -> void:
+	_portal_active_pause = true
+	if portal_spawner:
+		portal_spawner.stop()
+	if portal_node and portal_node.has_method("queue_free"):
+		portal_node.queue_free()
+	state = GameState.REWARD_ROOM
+	_pending_reward_stage_index = -2  # sentinel: portal-driven
+	if reward_wheel_popup:
+		reward_wheel_popup.show_for_stage(stage_index)
+
+
+func _resume_from_portal_reward() -> void:
+	state = GameState.PLAYING
+	_portal_active_pause = false
+	if portal_spawner:
+		portal_spawner.begin()
 
 
 func apply_debug_settings(target_level: int, target_stage: int) -> void:
@@ -370,7 +699,28 @@ func apply_debug_settings(target_level: int, target_stage: int) -> void:
 	hud.show_message("调试跳关已应用", 1.5)
 
 
-func _apply_stage_meta(spawn_buff_orbs: bool) -> void:
+# 调试入口：直接跳到指定关卡的盖房子阶段（绕过 PLAYING / portal 等流程）。
+func enter_build_house_debug(target_stage: int) -> void:
+	pending_stage_clear = false
+	stage_index = clampi(target_stage, 0, maxi(0, GameConfig.stages.size() - 1))
+	# 停止战斗端的 spawner / portal / tree
+	_portal_active_pause = false
+	if portal_spawner:
+		portal_spawner.stop()
+		portal_spawner.clear_active_portal()
+	if spawner:
+		spawner.stop_infinite()
+		spawner.clear_active_monsters()
+	if tree_spawner:
+		tree_spawner.stop()
+	if level_overlay:
+		level_overlay.reset_all()
+	intro_label.visible = false
+	hud.hide_message()
+	_enter_build_house()
+
+
+func _apply_stage_meta(_spawn_buff_orbs: bool) -> void:
 	var stage := GameConfig.get_stage(stage_index)
 	var chapter := GameConfig.get_chapter_for_stage(stage_index)
 	var chapter_id := int(chapter.get("chapter_id", 1))
@@ -378,12 +728,9 @@ func _apply_stage_meta(spawn_buff_orbs: bool) -> void:
 		_current_chapter_id = chapter_id
 		if player:
 			player.on_chapter_started(chapter_id)
-	if spawn_buff_orbs:
-		var boss_id := str(stage.get("boss_id", ""))
-		if boss_id.is_empty() and buff_orbs:
-			buff_orbs.spawn_for_stage(stage_index, player.home_position)
-		elif buff_orbs:
-			buff_orbs.reset()
+	# Buff orbs 系统已禁用：恒 reset，不再 spawn
+	if buff_orbs:
+		buff_orbs.reset()
 	hud.set_stage_text(str(stage.get("display_name", "第%d关" % (stage_index + 1))))
 
 
@@ -528,7 +875,7 @@ func resume_from_pause() -> void:
 func pause_game() -> void:
 	if _lobby_entry_intro_active:
 		return
-	if state in [GameState.MENU, GameState.FAIL_DEATH, GameState.STAGE_CLEAR, GameState.COMPLETE, GameState.FAIL, GameState.STAGE_FAIL, GameState.LEVEL_UP]:
+	if state in [GameState.MENU, GameState.WAIT_START, GameState.FAIL_DEATH, GameState.STAGE_CLEAR, GameState.COMPLETE, GameState.FAIL, GameState.STAGE_FAIL, GameState.LEVEL_UP, GameState.BUILD_HOUSE, GameState.BUILD_HOUSE_DONE]:
 		return
 	if state == GameState.REWARD_ROOM:
 		return
@@ -551,6 +898,8 @@ func enter_level_up() -> void:
 
 
 func _on_monster_killed(monster: Node) -> void:
+	if not (monster is BattleMonster):
+		return
 	if blood_stains and is_instance_valid(monster) and monster is BattleMonster:
 		var bm := monster as BattleMonster
 		var hit_r: float = bm.get_hitbox_radius()
@@ -600,7 +949,7 @@ func _needs_fx_redraw() -> bool:
 
 
 func _update_path_preview() -> void:
-	var targets := spawner.get_active_monsters()
+	var targets := get_combat_targets()
 	if player.state == BattlePlayer.State.BULLET_TIME and player.attack_path.size() >= 2:
 		combat.update_path_preview_highlights(player.attack_path, player, targets)
 		var preview_hits := combat.get_path_preview_total_hits(player.attack_path, player, targets)
@@ -623,8 +972,8 @@ func _try_finish_stage_clear() -> void:
 
 
 func _advance_to_next_stage() -> void:
+	# Legacy entrypoint kept for compatibility, but countdown flow drives progression now.
 	EventBus.stage_cleared.emit(stage_index)
-	LobbyState.add_gold(10)
 	stage_index += 1
 	if stage_index >= GameConfig.stages.size():
 		_clear_stage_transition_presentation(true)
@@ -636,8 +985,12 @@ func _advance_to_next_stage() -> void:
 	if _try_enter_reward_room(stage_index):
 		return
 	_clear_stage_transition_presentation(stage_index > 0)
-	spawner.append_stage(stage_index, self)
+	spawner.spawn_stage(stage_index, self)
 	_apply_stage_meta(false)
+	if tree_spawner:
+		tree_spawner.begin(self)
+	if portal_spawner:
+		portal_spawner.begin()
 	state = GameState.PLAYING
 	EventBus.stage_started.emit(stage_index)
 
@@ -670,6 +1023,13 @@ func _enter_reward_room_wheel() -> void:
 
 
 func _on_reward_wheel_finished(reward_text: String) -> void:
+	if _pending_reward_stage_index == -2:
+		# Portal-driven reward inside the battle
+		if not reward_text.is_empty():
+			hud.show_message("获得奖励：%s" % reward_text, 1.6)
+		_pending_reward_stage_index = -1
+		_resume_from_portal_reward()
+		return
 	if _pending_reward_stage_index < 0:
 		return
 	if not reward_text.is_empty():
@@ -684,8 +1044,12 @@ func _on_reward_wheel_finished(reward_text: String) -> void:
 		_pending_reward_stage_index = -1
 		return
 	_clear_stage_transition_presentation(stage_index > 0)
-	spawner.append_stage(stage_index, self)
+	spawner.spawn_stage(stage_index, self)
 	_apply_stage_meta(false)
+	if tree_spawner:
+		tree_spawner.begin(self)
+	if portal_spawner:
+		portal_spawner.begin()
 	state = GameState.PLAYING
 	EventBus.stage_started.emit(stage_index)
 	_pending_reward_stage_index = -1
@@ -698,6 +1062,8 @@ func _process(delta: float) -> void:
 	match state:
 		GameState.MENU:
 			_update_ambience(delta)
+		GameState.WAIT_START:
+			_update_ambience(delta)
 		GameState.STAGE_INTRO:
 			_update_ambience(delta)
 			if _lobby_entry_intro_active:
@@ -707,6 +1073,18 @@ func _process(delta: float) -> void:
 				level_overlay.update_overlay(delta)
 		GameState.PLAYING:
 			_update_playing(scaled_delta, delta)
+			if tree_spawner:
+				tree_spawner.update_trees(delta, self)
+			if portal_spawner and not _portal_active_pause:
+				portal_spawner.update(delta, self)
+		GameState.BUILD_HOUSE:
+			if build_house:
+				build_house.update(delta)
+			if level_overlay:
+				level_overlay.update_overlay(delta)
+		GameState.BUILD_HOUSE_DONE:
+			if level_overlay:
+				level_overlay.update_overlay(delta)
 		GameState.PAUSED:
 			pass
 		GameState.STAGE_CLEAR:
@@ -726,6 +1104,8 @@ func _process(delta: float) -> void:
 			upgrades.update(delta)
 		GameState.REWARD_ROOM:
 			_update_ambience(delta)
+			if level_overlay:
+				level_overlay.update_overlay(delta)
 	_update_camera_shake(delta)
 
 
@@ -734,12 +1114,13 @@ func _update_playing(scaled_delta: float, real_delta: float) -> void:
 	player.update_idle(real_delta, time_scale if time_scale < 1.0 else 1.0)
 	if virtual_joystick and player.state == BattlePlayer.State.IDLE:
 		player.update_joystick_locomotion(virtual_joystick.get_output(), real_delta, self)
+	_nudge_player_out_of_trees()
 	player.update_combo_display(real_delta)
-	if level_overlay and level_overlay.is_stage_intro_active():
+	if level_overlay and (level_overlay.is_stage_intro_active() or level_overlay.is_phase_fade_active()):
 		level_overlay.update_overlay(real_delta)
 	if player.state == BattlePlayer.State.ATTACKING:
 		var attack_delta := real_delta if time_scale < 1.0 else scaled_delta
-		var attack_finished := player.update_attack(attack_delta, combat, spawner.get_active_monsters())
+		var attack_finished := player.update_attack(attack_delta, combat, get_combat_targets())
 		if attack_finished:
 			resume_battle_time()
 	combat.update_afterimages(real_delta)
@@ -750,13 +1131,13 @@ func _update_playing(scaled_delta: float, real_delta: float) -> void:
 		buff_orbs.update(real_delta, player)
 	if abilities:
 		var ability_delta := 0.0 if time_scale < 1.0 else real_delta
-		abilities.update(ability_delta, player, spawner.get_active_monsters())
+		abilities.update(ability_delta, player, get_ability_targets())
 	if summons:
 		var summon_delta := 0.0 if time_scale < 1.0 else real_delta
-		summons.update(summon_delta, player, spawner.get_active_monsters())
+		summons.update(summon_delta, player, get_ability_targets())
 	if swords:
 		var sword_delta := 0.0 if time_scale < 1.0 else real_delta
-		swords.update(sword_delta, player, spawner.get_active_monsters())
+		swords.update(sword_delta, player, get_ability_targets())
 	if particles:
 		particles.update_particles(real_delta)
 	if blood_stains:
@@ -785,6 +1166,10 @@ func _update_playing(scaled_delta: float, real_delta: float) -> void:
 			above_monster_fx_overlay.queue_redraw()
 	if player.hp <= 0 and state == GameState.PLAYING:
 		_begin_fail_death()
+		return
+	# Phase fade transition (e.g., into BUILD_HOUSE) blocks stage-clear so we don't
+	# accidentally bump to the next stage while waiting for the fade callback.
+	if level_overlay and level_overlay.is_phase_fade_active():
 		return
 	var summon_fx_active: bool = summons != null and summons.has_active_fx()
 	if spawner.all_dead() and not spawner.is_spawning() and not combat.is_resolving() and not combat.has_combat_presentation() and player.state == BattlePlayer.State.IDLE and not abilities.has_active_fx() and not summon_fx_active:
@@ -862,8 +1247,8 @@ func _retry_after_fail() -> void:
 	if state != GameState.STAGE_FAIL:
 		return
 	hud.hide_message()
-	start_game()
-	_start_run()
+	_enter_wait_start()
+	_exit_wait_start_and_begin()
 
 
 func _back_to_main_menu() -> void:
@@ -907,6 +1292,8 @@ func _pointer_flow_uses_early_input() -> bool:
 	return state in [
 		GameState.MENU,
 		GameState.STAGE_INTRO,
+		GameState.WAIT_START,
+		GameState.BUILD_HOUSE,
 		GameState.FAIL,
 		GameState.COMPLETE,
 		GameState.STAGE_FAIL,
@@ -991,17 +1378,23 @@ func _try_feed_virtual_joystick(screen_pos: Vector2, phase: String) -> bool:
 
 
 func _handle_pointer(screen_pos: Vector2, phase: String) -> void:
+	if state == GameState.WAIT_START:
+		if phase == "down":
+			_exit_wait_start_and_begin()
+		return
+	if state == GameState.BUILD_HOUSE:
+		if phase == "down" and build_house:
+			build_house.handle_drop_click()
+		return
 	if state == GameState.MENU:
 		if phase == "down":
 			hud.hide_message()
-			start_game()
-			_start_run()
+			_enter_wait_start()
 		return
 	if state == GameState.FAIL or state == GameState.COMPLETE:
 		if phase == "down":
 			hud.hide_message()
-			start_game()
-			_start_run()
+			_enter_wait_start()
 		return
 	if state == GameState.STAGE_FAIL:
 		return

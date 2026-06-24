@@ -10,4 +10,7 @@ signal exp_changed(level: int, exp: int, exp_to_next: int)
 signal upgrade_selected(upgrade_id: String)
 signal combo_changed(combo: int)
 signal gold_changed(total_gold: int)
+signal wood_changed(total_wood: int)
+signal stage_countdown_changed(remaining_sec: float)
+signal tower_height_changed(height_m: float, target_m: float)
 signal equipment_changed

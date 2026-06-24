@@ -288,5 +288,65 @@
     "key": "dot_tick_floor_seconds",
     "value": 0.25,
     "description": "DoT 每目标最小 tick 间隔(防全屏燃烧爆炸)"
+  },
+  {
+    "key": "stage_duration_sec",
+    "value": 120,
+    "description": "每关战斗倒计时秒数"
+  },
+  {
+    "key": "infinite_spawn_interval",
+    "value": 0.7,
+    "description": "倒计时模式下相邻怪物的出现间隔(秒)"
+  },
+  {
+    "key": "infinite_spawn_wave_delay",
+    "value": 1.2,
+    "description": "倒计时模式下整批刷完后等待下一批的间隔"
+  },
+  {
+    "key": "wood_per_block",
+    "value": 20,
+    "description": "盖房子阶段木材→木块兑换比例"
+  },
+  {
+    "key": "house_block_size_m",
+    "value": 2.0,
+    "description": "盖房子木块边长(米)"
+  },
+  {
+    "key": "house_px_per_meter",
+    "value": 36,
+    "description": "盖房子阶段每米对应像素数(2m=72px)"
+  },
+  {
+    "key": "house_swing_speed",
+    "value": 1.8,
+    "description": "盖房子绳子摆动角速度"
+  },
+  {
+    "key": "house_swing_amplitude_px",
+    "value": 180,
+    "description": "盖房子绳子摆动幅度(像素)"
+  },
+  {
+    "key": "portal_chance_per_tick",
+    "value": 0.015,
+    "description": "抽奖传送门每1.5s概率"
+  },
+  {
+    "key": "portal_lifetime_sec",
+    "value": 5.0,
+    "description": "抽奖传送门存在时长"
+  },
+  {
+    "key": "tree_count_per_wave",
+    "value": 5,
+    "description": "每波刷新树木数量"
+  },
+  {
+    "key": "tree_hp",
+    "value": 450,
+    "description": "单棵树血量(目标约 4-5 次斩击全砍)"
   }
 ]
