@@ -62,8 +62,9 @@ func _spawn_wave(battle: Node) -> void:
 	var h := float(GameConfig.get_tuning("logical_height", 1280))
 	var safe: Vector2 = battle.player.global_position if battle.player else Vector2(w * 0.5, h * 0.5)
 	var stage_idx: int = battle.stage_index if "stage_index" in battle else 0
+	var terrain = battle.terrain if "terrain" in battle else null
 	for n in range(count):
-		var pos := _pick_tree_pos(w, h, safe)
+		var pos := _pick_tree_pos(w, h, safe, terrain)
 		var tree = BattleTreeScript.new()
 		var container: Node = battle.tree_container if "tree_container" in battle else self
 		container.add_child(tree)
@@ -71,12 +72,15 @@ func _spawn_wave(battle: Node) -> void:
 		trees.append(tree)
 
 
-func _pick_tree_pos(w: float, h: float, safe: Vector2) -> Vector2:
+func _pick_tree_pos(w: float, h: float, safe: Vector2, terrain = null) -> Vector2:
 	for attempt in range(60):
 		var x := randf_range(60.0, w - 60.0)
 		var y := randf_range(130.0, h - 200.0)
 		var pos := Vector2(x, y)
 		if pos.distance_to(safe) < 200.0:
+			continue
+		# 不在水格里生成
+		if terrain and terrain.has_method("get_tile_at_world") and terrain.get_tile_at_world(x, y) == "water":
 			continue
 		var clash := false
 		for t in trees:

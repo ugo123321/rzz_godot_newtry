@@ -78,6 +78,8 @@ var slow_pct_active := 0.0
 var _sprite_folder := "Skeleton"
 var _sprite_prefix := "Skeleton"
 var spawn_lock_timer := 0.0
+# 主题关：demon=暗红+黑气，angel=淡黄+圣光；属性 +15% 速度 +10% 防御
+var _theme := ""
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -126,7 +128,21 @@ func setup(monster_kind: String, stage_index: int, spawn_pos: Vector2) -> void:
 	global_position = spawn_pos
 	_sprite_folder = str(stats.get("character_folder", "Skeleton"))
 	_sprite_prefix = str(stats.get("sprite_prefix", "Skeleton"))
+	_apply_theme(stage_index)
 	_apply_sprite()
+
+
+func _apply_theme(stage_idx: int) -> void:
+	var battle := get_tree().get_first_node_in_group("battle")
+	if battle == null or not battle.has_method("get_stage_theme"):
+		_theme = ""
+		return
+	_theme = String(battle.get_stage_theme(stage_idx))
+	if _theme == "demon" or _theme == "angel":
+		move_speed *= 1.15
+		defense = int(round(float(defense) * 1.10))
+		var theme_tint: Color = Color(1.4, 0.55, 0.55) if _theme == "demon" else Color(1.2, 1.15, 0.7)
+		sprite_tint *= theme_tint
 
 
 func begin_spawn(duration: float = -1.0, target_scale: Vector2 = Vector2.ONE) -> void:
@@ -641,6 +657,27 @@ func _should_show_hp_bar() -> bool:
 	return alive and not dying and hp < max_hp
 
 
+func _draw_theme_aura() -> void:
+	# 主题关：demon 暗红黑气脉动，angel 暖白圣光脉动；3 圈低 alpha 同心圆叠出柔光质感
+	if _theme == "":
+		return
+	if not alive or dying:
+		return
+	var base_r := hitbox_radius
+	# 320ms 周期 → 角速度 = TAU / 0.32 ≈ 19.63 rad/s；Time.get_ticks_msec()*1e-3 是秒
+	var phase := float(Time.get_ticks_msec()) * 0.001 * (TAU / 0.32)
+	var pulse := 0.5 + 0.5 * sin(phase)
+	var ring_color: Color = Color("#3a0a14") if _theme == "demon" else Color("#fff4b0")
+	var rings := 3
+	var center := Vector2(0.0, -base_r * 0.2)
+	for i in range(rings):
+		var rr := base_r * (1.25 + float(i) * 0.32)
+		var alpha := lerpf(0.28, 0.06, float(i) / float(rings - 1)) * (0.75 + 0.25 * pulse)
+		var col := ring_color
+		col.a = alpha
+		draw_circle(center, rr, col)
+
+
 func _draw_hp_bar() -> void:
 	var head_pos := to_local(get_head_top_global_position())
 	PixelUiHelper.draw_compact_hp_bar(
@@ -664,6 +701,7 @@ func _draw_hp_bar() -> void:
 
 
 func _draw() -> void:
+	_draw_theme_aura()
 	if _should_show_hp_bar():
 		_draw_hp_bar()
 	if burn_timer > 0.0:
@@ -717,7 +755,7 @@ func _update_status_effects(delta: float) -> void:
 	_tick_poison(delta)
 	# 视觉刷新（modulate 由 _apply_status_tint 综合处理）
 	_apply_status_tint()
-	if burn_timer > 0.0 or slow_timer > 0.0 or poison_timer > 0.0 or paralyze_timer > 0.0:
+	if burn_timer > 0.0 or slow_timer > 0.0 or poison_timer > 0.0 or paralyze_timer > 0.0 or _theme != "":
 		queue_redraw()
 
 

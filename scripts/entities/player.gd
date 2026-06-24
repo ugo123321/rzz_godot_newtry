@@ -75,6 +75,13 @@ var bonus_crit_rate := 0.0
 var bonus_crit_damage := 0.0
 var bonus_damage_reduction := 0.0
 var move_speed_penalty_mult := 1.0
+# 水地块相关：on_water_terrain 表示当前是否站在水上；water_tint_timer 控制蓝色色调淡出
+var on_water_terrain := false
+var water_tint_timer := 0.0
+const WATER_SLOW_MULT := 0.55                        # 走水时移速倍率
+const WATER_TINT_FADE := 0.2                         # 离开水后蓝色 0.2s 内淡出
+const WATER_TINT_COLOR := Color(0.65, 0.85, 1.0, 1.0)  # 复用怪物冰 tint
+const WATER_TINT_BLEND := 0.45                       # 复用怪物冰 lerp 强度
 var luck_roll_blue_offset := 0.0
 var luck_roll_purple_offset := 0.0
 var luck_roll_orange_offset := 0.0
@@ -1205,6 +1212,23 @@ func _apply_combat_modulate() -> void:
 		modulate = Color(1.0, 1.0, 1.0, 0.55)
 	else:
 		modulate = Color.WHITE
+	# 水地块蓝色 tint：与受伤/无敌闪烁分层；用 timer 衰减
+	if water_tint_timer > 0.0:
+		var blend: float = WATER_TINT_BLEND * (water_tint_timer / WATER_TINT_FADE)
+		if blend > 0.001:
+			modulate = modulate.lerp(WATER_TINT_COLOR, blend)
+
+
+func _check_water_under_feet(battle: Node) -> void:
+	on_water_terrain = false
+	if battle == null:
+		return
+	var t = battle.terrain if "terrain" in battle else null
+	if t == null or not t.has_method("get_tile_at_world"):
+		return
+	if t.get_tile_at_world(global_position.x, global_position.y) == "water":
+		on_water_terrain = true
+		water_tint_timer = WATER_TINT_FADE  # 持续踩水时每帧刷新计时器
 
 
 func trigger_combo_abilities(_combo: int, _target_pos: Vector2) -> void:
@@ -1218,7 +1242,9 @@ func update_joystick_locomotion(dir: Vector2, delta: float, battle: Node) -> voi
 	if dir.length_squared() < 0.01:
 		_stop_joystick_locomotion_visual()
 		return
-	var speed := float(GameConfig.get_player_value("move_speed", 120.0)) * move_speed_penalty_mult
+	_check_water_under_feet(battle)
+	var water_mult := WATER_SLOW_MULT if on_water_terrain else 1.0
+	var speed := float(GameConfig.get_player_value("move_speed", 120.0)) * move_speed_penalty_mult * water_mult
 	var next_pos := global_position + dir.normalized() * speed * delta
 	var blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(next_pos)
 	if battle != null and battle.has_method("is_in_bounds") and battle.is_in_bounds(next_pos) and not blocked:
@@ -1253,6 +1279,8 @@ func update_idle(delta: float, time_scale: float) -> void:
 		invincible_timer -= delta
 	if damage_flash_timer > 0.0:
 		damage_flash_timer -= delta
+	if water_tint_timer > 0.0:
+		water_tint_timer = maxf(0.0, water_tint_timer - delta)
 	_apply_combat_modulate()
 	if _can_regen_ki():
 		ki = minf(ki_max, ki + ki_regen_speed * delta * time_scale)

@@ -1,6 +1,8 @@
 extends Node
 class_name PathInput
 
+const WATER_KI_PER_TILE := 4.0  # 画线每穿越一个水格的额外气消耗（去重后）
+
 var drawing := false
 var battle
 
@@ -52,9 +54,37 @@ func handle_move(screen_pos: Vector2) -> void:
 		else:
 			battle.exit_bullet_time(true)
 		return
+	# 水地块额外扣气：每穿越一格水扣 WATER_KI_PER_TILE（去重）
+	var water_count := _count_water_tiles_on_segment(battle.terrain, last, pos)
+	if water_count > 0:
+		player.ki = maxf(0.0, player.ki - float(water_count) * WATER_KI_PER_TILE)
 	player.add_path_point(pos)
 	if battle.buff_orbs:
 		battle.buff_orbs.check_path_segment(last, pos)
+
+
+func _count_water_tiles_on_segment(terrain, a: Vector2, b: Vector2) -> int:
+	if terrain == null or not terrain.has_method("get_tile_at_world"):
+		return 0
+	var ts: float = float(TerrainBackground.TILE_SIZE)
+	var dist: float = a.distance_to(b)
+	if dist < 0.01:
+		return 0
+	# 每 ts/2 像素采样一次，按 (col,row) 去重
+	var step_px: float = ts * 0.5
+	var samples: int = maxi(1, int(ceil(dist / step_px)))
+	var seen_water: Dictionary = {}
+	for i in range(samples + 1):
+		var t: float = float(i) / float(samples)
+		var p: Vector2 = a.lerp(b, t)
+		var col: int = int(floor(p.x / ts))
+		var row: int = int(floor(p.y / ts))
+		var key: int = col * 10000 + row
+		if seen_water.has(key):
+			continue
+		if terrain.get_tile(col, row) == "water":
+			seen_water[key] = true
+	return seen_water.size()
 
 
 func handle_end() -> void:

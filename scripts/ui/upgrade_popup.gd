@@ -223,20 +223,37 @@ func _rebuild_cards() -> void:
 		desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vbox.add_child(desc_label)
 
-		var rarity_color := Color(
-			str(GameConfig.get_upgrade_fx(str(upgrade.get("rarity", "blue"))).get("color_hex", "#ffffff"))
-		)
+		var card_rarity := str(upgrade.get("rarity", "blue"))
+		var card_fx: Dictionary = GameConfig.get_upgrade_fx(card_rarity)
+		var rarity_color := Color(str(card_fx.get("color_hex", "#ffffff")))
+		var card_card_glow := float(card_fx.get("card_glow", card_glow))
 		name_label.modulate = rarity_color
+		desc_label.modulate = rarity_color.lerp(Color(1, 1, 1), 0.55)
+		# 卡片整体染色：背景在深色基底上向 rarity_color 偏，rarity 越高偏色越浓
+		var bg_tint_strength := float({
+			"white": 0.08,
+			"blue": 0.18,
+			"purple": 0.28,
+			"orange": 0.38,
+		}.get(card_rarity, 0.18))
+		var base_dark := Color(0.10, 0.10, 0.18)
+		var bg_color := base_dark.lerp(rarity_color, bg_tint_strength)
+		bg_color.a = 0.96
+		var border_w := int({"white": 2, "blue": 3, "purple": 4, "orange": 5}.get(card_rarity, 3))
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.12, 0.12, 0.24, 0.96)
+		style.bg_color = bg_color
 		style.border_color = rarity_color
-		style.set_border_width_all(2)
+		style.set_border_width_all(border_w)
 		style.set_corner_radius_all(6)
-		style.shadow_color = Color(rarity_color, card_glow * 0.6)
-		style.shadow_size = int(4 + card_glow * 8)
+		style.shadow_color = Color(rarity_color, clampf(0.35 + card_card_glow * 0.6, 0.2, 0.95))
+		style.shadow_size = int(6 + card_card_glow * 14)
 		btn.add_theme_stylebox_override("normal", style)
-		btn.add_theme_stylebox_override("hover", style)
-		btn.add_theme_stylebox_override("pressed", style)
+		# hover/pressed 更亮，强化反馈
+		var hover_style := style.duplicate() as StyleBoxFlat
+		hover_style.bg_color = base_dark.lerp(rarity_color, minf(1.0, bg_tint_strength + 0.10))
+		hover_style.bg_color.a = 0.96
+		btn.add_theme_stylebox_override("hover", hover_style)
+		btn.add_theme_stylebox_override("pressed", hover_style)
 		btn.modulate.a = 0.0
 
 		var idx := i

@@ -386,7 +386,9 @@ func _on_spin_pressed() -> void:
 	var desired_mod := -float(_selected_index) * SLOT_ANGLE
 	var current := _wheel.rotation
 	var align_delta := fposmod(desired_mod - current, TAU)
-	var target := current + TAU * (4.5 + randf() * 1.1) + align_delta
+	# 附加圈数必须是 TAU 的整数倍，否则会偏移 mod TAU 使指针指向的槽和 _selected_index 对不上
+	var extra_spins := 4 + (randi() % 2)
+	var target := current + TAU * float(extra_spins) + align_delta
 
 	var tween := create_tween()
 	tween.tween_property(_wheel, "rotation", target, SPIN_DURATION).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)

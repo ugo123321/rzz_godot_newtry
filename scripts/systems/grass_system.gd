@@ -11,7 +11,7 @@ var blades: Array = []
 var field_ready := false
 
 
-func init_field(world_w: float, world_h: float, play_area_bottom: float, safe_zone: Dictionary = {}) -> void:
+func init_field(world_w: float, world_h: float, play_area_bottom: float, safe_zone: Dictionary = {}, terrain = null) -> void:
 	blades.clear()
 	var max_clusters := int(GameConfig.get_tuning("grass_cluster_max", 22))
 	var count := mini(max_clusters, int(floor(world_w * world_h / 45000.0)))
@@ -31,6 +31,9 @@ func init_field(world_w: float, world_h: float, play_area_bottom: float, safe_zo
 			var rr := float(safe_zone.get("r", 0.0)) + exclusion_pad
 			if dx * dx + dy * dy <= rr * rr:
 				continue
+		# 不在水格里生成（如果传了 terrain）
+		if terrain and terrain.has_method("get_tile_at_world") and terrain.get_tile_at_world(x, y) == "water":
+			continue
 		blades.append({
 			"x": x,
 			"y": y,
@@ -52,6 +55,12 @@ func update_field(delta: float) -> void:
 		return
 	for blade in blades:
 		blade.phase = float(blade.phase) + delta * float(blade.speed)
+	queue_redraw()
+
+
+func clear_field() -> void:
+	blades.clear()
+	field_ready = false
 	queue_redraw()
 
 

@@ -20,6 +20,7 @@ const BuildHouseDirectorScript = preload("res://scripts/systems/build_house_dire
 const WoodDropScript = preload("res://scripts/entities/wood_drop.gd")
 const StageTransitionScript = preload("res://scripts/systems/stage_transition.gd")
 const BattleTreeScript = preload("res://scripts/entities/battle_tree.gd")
+const WaterOverlayScript = preload("res://scripts/systems/water_overlay.gd")
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const MAIN_SCENE := "res://scenes/main.tscn"
@@ -75,6 +76,9 @@ var _initial_camera_y := 640.0
 var _initial_camera_x := 360.0
 var _portal_active_pause := false
 var _current_chapter_id := -1
+# 每第 4 关随机选 demon/angel 主题（idx=3,7,11,15,19,23...；跳过 room_type==reward 的奖励关）。
+# 一次开局内同一 stage_index 复用首次随机结果，避免视觉来回切换；start_game/_enter_wait_start/_begin_from_lobby 时清空。
+var _themed_stage_overrides: Dictionary = {}
 var hit_fx_overlay: Node2D
 var under_monster_fx_overlay: Node2D
 var above_monster_fx_overlay: Node2D
@@ -85,6 +89,7 @@ var _next_stage_root: Node2D = null
 var _pending_next_grass: GrassSystem = null
 var _pending_next_tree_container: Node2D = null
 var _pending_next_trees: Array = []
+var water_overlay: WaterOverlay = null
 
 var stage_intro_timer := 0.0
 var _lobby_entry_intro_active := false
@@ -242,7 +247,12 @@ func _ready() -> void:
 	stage_transition = StageTransitionScript.new()
 	stage_transition.name = "StageTransition"
 	add_child(stage_transition)
+	water_overlay = WaterOverlayScript.new()
+	water_overlay.name = "WaterOverlay"
+	add_child(water_overlay)
+	water_overlay.setup(self)
 	terrain.setup_for_stage(0, _get_safe_zone())
+	water_overlay.refresh_from_terrain()
 	_sync_background_layer()
 	_refresh_stage_ambience()
 	upgrade_popup.setup(self, upgrades)
@@ -267,6 +277,7 @@ func _setup_viewport() -> void:
 	var h := int(GameConfig.get_tuning("logical_height", 1280))
 	dim_overlay.size = Vector2(w, h)
 	dim_overlay.visible = false
+	dim_overlay.z_index = -1  # 让暗罩只覆盖地形/草/血迹/sakura 等装饰层；怪物/玩家/水 overlay 在 z=0 不受影响
 	var zoom := maxf(1.0, round(float(GameConfig.get_tuning("camera_zoom", 1.0))))
 	camera.zoom = Vector2.ONE * zoom
 	camera.position = Vector2(w * 0.5, h * 0.5)
@@ -277,6 +288,7 @@ func _setup_viewport() -> void:
 func start_game() -> void:
 	stage_index = 0
 	_current_chapter_id = -1
+	_themed_stage_overrides.clear()
 	experience.reset()
 	player.reset_for_new_run()
 	if fail_animator:
@@ -298,6 +310,7 @@ func start_game() -> void:
 func _enter_wait_start() -> void:
 	stage_index = 0
 	_current_chapter_id = -1
+	_themed_stage_overrides.clear()
 	experience.reset()
 	player.reset_for_new_run()
 	LobbyState.reset_wood()
@@ -313,7 +326,10 @@ func _enter_wait_start() -> void:
 	if equipment_drop_fx:
 		equipment_drop_fx.clear()
 	if tree_spawner:
-		tree_spawner.begin(self)
+		if get_stage_theme(stage_index) == "":
+			tree_spawner.begin(self)
+		else:
+			tree_spawner.reset()
 	if portal_spawner:
 		portal_spawner.reset()
 	_clear_projectiles()
@@ -321,6 +337,8 @@ func _enter_wait_start() -> void:
 	_apply_stage_meta(false)
 	if terrain:
 		terrain.setup_for_stage(stage_index, _get_safe_zone())
+	if water_overlay:
+		water_overlay.refresh_from_terrain()
 	_sync_background_layer()
 	_refresh_stage_ambience()
 	intro_label.visible = false
@@ -338,6 +356,7 @@ func _exit_wait_start_and_begin() -> void:
 func _begin_from_lobby() -> void:
 	stage_index = clampi(LobbyState.stage_index, 0, maxi(0, GameConfig.stages.size() - 1))
 	_current_chapter_id = -1
+	_themed_stage_overrides.clear()
 	experience.reset()
 	player.reset_for_new_run()
 	if fail_animator:
@@ -434,11 +453,16 @@ func _start_run() -> void:
 	if not skip_world_setup:
 		if terrain:
 			terrain.setup_for_stage(stage_index, _get_safe_zone())
+		if water_overlay:
+			water_overlay.refresh_from_terrain()
 		_sync_background_layer()
 		_refresh_stage_ambience()
 	_apply_stage_meta(true)
 	if not skip_world_setup and tree_spawner:
-		tree_spawner.begin(self)
+		if get_stage_theme(stage_index) == "":
+			tree_spawner.begin(self)
+		else:
+			tree_spawner.reset()
 	if portal_spawner:
 		portal_spawner.begin()
 	state = GameState.PLAYING
@@ -585,7 +609,10 @@ func _advance_after_build() -> void:
 	spawner.spawn_stage(stage_index, self)
 	_apply_stage_meta(false)
 	if tree_spawner:
-		tree_spawner.begin(self)
+		if get_stage_theme(stage_index) == "":
+			tree_spawner.begin(self)
+		else:
+			tree_spawner.reset()
 	if portal_spawner:
 		portal_spawner.begin()
 	state = GameState.PLAYING
@@ -702,6 +729,8 @@ func apply_debug_settings(target_level: int, target_stage: int) -> void:
 	spawner.spawn_stage(stage_index, self)
 	if terrain:
 		terrain.setup_for_stage(stage_index, _get_safe_zone())
+	if water_overlay:
+		water_overlay.refresh_from_terrain()
 	_sync_background_layer()
 	_refresh_stage_ambience()
 	_apply_stage_meta(true)
@@ -746,6 +775,19 @@ func _apply_stage_meta(_spawn_buff_orbs: bool) -> void:
 	hud.set_stage_text(str(stage.get("display_name", "第%d关" % (stage_index + 1))))
 
 
+func get_stage_theme(idx: int) -> String:
+	if idx < 0 or idx >= GameConfig.stages.size():
+		return ""
+	var s := GameConfig.get_stage(idx)
+	if str(s.get("room_type", "")) == "reward":
+		return ""
+	if (idx + 1) % 4 != 0:
+		return ""
+	if not _themed_stage_overrides.has(idx):
+		_themed_stage_overrides[idx] = "demon" if randi() % 2 == 0 else "angel"
+	return String(_themed_stage_overrides[idx])
+
+
 func shake_camera(magnitude: float, duration: float) -> void:
 	if magnitude >= shake_mag:
 		shake_mag = magnitude
@@ -763,10 +805,13 @@ func _sync_background_layer() -> void:
 func _refresh_stage_ambience() -> void:
 	if grass_field == null:
 		return
+	if get_stage_theme(stage_index) != "":
+		grass_field.clear_field()
+		return
 	var w := float(GameConfig.get_tuning("logical_width", 720))
 	var h := float(GameConfig.get_tuning("logical_height", 1280))
 	var play_bottom := PixelUiHelper.get_play_area_bottom(h)
-	grass_field.init_field(w, h, play_bottom, _get_safe_zone())
+	grass_field.init_field(w, h, play_bottom, _get_safe_zone(), terrain)
 
 
 func _get_safe_zone() -> Dictionary:
@@ -838,7 +883,7 @@ func enter_fail_death_presentation() -> void:
 func exit_fail_death_presentation() -> void:
 	time_scale = 1.0
 	dim_overlay.visible = false
-	dim_overlay.z_index = 0
+	dim_overlay.z_index = -1  # 回到 _setup_viewport 设置的基线
 	_restore_player_parent()
 
 
@@ -1029,7 +1074,10 @@ func _legacy_advance_to_next_stage() -> void:
 	spawner.spawn_stage(stage_index, self)
 	_apply_stage_meta(false)
 	if tree_spawner:
-		tree_spawner.begin(self)
+		if get_stage_theme(stage_index) == "":
+			tree_spawner.begin(self)
+		else:
+			tree_spawner.reset()
 	if portal_spawner:
 		portal_spawner.begin()
 	state = GameState.PLAYING
@@ -1094,7 +1142,10 @@ func _on_reward_wheel_finished(reward_text: String) -> void:
 		spawner.spawn_stage(stage_index, self)
 		_apply_stage_meta(false)
 		if tree_spawner:
-			tree_spawner.begin(self)
+			if get_stage_theme(stage_index) == "":
+				tree_spawner.begin(self)
+			else:
+				tree_spawner.reset()
 		if portal_spawner:
 			portal_spawner.begin()
 		state = GameState.PLAYING
@@ -1279,7 +1330,15 @@ func _prespawn_next_stage_world(next_index: int) -> void:
 	new_terrain.name = "NextTerrain"
 	new_terrain.z_index = -5  # z_index 在 Godot 2D 不继承，需显式设置
 	root.add_child(new_terrain)
-	new_terrain.setup_for_stage(next_index, {})
+	# 用"下一关的玩家落地点"作 safe_zone，避免水簇盖在落地位置
+	var next_w := float(GameConfig.get_tuning("logical_width", 720))
+	var next_h := float(GameConfig.get_tuning("logical_height", 1280))
+	var next_safe := {
+		"x": next_w * 0.5,
+		"y": next_h * 0.58,
+		"r": float(player.get_trigger_radius()) if player else 80.0,
+	}
+	new_terrain.setup_for_stage(next_index, next_safe)
 	_pending_next_terrain = new_terrain
 
 	# 2) 草地（init_field 在下一关 safe_zone = 玩家落地点周围）
@@ -1289,9 +1348,11 @@ func _prespawn_next_stage_world(next_index: int) -> void:
 	new_grass.name = "NextGrassField"
 	new_grass.z_index = -4
 	root.add_child(new_grass)
-	var play_bottom := PixelUiHelper.get_play_area_bottom(h)
-	var safe_zone := {"x": w * 0.5, "y": h * 0.58, "r": 60.0}
-	new_grass.init_field(w, h, play_bottom, safe_zone)
+	var next_theme := get_stage_theme(next_index)
+	if next_theme.is_empty():
+		var play_bottom := PixelUiHelper.get_play_area_bottom(h)
+		var safe_zone := {"x": w * 0.5, "y": h * 0.58, "r": 60.0}
+		new_grass.init_field(w, h, play_bottom, safe_zone, new_terrain)
 	_pending_next_grass = new_grass
 
 	# 3) 树 —— 直接实例化（不经 tree_spawner），生成进 next_tree_container
@@ -1300,7 +1361,10 @@ func _prespawn_next_stage_world(next_index: int) -> void:
 	new_tree_container.z_index = 0
 	root.add_child(new_tree_container)
 	_pending_next_tree_container = new_tree_container
-	_pending_next_trees = _spawn_prespawn_trees(new_tree_container, next_index, w, h)
+	if next_theme.is_empty():
+		_pending_next_trees = _spawn_prespawn_trees(new_tree_container, next_index, w, h)
+	else:
+		_pending_next_trees = []
 
 
 func _spawn_prespawn_trees(container: Node2D, stage_idx: int, w: float, h: float) -> Array:
@@ -1320,15 +1384,19 @@ func _spawn_prespawn_trees(container: Node2D, stage_idx: int, w: float, h: float
 
 
 func _pick_prespawn_tree_pos(w: float, h: float, safe: Vector2, placed: Array) -> Vector2:
+	var t = _pending_next_terrain
 	for attempt in range(60):
 		var x := randf_range(60.0, w - 60.0)
 		var y := randf_range(130.0, h - 200.0)
 		var pos := Vector2(x, y)
 		if pos.distance_to(safe) < 200.0:
 			continue
+		# 不在水格里生成
+		if t and t.has_method("get_tile_at_world") and t.get_tile_at_world(x, y) == "water":
+			continue
 		var clash := false
-		for t in placed:
-			if is_instance_valid(t) and pos.distance_to(t.position) < 110.0:
+		for tr in placed:
+			if is_instance_valid(tr) and pos.distance_to(tr.position) < 110.0:
 				clash = true
 				break
 		if not clash:
@@ -1336,7 +1404,7 @@ func _pick_prespawn_tree_pos(w: float, h: float, safe: Vector2, placed: Array) -
 	return Vector2(randf_range(80.0, w - 80.0), randf_range(140.0, h - 220.0))
 
 
-func _rebase_after_transition(_next_index: int) -> void:
+func _rebase_after_transition(next_index: int) -> void:
 	# StageTransition REBASE：单帧原子地把新地形 / 草地 / 树从 (0,-1280) 拉回到 (0,0)，
 	# 同时把摄像机和玩家瞬移回标准坐标。摄像机 +1280、内容 -1280 在同一帧抵消，玩家无感。
 	# 1) 地形：替换 battle.terrain 引用
@@ -1366,7 +1434,8 @@ func _rebase_after_transition(_next_index: int) -> void:
 	if tree_spawner:
 		# 让 tree_spawner 认领新树，避免它在 update_trees 中误判"全死"重新刷一波
 		tree_spawner.trees = _pending_next_trees.duplicate()
-		tree_spawner.active = true
+		# 主题关（demon/angel）不再补刷树：active=false 让 update_trees 直接 early return
+		tree_spawner.active = get_stage_theme(next_index) == ""
 	_pending_next_trees = []
 	# 4) NextStageRoot 空了，干掉
 	if _next_stage_root and is_instance_valid(_next_stage_root):
@@ -1380,6 +1449,9 @@ func _rebase_after_transition(_next_index: int) -> void:
 		player.global_position = Vector2(_initial_camera_x, view_h * 0.58)
 		player.home_position = player.global_position
 		player.scale = Vector2.ONE
+	# 6) 通知 water_overlay 拉新水格列表
+	if water_overlay:
+		water_overlay.refresh_from_terrain()
 
 
 func _queue_combat_fx_redraw() -> void:
