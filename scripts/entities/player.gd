@@ -861,6 +861,10 @@ func make_ability_damage(source: String, mult: float, category: String, element:
 func take_damage(amount: int) -> int:
 	if invincible_timer > 0.0 or is_attack_invincible():
 		return 0
+	# 过场期间免伤（玩家在跳跃 / 滚轴中不可被命中）
+	var battle := get_tree().get_first_node_in_group("battle")
+	if battle and "_transition_damage_lock" in battle and battle._transition_damage_lock:
+		return 0
 	# Phase 5 sr=10 iframe_on_hit：CD ≤ 0 时本次伤害免疫；sr=1 on_hit_window：开启 buff 窗口
 	if SpecialRuleDispatcherT.on_player_damaged(self, amount):
 		return 0
@@ -879,7 +883,6 @@ func take_damage(amount: int) -> int:
 		_play_anim(SpriteHelper.ANIM_HURT)
 	EventBus.player_damaged.emit(final_damage, hp)
 	AudioManager.play_player_hurt()
-	var battle := get_tree().get_first_node_in_group("battle")
 	if battle:
 		battle.shake_camera(4.0, 0.12)
 	return final_damage

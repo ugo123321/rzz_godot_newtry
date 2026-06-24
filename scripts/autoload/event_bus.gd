@@ -3,6 +3,8 @@ extends Node
 signal game_state_changed(old_state: int, new_state: int)
 signal stage_started(stage_index: int)
 signal stage_cleared(stage_index: int)
+signal stage_transition_started(from_stage: int, to_stage: int)
+signal stage_transition_completed(stage_index: int)
 signal player_damaged(amount: int, remaining_hp: int)
 signal player_healed(amount: int, remaining_hp: int)
 signal monster_killed(monster: Node)

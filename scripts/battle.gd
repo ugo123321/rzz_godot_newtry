@@ -18,6 +18,8 @@ const TreeSpawnerScript = preload("res://scripts/systems/tree_spawner.gd")
 const PortalSpawnerScript = preload("res://scripts/systems/portal_spawner.gd")
 const BuildHouseDirectorScript = preload("res://scripts/systems/build_house_director.gd")
 const WoodDropScript = preload("res://scripts/entities/wood_drop.gd")
+const StageTransitionScript = preload("res://scripts/systems/stage_transition.gd")
+const BattleTreeScript = preload("res://scripts/entities/battle_tree.gd")
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const MAIN_SCENE := "res://scenes/main.tscn"
@@ -76,6 +78,13 @@ var _current_chapter_id := -1
 var hit_fx_overlay: Node2D
 var under_monster_fx_overlay: Node2D
 var above_monster_fx_overlay: Node2D
+var stage_transition: StageTransition
+var _transition_damage_lock := false
+var _pending_next_terrain: TerrainBackground = null
+var _next_stage_root: Node2D = null
+var _pending_next_grass: GrassSystem = null
+var _pending_next_tree_container: Node2D = null
+var _pending_next_trees: Array = []
 
 var stage_intro_timer := 0.0
 var _lobby_entry_intro_active := false
@@ -230,6 +239,9 @@ func _ready() -> void:
 	above_monster_fx_overlay.z_index = 5
 	add_child(above_monster_fx_overlay)
 	above_monster_fx_overlay.draw.connect(_draw_above_monster_fx_overlay)
+	stage_transition = StageTransitionScript.new()
+	stage_transition.name = "StageTransition"
+	add_child(stage_transition)
 	terrain.setup_for_stage(0, _get_safe_zone())
 	_sync_background_layer()
 	_refresh_stage_ambience()
@@ -875,7 +887,7 @@ func resume_from_pause() -> void:
 func pause_game() -> void:
 	if _lobby_entry_intro_active:
 		return
-	if state in [GameState.MENU, GameState.WAIT_START, GameState.FAIL_DEATH, GameState.STAGE_CLEAR, GameState.COMPLETE, GameState.FAIL, GameState.STAGE_FAIL, GameState.LEVEL_UP, GameState.BUILD_HOUSE, GameState.BUILD_HOUSE_DONE]:
+	if state in [GameState.MENU, GameState.WAIT_START, GameState.FAIL_DEATH, GameState.STAGE_CLEAR, GameState.COMPLETE, GameState.FAIL, GameState.STAGE_FAIL, GameState.LEVEL_UP, GameState.BUILD_HOUSE, GameState.BUILD_HOUSE_DONE, GameState.STAGE_TRANSITION]:
 		return
 	if state == GameState.REWARD_ROOM:
 		return
@@ -972,7 +984,36 @@ func _try_finish_stage_clear() -> void:
 
 
 func _advance_to_next_stage() -> void:
-	# Legacy entrypoint kept for compatibility, but countdown flow drives progression now.
+	# 关卡推进：先做"跳跃 + 竖向滚轴"过场，落地后再切换 stage_index。
+	# 通关早出口直接走原 game-complete 流程，不跑滚轴。
+	var next_index := stage_index + 1
+	if next_index >= GameConfig.stages.size():
+		EventBus.stage_cleared.emit(stage_index)
+		stage_index = next_index
+		_clear_stage_transition_presentation(true)
+		state = GameState.COMPLETE
+		if level_overlay:
+			level_overlay.show_game_complete()
+		hud.hide_message()
+		return
+	if stage_transition:
+		stage_transition.play(self, next_index, _on_stage_transition_complete.bind(next_index))
+	else:
+		# Fallback：编排器异常时退化为旧的直接切关逻辑
+		_legacy_advance_to_next_stage()
+
+
+func _on_stage_transition_complete(next_index: int) -> void:
+	stage_index = next_index
+	if _try_enter_reward_room(stage_index):
+		return
+	_apply_stage_meta(false)
+	state = GameState.PLAYING
+	EventBus.stage_started.emit(stage_index)
+
+
+func _legacy_advance_to_next_stage() -> void:
+	# 旧的直接切关流程，仅作为编排器异常时的兜底。
 	EventBus.stage_cleared.emit(stage_index)
 	stage_index += 1
 	if stage_index >= GameConfig.stages.size():
@@ -1034,25 +1075,30 @@ func _on_reward_wheel_finished(reward_text: String) -> void:
 		return
 	if not reward_text.is_empty():
 		hud.show_message("获得奖励：%s" % reward_text, 1.6)
-	stage_index = _pending_reward_stage_index + 1
-	if stage_index >= GameConfig.stages.size():
+	var next_index: int = _pending_reward_stage_index + 1
+	_pending_reward_stage_index = -1
+	if next_index >= GameConfig.stages.size():
+		stage_index = next_index
 		_clear_stage_transition_presentation(true)
 		state = GameState.COMPLETE
 		if level_overlay:
 			level_overlay.show_game_complete()
 		hud.hide_message()
-		_pending_reward_stage_index = -1
 		return
-	_clear_stage_transition_presentation(stage_index > 0)
-	spawner.spawn_stage(stage_index, self)
-	_apply_stage_meta(false)
-	if tree_spawner:
-		tree_spawner.begin(self)
-	if portal_spawner:
-		portal_spawner.begin()
-	state = GameState.PLAYING
-	EventBus.stage_started.emit(stage_index)
-	_pending_reward_stage_index = -1
+	# 离开奖励关 → 与普通关一样走"跳跃 + 滚轴"过场
+	if stage_transition:
+		stage_transition.play(self, next_index, _on_stage_transition_complete.bind(next_index))
+	else:
+		stage_index = next_index
+		_clear_stage_transition_presentation(stage_index > 0)
+		spawner.spawn_stage(stage_index, self)
+		_apply_stage_meta(false)
+		if tree_spawner:
+			tree_spawner.begin(self)
+		if portal_spawner:
+			portal_spawner.begin()
+		state = GameState.PLAYING
+		EventBus.stage_started.emit(stage_index)
 
 
 func _process(delta: float) -> void:
@@ -1106,6 +1152,9 @@ func _process(delta: float) -> void:
 			_update_ambience(delta)
 			if level_overlay:
 				level_overlay.update_overlay(delta)
+		GameState.STAGE_TRANSITION:
+			_update_ambience(delta)
+			player.update_idle(delta, 1.0)
 	_update_camera_shake(delta)
 
 
@@ -1206,6 +1255,131 @@ func _clear_stage_transition_presentation(keep_companions: bool) -> void:
 	if ground_effects:
 		ground_effects.reset()
 	_queue_combat_fx_redraw()
+
+
+func _prespawn_next_stage_world(next_index: int) -> void:
+	# StageTransition PRESPAWN：把下一关的地形 + 草地 + 树等"非怪物"装饰提前画到世界 Y = -1280 处。
+	# 怪物（含传送门 / 木材）不在这里生成，留给 REBASE 之后（坐标系恢复标准）由 spawner 处理。
+	if _next_stage_root and is_instance_valid(_next_stage_root):
+		_next_stage_root.queue_free()
+		_next_stage_root = null
+	_pending_next_terrain = null
+	_pending_next_grass = null
+	_pending_next_tree_container = null
+	_pending_next_trees = []
+
+	var root := Node2D.new()
+	root.name = "NextStageRoot"
+	root.position = Vector2(0, -1280)
+	add_child(root)
+	_next_stage_root = root
+
+	# 1) 地形
+	var new_terrain := TerrainBackground.new()
+	new_terrain.name = "NextTerrain"
+	new_terrain.z_index = -5  # z_index 在 Godot 2D 不继承，需显式设置
+	root.add_child(new_terrain)
+	new_terrain.setup_for_stage(next_index, {})
+	_pending_next_terrain = new_terrain
+
+	# 2) 草地（init_field 在下一关 safe_zone = 玩家落地点周围）
+	var w := float(GameConfig.get_tuning("logical_width", 720))
+	var h := float(GameConfig.get_tuning("logical_height", 1280))
+	var new_grass := GrassSystemScript.new()
+	new_grass.name = "NextGrassField"
+	new_grass.z_index = -4
+	root.add_child(new_grass)
+	var play_bottom := PixelUiHelper.get_play_area_bottom(h)
+	var safe_zone := {"x": w * 0.5, "y": h * 0.58, "r": 60.0}
+	new_grass.init_field(w, h, play_bottom, safe_zone)
+	_pending_next_grass = new_grass
+
+	# 3) 树 —— 直接实例化（不经 tree_spawner），生成进 next_tree_container
+	var new_tree_container := Node2D.new()
+	new_tree_container.name = "NextTrees"
+	new_tree_container.z_index = 0
+	root.add_child(new_tree_container)
+	_pending_next_tree_container = new_tree_container
+	_pending_next_trees = _spawn_prespawn_trees(new_tree_container, next_index, w, h)
+
+
+func _spawn_prespawn_trees(container: Node2D, stage_idx: int, w: float, h: float) -> Array:
+	var count := int(GameConfig.get_tuning("tree_count_per_wave", 5))
+	var safe := Vector2(w * 0.5, h * 0.58)
+	var placed: Array = []
+	for n in range(count):
+		var pos := _pick_prespawn_tree_pos(w, h, safe, placed)
+		var tree = BattleTreeScript.new()
+		container.add_child(tree)
+		tree.setup(pos, stage_idx)
+		# setup() 内部用 global_position = pos 把树定到了"当前世界坐标"。
+		# 我们要的是"下一关本地坐标"（即 NextStageRoot 局部空间），所以这里强制覆盖为 LOCAL。
+		tree.position = pos
+		placed.append(tree)
+	return placed
+
+
+func _pick_prespawn_tree_pos(w: float, h: float, safe: Vector2, placed: Array) -> Vector2:
+	for attempt in range(60):
+		var x := randf_range(60.0, w - 60.0)
+		var y := randf_range(130.0, h - 200.0)
+		var pos := Vector2(x, y)
+		if pos.distance_to(safe) < 200.0:
+			continue
+		var clash := false
+		for t in placed:
+			if is_instance_valid(t) and pos.distance_to(t.position) < 110.0:
+				clash = true
+				break
+		if not clash:
+			return pos
+	return Vector2(randf_range(80.0, w - 80.0), randf_range(140.0, h - 220.0))
+
+
+func _rebase_after_transition(_next_index: int) -> void:
+	# StageTransition REBASE：单帧原子地把新地形 / 草地 / 树从 (0,-1280) 拉回到 (0,0)，
+	# 同时把摄像机和玩家瞬移回标准坐标。摄像机 +1280、内容 -1280 在同一帧抵消，玩家无感。
+	# 1) 地形：替换 battle.terrain 引用
+	if terrain and is_instance_valid(terrain):
+		terrain.queue_free()
+	if _pending_next_terrain and is_instance_valid(_pending_next_terrain):
+		_pending_next_terrain.reparent(self, false)
+		_pending_next_terrain.position = Vector2.ZERO
+		terrain = _pending_next_terrain
+		_pending_next_terrain = null
+	# 2) 草地：替换 battle.grass_field 引用
+	if grass_field and is_instance_valid(grass_field):
+		grass_field.queue_free()
+	if _pending_next_grass and is_instance_valid(_pending_next_grass):
+		_pending_next_grass.reparent(self, false)
+		_pending_next_grass.position = Vector2.ZERO
+		grass_field = _pending_next_grass
+		_pending_next_grass = null
+	# 3) 树容器：替换 battle.tree_container 引用 + 同步 tree_spawner.trees 状态
+	if tree_container and is_instance_valid(tree_container):
+		tree_container.queue_free()
+	if _pending_next_tree_container and is_instance_valid(_pending_next_tree_container):
+		_pending_next_tree_container.reparent($Entities, false)
+		_pending_next_tree_container.position = Vector2.ZERO
+		tree_container = _pending_next_tree_container
+		_pending_next_tree_container = null
+	if tree_spawner:
+		# 让 tree_spawner 认领新树，避免它在 update_trees 中误判"全死"重新刷一波
+		tree_spawner.trees = _pending_next_trees.duplicate()
+		tree_spawner.active = true
+	_pending_next_trees = []
+	# 4) NextStageRoot 空了，干掉
+	if _next_stage_root and is_instance_valid(_next_stage_root):
+		_next_stage_root.queue_free()
+		_next_stage_root = null
+	# 5) 摄像机 + 玩家瞬移回标准坐标
+	if camera:
+		camera.position = Vector2(_initial_camera_x, _initial_camera_y)
+	if player:
+		var view_h := float(GameConfig.get_tuning("logical_height", 1280))
+		player.global_position = Vector2(_initial_camera_x, view_h * 0.58)
+		player.home_position = player.global_position
+		player.scale = Vector2.ONE
 
 
 func _queue_combat_fx_redraw() -> void:
