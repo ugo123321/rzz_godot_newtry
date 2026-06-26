@@ -39,6 +39,7 @@ OUT_JSON = ROOT / "config" / "json" / "rewards_v6.json"
 GROUP_CODE_TO_NAME = {
     1: "基础属性", 2: "生存防御", 3: "普攻子弹", 4: "连击", 5: "画线轨迹",
     6: "强化球", 7: "环绕剑", 8: "召唤", 9: "元素",
+    10: "恶魔", 11: "天使",
 }
 RARITY_CODE_TO_NAME = {1: "white", 2: "blue", 3: "purple", 4: "orange"}
 TRIGGER_CODE_TO_KEY = {

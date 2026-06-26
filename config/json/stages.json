@@ -73,8 +73,8 @@
   },
   {
     "stage_index": 4,
-    "chapter_id": 2,
-    "stage_in_chapter": 1,
+    "chapter_id": 1,
+    "stage_in_chapter": 5,
     "display_name": "第5关",
     "target_height_m": 100,
     "normal": 10,
@@ -91,8 +91,8 @@
   },
   {
     "stage_index": 5,
-    "chapter_id": 2,
-    "stage_in_chapter": 2,
+    "chapter_id": 1,
+    "stage_in_chapter": 6,
     "display_name": "第6关",
     "normal": 5,
     "elite": 4,
@@ -108,8 +108,8 @@
   },
   {
     "stage_index": 6,
-    "chapter_id": 2,
-    "stage_in_chapter": 3,
+    "chapter_id": 1,
+    "stage_in_chapter": 7,
     "display_name": "第7关",
     "normal": 5,
     "elite": 4,
@@ -125,8 +125,8 @@
   },
   {
     "stage_index": 7,
-    "chapter_id": 2,
-    "stage_in_chapter": 4,
+    "chapter_id": 1,
+    "stage_in_chapter": 8,
     "display_name": "第8关",
     "normal": 4,
     "elite": 4,
@@ -142,8 +142,8 @@
   },
   {
     "stage_index": 8,
-    "chapter_id": 2,
-    "stage_in_chapter": 5,
+    "chapter_id": 1,
+    "stage_in_chapter": 9,
     "display_name": "第9关",
     "normal": 4,
     "elite": 3,
@@ -159,9 +159,10 @@
   },
   {
     "stage_index": 9,
-    "chapter_id": 2,
-    "stage_in_chapter": 6,
+    "chapter_id": 1,
+    "stage_in_chapter": 10,
     "display_name": "第10关",
+    "room_type": "attr_forge",
     "normal": 0,
     "elite": 0,
     "shield": 0,
@@ -172,12 +173,12 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": "lancer_knight"
+    "boss_id": ""
   },
   {
     "stage_index": 10,
-    "chapter_id": 3,
-    "stage_in_chapter": 1,
+    "chapter_id": 1,
+    "stage_in_chapter": 11,
     "display_name": "第11关",
     "normal": 4,
     "elite": 3,
@@ -193,8 +194,8 @@
   },
   {
     "stage_index": 11,
-    "chapter_id": 3,
-    "stage_in_chapter": 2,
+    "chapter_id": 1,
+    "stage_in_chapter": 12,
     "display_name": "第12关",
     "normal": 4,
     "elite": 4,
@@ -210,8 +211,8 @@
   },
   {
     "stage_index": 12,
-    "chapter_id": 3,
-    "stage_in_chapter": 3,
+    "chapter_id": 1,
+    "stage_in_chapter": 13,
     "display_name": "第13关",
     "normal": 4,
     "elite": 4,
@@ -227,8 +228,8 @@
   },
   {
     "stage_index": 13,
-    "chapter_id": 3,
-    "stage_in_chapter": 4,
+    "chapter_id": 1,
+    "stage_in_chapter": 14,
     "display_name": "第14关",
     "normal": 4,
     "elite": 4,
@@ -244,8 +245,8 @@
   },
   {
     "stage_index": 14,
-    "chapter_id": 3,
-    "stage_in_chapter": 5,
+    "chapter_id": 1,
+    "stage_in_chapter": 15,
     "display_name": "第15关",
     "room_type": "reward",
     "reward_rooms": ["wheel"],
@@ -263,8 +264,8 @@
   },
   {
     "stage_index": 15,
-    "chapter_id": 3,
-    "stage_in_chapter": 6,
+    "chapter_id": 1,
+    "stage_in_chapter": 16,
     "display_name": "第16关",
     "normal": 4,
     "elite": 4,
@@ -280,8 +281,8 @@
   },
   {
     "stage_index": 16,
-    "chapter_id": 3,
-    "stage_in_chapter": 7,
+    "chapter_id": 1,
+    "stage_in_chapter": 17,
     "display_name": "第17关",
     "normal": 5,
     "elite": 4,
@@ -297,8 +298,8 @@
   },
   {
     "stage_index": 17,
-    "chapter_id": 3,
-    "stage_in_chapter": 8,
+    "chapter_id": 1,
+    "stage_in_chapter": 18,
     "display_name": "第18关",
     "normal": 4,
     "elite": 4,
@@ -314,8 +315,8 @@
   },
   {
     "stage_index": 18,
-    "chapter_id": 3,
-    "stage_in_chapter": 9,
+    "chapter_id": 1,
+    "stage_in_chapter": 19,
     "display_name": "第19关",
     "normal": 4,
     "elite": 4,
@@ -331,8 +332,8 @@
   },
   {
     "stage_index": 19,
-    "chapter_id": 3,
-    "stage_in_chapter": 10,
+    "chapter_id": 1,
+    "stage_in_chapter": 20,
     "display_name": "第20关",
     "normal": 0,
     "elite": 0,
@@ -344,6 +345,6 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": "centipede"
+    "boss_id": "lancer_knight"
   }
 ]

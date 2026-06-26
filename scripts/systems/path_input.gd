@@ -26,6 +26,8 @@ func handle_start(screen_pos: Vector2) -> void:
 	if not player.is_ki_full():
 		battle.hud.show_message("气力未满，请稍候", 1.0)
 		return
+	# 画线末释放类奖励（sr=22 / sr=26 / sr=27 / sr=46）：新一次画线开始 → 清掉上次遗留的「气力耗尽」标记
+	player.slash_end_ki_drained = false
 	drawing = true
 	battle.enter_bullet_time()
 	player.start_bullet_time()
@@ -48,6 +50,8 @@ func handle_move(screen_pos: Vector2) -> void:
 	if step < 2.0:
 		return
 	if not player.consume_ki_by_distance(step):
+		# 本次画线把气力耗尽 → 标记下次 slash_end 触发"画线末释放"类奖励
+		player.slash_end_ki_drained = true
 		drawing = false
 		if player.attack_path.size() >= 2:
 			battle.exit_bullet_time(false)
@@ -58,6 +62,8 @@ func handle_move(screen_pos: Vector2) -> void:
 	var water_count := _count_water_tiles_on_segment(battle.terrain, last, pos)
 	if water_count > 0:
 		player.ki = maxf(0.0, player.ki - float(water_count) * WATER_KI_PER_TILE)
+		if player.ki <= 0.01:
+			player.slash_end_ki_drained = true
 	player.add_path_point(pos)
 	if battle.buff_orbs:
 		battle.buff_orbs.check_path_segment(last, pos)

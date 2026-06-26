@@ -51,6 +51,12 @@ static func _sv(b: Dictionary, idx: int, default_v: float = 0.0) -> float:
 # rebuild 末段执行所有"被动调整 player 字段"的 sr。
 # boss_target / 其它需要 rebuild 阶段调整的 sr 在这里写。
 static func on_rebuild(player: Node) -> void:
+	# sr=0 主题关被动卡：rebuild 前重置视觉状态字段，再按当前装备数填回
+	# （这两张卡 sr=0 不走 _iter_sr，直接读 upgrade_stacks）
+	if "angel_light_ward_active" in player:
+		player.angel_light_ward_active = int(player.upgrade_stacks.get("angel_light_ward", 0)) > 0
+	if "demon_vampire_count" in player:
+		player.demon_vampire_count = int(player.upgrade_stacks.get("demon_vampire", 0))
 	# sr=4 boss_target：vs_boss 关进入时给 atk + 满血
 	for b in _iter_sr(player, 4):
 		var level: int = int(b.level)
@@ -186,6 +192,46 @@ static func on_rebuild(player: Node) -> void:
 		if player.orb_tide_interval_sec <= 0.0 or interval < player.orb_tide_interval_sec:
 			player.orb_tide_interval_sec = interval
 
+	# ===== 主题关：恶魔 / 天使 =====
+	# sr=46 scythe_on_slash_end：记录倍率 + 贯通；on_slash_end 时投射
+	for b46 in _iter_sr(player, 46):
+		player.scythe_atk_mult = _sv(b46, 0, 4.0)
+		player.scythe_pierce = _sv(b46, 1, 1.0) >= 0.5
+	# sr=47 periodic_laser：填好运行时计时参数；on_tick 周期发射
+	# 卡片 trigger=timer，AttrEngine 不会把 attr 40/41 写入 cooldown_sec_total / duration_sec_total
+	# （_is_card_active 只放过 passive / hp_below）→ 这里直接读卡上的 attrs。
+	for b47 in _iter_sr(player, 47):
+		player.sulfur_laser_atk_mult = _sv(b47, 0, 0.5)
+		player.sulfur_laser_tick = maxf(0.02, _sv(b47, 1, 0.1))
+		var cd_sec: float = 6.0
+		var dur_sec: float = 1.0
+		for slot47 in b47.def.get("attrs", []):
+			var aid47 := int(slot47.get("id", 0))
+			if aid47 == 40:
+				cd_sec = float(slot47.get("value", 6.0))
+			elif aid47 == 41:
+				dur_sec = float(slot47.get("value", 1.0))
+		player.sulfur_laser_cd = maxf(0.5, cd_sec)
+		player.sulfur_laser_duration = maxf(0.1, dur_sec)
+		# 装备瞬间不立刻喷激光（首次也走完整 cd），避免选完卡画面就被亮闪一下
+		if float(player.sulfur_laser_timer) <= 0.0:
+			player.sulfur_laser_timer = player.sulfur_laser_cd
+	# sr=48 multi_revive：装备时初始化剩余复活次数（仅第一次进入时；rebuild 不应清零）
+	for b48 in _iter_sr(player, 48):
+		var extra_lives: int = int(_sv(b48, 0, 8.0))
+		player.multi_revive_post_hp = maxi(1, int(_sv(b48, 1, 1.0)))
+		# 仅当当前剩余次数 < 表上的总数时补足（避免每次 rebuild 重置已用次数）
+		if player.multi_revive_extra <= 0 and not bool(player.multi_revive_used):
+			player.multi_revive_extra = extra_lives
+	# sr=49 blood_bullet：穿透 / 射程倍率
+	for b49 in _iter_sr(player, 49):
+		player.blood_blade_pierce = _sv(b49, 0, 1.0) >= 0.5
+		player.blood_blade_range_mult = _sv(b49, 1, 2.0)
+	# sr=50 proximity_slow：范围 / 最大减速%
+	for b50 in _iter_sr(player, 50):
+		player.proximity_slow_radius = maxf(player.proximity_slow_radius, _sv(b50, 0, 300.0))
+		player.proximity_slow_max = maxf(player.proximity_slow_max, _sv(b50, 1, 0.5))
+
 
 # 工具：取 sv_per_lv[idx]
 static func _sv_per_lv(b: Dictionary, idx: int, default_v: float = 0.0) -> float:
@@ -278,6 +324,35 @@ static func on_tick(player: Node, delta: float) -> void:
 		player.flame_walk_timer = tick5
 		_flame_walk_tick(player, b5)
 
+	# sr=47 periodic_laser（硫磺火）：每 cd 秒触发一次持续 duration 秒的跟随激光
+	# 单条激光由 ability_manager 自己管寿命/跟随/tick；这里只负责按 cd 周期 spawn
+	if float(player.sulfur_laser_atk_mult) > 0.0:
+		player.sulfur_laser_timer -= delta
+		if player.sulfur_laser_timer <= 0.0:
+			player.sulfur_laser_timer = player.sulfur_laser_cd
+			var battle_node = player.get_tree().get_first_node_in_group("battle") if player.is_inside_tree() else null
+			var abilities_node = battle_node.abilities if battle_node else null
+			if abilities_node and abilities_node.has_method("spawn_v6_sulfur_laser"):
+				abilities_node.spawn_v6_sulfur_laser(player, float(player.sulfur_laser_atk_mult), float(player.sulfur_laser_duration), float(player.sulfur_laser_tick))
+
+	# sr=50 proximity_slow（无下限术式）：把范围内怪物当前帧 slow_pct 写回（按距离线性）
+	if float(player.proximity_slow_radius) > 0.0 and float(player.proximity_slow_max) > 0.0:
+		var battle2 = player.get_tree().get_first_node_in_group("battle") if player.is_inside_tree() else null
+		if battle2 and battle2.spawner:
+			var r: float = float(player.proximity_slow_radius)
+			var max_slow: float = float(player.proximity_slow_max)
+			for m in battle2.spawner.get_active_monsters():
+				if not is_instance_valid(m) or not bool(m.get("alive")) or bool(m.get("dying")):
+					continue
+				var d: float = player.global_position.distance_to(m.global_position)
+				if d > r:
+					if "proximity_slow_pct" in m:
+						m.proximity_slow_pct = 0.0
+					continue
+				var pct: float = clampf(max_slow * (1.0 - d / r), 0.0, max_slow)
+				if "proximity_slow_pct" in m:
+					m.proximity_slow_pct = pct
+
 
 # sr=3 aura 实际 tick：给范围内每个怪一次性伤害
 static func _aura_tick(player: Node, b: Dictionary) -> void:
@@ -349,11 +424,19 @@ static func on_player_damaged(player: Node, raw_damage: int) -> bool:
 
 
 # ============= on_slash_end：slash 路径完成后 =============
-# 用于 sr=22 combo_shuriken 在斩击末段 spawn 辅助子弹
-static func on_slash_end(player: Node, abilities: Node) -> void:
-	for b22 in _iter_sr(player, 22):
-		if abilities and abilities.has_method("spawn_combo_shuriken"):
-			abilities.spawn_combo_shuriken(player, str(_sv_str(b22, 0, "line")))
+# 触发"画线末释放"类奖励 — 仅当本次画线把气力耗尽时才触发，避免短画线反复释放。
+# 受门控：sr=22 combo_shuriken / sr=46 scythe_on_slash_end
+static func on_slash_end(player: Node, abilities: Node, end_pos: Vector2 = Vector2.INF, end_ang: float = 0.0) -> void:
+	var ki_drained: bool = bool(player.slash_end_ki_drained)
+	if ki_drained:
+		for b22 in _iter_sr(player, 22):
+			if abilities and abilities.has_method("spawn_combo_shuriken"):
+				abilities.spawn_combo_shuriken(player, str(_sv_str(b22, 0, "line")))
+		# sr=46 死神镰刀
+		if float(player.scythe_atk_mult) > 0.0 and abilities and abilities.has_method("spawn_v6_demon_scythe"):
+			var pos: Vector2 = end_pos if end_pos.x != INF else player.global_position
+			abilities.spawn_v6_demon_scythe(player, pos, end_ang, float(player.scythe_atk_mult), bool(player.scythe_pierce))
+	# 注：标记清零放在 player.gd 调用完所有 slash-end 系列后（on_slash_end + on_slash_wave + 闭合爆炸）统一清零
 
 
 static func _sv_str(b: Dictionary, idx: int, default_s: String = "") -> String:
@@ -366,6 +449,8 @@ static func _sv_str(b: Dictionary, idx: int, default_s: String = "") -> String:
 
 # ============= apply_bullet_homing：子弹每帧调整 =============
 # 返回新 velocity Vector2；ability_manager 在 update 子弹时调
+# 关键：用角度差转向而不是 vec.lerp(vec, t) —— 后者两个等长但异向的向量做 lerp 长度会减小，
+#       导致 homing 子弹每帧丢速度，越拐越慢 + 看起来"移速怪异"。
 static func apply_bullet_homing(player: Node, projectile: Dictionary, monsters: Array, delta: float) -> Vector2:
 	if not bool(player.bullet_homing_enabled):
 		return projectile.get("vel", Vector2.ZERO)
@@ -383,9 +468,17 @@ static func apply_bullet_homing(player: Node, projectile: Dictionary, monsters: 
 	if best == null:
 		return projectile.get("vel", Vector2.ZERO)
 	var current_vel: Vector2 = projectile.get("vel", Vector2.ZERO)
-	var desired: Vector2 = (best.global_position - pos).normalized() * current_vel.length()
-	# 平滑插值：每秒最多旋转 4 弧度
-	return current_vel.lerp(desired, clampf(4.0 * delta, 0.0, 1.0))
+	var speed: float = current_vel.length()
+	if speed < 0.001:
+		return current_vel
+	# 角度转向（保速度），每秒最多 1.5 圈
+	var current_ang: float = current_vel.angle()
+	var target_ang: float = (best.global_position - pos).angle()
+	var diff: float = wrapf(target_ang - current_ang, -PI, PI)
+	var max_turn: float = TAU * 1.5 * delta
+	var step: float = clampf(diff, -max_turn, max_turn)
+	var new_ang: float = current_ang + step
+	return Vector2(cos(new_ang), sin(new_ang)) * speed
 
 
 # ============= on_bullet_first_hit_mirror：子弹首次命中后，若 mirror 启用，返回回弹方向 =============
@@ -410,6 +503,15 @@ static func on_stage_start(player: Node) -> void:
 
 # ============= on_death：致死前给一次复活机会，返回 true 则继续活 =============
 static func on_death(player: Node) -> bool:
+	# sr=48 multi_revive（九命猫）：剩余次数 > 0 时复活到固定 HP
+	for b48 in _iter_sr(player, 48):
+		if int(player.multi_revive_extra) <= 0:
+			continue
+		player.hp = maxi(1, int(player.multi_revive_post_hp))
+		player.invincible_timer = 1.5
+		player.multi_revive_extra -= 1
+		player.multi_revive_used = true
+		return true
 	for b in _iter_sr(player, 7):
 		var revive_hp_pct: float = _sv(b, 0, 0.5)
 		var once_per_run: bool = _sv(b, 1, 1.0) >= 1.0
@@ -458,9 +560,8 @@ static func collect_extra_bullet_angles(player: Node, base_ang: float) -> Array:
 
 # ============= on_bullet_hit：sr=14 split / sr=15 bounce =============
 # abilities = ability_manager（spawn 入口）；info 含 player 引用
+# split 命中就分裂（dealt 可以 = 0，例如被护盾挡掉）；bounce 需要 dealt > 0 作为衰减基数。
 static func on_bullet_hit(player: Node, abilities: Node, projectile: Dictionary, monster, info, dealt: int) -> void:
-	if dealt <= 0:
-		return
 	var is_split: bool = bool(projectile.get("is_split", false))
 	var is_bounce: bool = bool(projectile.get("is_bounce", false))
 	# split 子弹自身不再 split / bounce 避免连锁
@@ -468,6 +569,8 @@ static func on_bullet_hit(player: Node, abilities: Node, projectile: Dictionary,
 		return
 	# bounce 子弹命中后继续 bounce（直到 remaining=0）；不允许 split
 	if is_bounce:
+		if dealt <= 0:
+			return
 		var remaining: int = int(projectile.get("bounce_remaining", 0))
 		var falloff: float = float(projectile.get("bounce_falloff", 0.6))
 		if remaining > 0 and abilities and abilities.has_method("spawn_bounce_bullet"):
@@ -475,7 +578,7 @@ static func on_bullet_hit(player: Node, abilities: Node, projectile: Dictionary,
 			abilities.spawn_bounce_bullet(player, monster, remaining, next_dmg, falloff)
 		return
 	# 普通命中：触发 split + bounce
-	# sr=14 bullet_split
+	# sr=14 bullet_split — 命中就触发（不依赖 dealt），即使被护盾挡掉也分裂
 	for b in _iter_sr(player, 14):
 		var count: int = int(_sv(b, 0, 3))
 		var base_mult: float = _sv(b, 1, 0.5)
@@ -486,7 +589,9 @@ static func on_bullet_hit(player: Node, abilities: Node, projectile: Dictionary,
 			for i in range(count):
 				var ang: float = randf() * TAU
 				abilities.spawn_split_bullet(player, monster.global_position, ang, split_dmg)
-	# sr=15 bullet_bounce
+	# sr=15 bullet_bounce — 需要 dealt > 0 作为衰减基数
+	if dealt <= 0:
+		return
 	for b2 in _iter_sr(player, 15):
 		var bounce_per_lv: int = int(_sv(b2, 0, 1))
 		var bf: float = _sv(b2, 1, 0.6)
@@ -499,7 +604,8 @@ static func on_bullet_hit(player: Node, abilities: Node, projectile: Dictionary,
 
 
 # ============= transform_bullet_damage：sr=11 spirit_bomb 飞行距离加成 =============
-# raw_dmg = 命中时 dmg；按 projectile 飞行距离 / max_range 比例加最高 +50%
+# raw_dmg = 命中时 dmg；按 projectile 飞行距离 / range_px 比例加最高 +50%
+# （projectile 上字段名是 range_px，原代码读 max_range 落到默认值 320 → 与实际 378 略差）
 static func transform_bullet_damage(player: Node, projectile: Dictionary, raw_dmg: int) -> int:
 	var scale_total := 1.0
 	for b in _iter_sr(player, 11):
@@ -507,7 +613,7 @@ static func transform_bullet_damage(player: Node, projectile: Dictionary, raw_dm
 		var pos: Vector2 = projectile.get("pos", Vector2.ZERO)
 		var origin: Vector2 = projectile.get("origin", Vector2.ZERO)
 		var travel: float = pos.distance_to(origin)
-		var max_range: float = maxf(50.0, float(projectile.get("max_range", 320.0)))
+		var max_range: float = maxf(50.0, float(projectile.get("range_px", 378.0)))
 		var t: float = clampf(travel / max_range, 0.0, 1.0)
 		scale_total *= 1.0 + pct_max * t
 	return int(max(1, round(float(raw_dmg) * scale_total)))
@@ -579,8 +685,14 @@ static func on_bullet_proc(player: Node, abilities: Node, hit_pos: Vector2, dir_
 		if randf() < proc:
 			var atk_mult: float = _sv(b13, 2, 0.8)
 			var radius: float = _sv(b13, 3, 100.0)
-			if abilities.has_method("spawn_v6_bullet_aoe"):
-				abilities.spawn_v6_bullet_aoe(player, hit_pos, atk_mult, radius)
+			# 区分火力支援 (bullet_fire_support) vs 圣光子弹 (angel_holy_bullet)
+			var style: String = "holy" if str(b13.id) == "angel_holy_bullet" else "bomb"
+			# 火力支援走抛物线手榴弹弹道（玩家投出 → 落到 hit_pos → bomb 爆炸）；
+			# 圣光子弹是天降光柱，直接走旧的 spawn_v6_bullet_aoe（grenade_arc 内部识别 style 转发）
+			if style == "bomb" and abilities.has_method("spawn_v6_grenade_arc"):
+				abilities.spawn_v6_grenade_arc(player, player.global_position, hit_pos, atk_mult, radius, style)
+			elif abilities.has_method("spawn_v6_bullet_aoe"):
+				abilities.spawn_v6_bullet_aoe(player, hit_pos, atk_mult, radius, style)
 	for b18 in _iter_sr(player, 18):
 		var p_base2: float = _sv(b18, 0, 0.1)
 		var p_per_lv2: float = _sv_per_lv(b18, 1, 0.1)
@@ -593,8 +705,11 @@ static func on_bullet_proc(player: Node, abilities: Node, hit_pos: Vector2, dir_
 
 # ============= Phase 6: sr=26 trail_slash_wave =============
 # slash 末段 spawn 推开 + 伤害 AOE。radius = sv[0] + sv_per_lv[1] * (level-1)
+# 仅当本次画线把气力耗尽时触发（避免短画线反复释放）
 static func on_slash_wave(player: Node, abilities: Node, end_pos: Vector2) -> void:
 	if abilities == null:
+		return
+	if not bool(player.slash_end_ki_drained):
 		return
 	for b in _iter_sr(player, 26):
 		var radius_base: float = _sv(b, 0, 200.0)
@@ -608,10 +723,13 @@ static func on_slash_wave(player: Node, abilities: Node, end_pos: Vector2) -> vo
 # ============= Phase 6: sr=27 trail_loop_explode =============
 # 闭合 path 检测后 spawn 爆炸；weapon_mult = base_mult * level（per_lv 提供 0.3）
 # min_area = sv[1] 用于过滤过小闭环
+# 仅当本次画线把气力耗尽时触发（避免短闭环反复刷爆炸）
 static func on_loop_explode(player: Node, abilities: Node, loops: Array) -> Array:
 	# 返回 [{"center": Vec2, "radius": float, "weapon_mult": float}, ...]
 	var out: Array = []
 	if abilities == null or loops.is_empty():
+		return out
+	if not bool(player.slash_end_ki_drained):
 		return out
 	for b in _iter_sr(player, 27):
 		var base_mult: float = float(b.def.get("weapon_mult", 3.0))
@@ -670,19 +788,26 @@ static func get_trail_offsets(player: Node, seg_dir: Vector2) -> Array:
 
 
 # ============= Phase 7: sr=39 sword_rage =============
-# 每次剑击中按 sv[0]+sv_per_lv[2]*level 概率触发 AOE，radius=sv[1]
+# special_values 约定（与 SPECIAL_RULE_CODES schema 一致）：
+#   sv[0] = proc       触发概率（描述里的 15%）
+#   sv[1] = atk_mult   旋风伤害倍率（描述里的 2.5×ATK）
+#   sv_per_lv[2] = radius_per_lv 半径每级 +X%（描述里的 +5%/级）
+# 视觉：spawn_v6_sword_whirlwind —— 从剑当前位置朝命中方向直线飞行的旋风（whirl 视觉自带旋转），
+# 行进中持续 AOE 命中。区别于 combo_blade_storm 的固定原地转刀阵。
+const SWORD_RAGE_BASE_RADIUS := 130.0
 static func on_sword_hit(player: Node, abilities: Node, target_pos: Vector2, sword_pos: Vector2) -> void:
 	if abilities == null:
 		return
 	for b in _iter_sr(player, 39):
-		var p_base: float = _sv(b, 0, 0.15)
-		var p_per_lv: float = _sv_per_lv(b, 2, 0.05)
-		var proc: float = p_base + p_per_lv * float(maxi(0, b.level - 1))
-		if randf() < proc:
-			var radius: float = _sv(b, 1, 2.5) * 100.0  # sv[1] = 半径 px
-			var atk_mult: float = 1.5
-			if abilities.has_method("spawn_v6_bullet_aoe"):
-				abilities.spawn_v6_bullet_aoe(player, target_pos, atk_mult, radius)
+		var proc: float = _sv(b, 0, 0.15)
+		if randf() >= proc:
+			continue
+		var atk_mult: float = _sv(b, 1, 2.5)
+		var radius_per_lv: float = _sv_per_lv(b, 2, 0.05)
+		var radius: float = SWORD_RAGE_BASE_RADIUS * (1.0 + radius_per_lv * float(maxi(0, b.level - 1)))
+		var dir: Vector2 = target_pos - sword_pos
+		if abilities.has_method("spawn_v6_sword_whirlwind"):
+			abilities.spawn_v6_sword_whirlwind(player, sword_pos, dir, atk_mult, radius)
 
 
 # ============= Phase 7: sr=32 orb_mark dup chance accessor =============

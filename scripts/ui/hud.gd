@@ -268,7 +268,7 @@ func _draw() -> void:
 	var boss: Node = null
 	if battle and battle.spawner:
 		boss = battle.spawner.boss
-	var in_build_house: bool = battle != null and battle.state in [GameState.BUILD_HOUSE, GameState.BUILD_HOUSE_DONE]
+	var in_build_house: bool = battle != null and battle.state in [GameState.BUILD_HOUSE, GameState.BUILD_HOUSE_DONE, GameState.ATTR_FORGE, GameState.ATTR_FORGE_DONE]
 
 	PixelUi.draw_pixel_text(
 		self,

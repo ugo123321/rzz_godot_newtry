@@ -218,8 +218,11 @@ func _draw() -> void:
 		var fill := ring
 		fill.a = 0.12 + mini(path_target_hit_count, 4) * 0.04
 		var r := HITBOX_RADIUS + 5.0
-		draw_arc(Vector2.ZERO, r, 0.0, TAU, 32, ring, 3.0)
-		draw_circle(Vector2.ZERO, r * 0.55, fill)
+		# 树的视觉中心在 y≈-30（树干 -38~-8 + 树冠 -64~-12），与脚下 anchor 差一截
+		# 把高亮环抬到树干中段，看起来才是"圈住这棵树"
+		var center := Vector2(0.0, -30.0)
+		draw_arc(center, r, 0.0, TAU, 32, ring, 3.0)
+		draw_circle(center, r * 0.55, fill)
 
 
 func _draw_tree_lush(sway: float, flash: bool, alpha: float = 1.0) -> void:

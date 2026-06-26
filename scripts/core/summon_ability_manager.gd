@@ -14,6 +14,8 @@ var battle
 var v6_companions: Array = []
 # 共享的 v6 召唤投射物（aoe / single 弹道）
 var v6_projectiles: Array = []
+# AOE 命中视觉环：{pos, radius, life, max_life, color}
+var v6_aoe_rings: Array = []
 # Isaac 式延迟尾随：记录玩家最近若干帧位置，每只召唤物按 index 取不同回溯偏移
 const TRAIL_STEP_PX := 60.0             # 玩家每移动 60px 入账一个 trail 点，召唤物之间的物理间距
 const TRAIL_HISTORY_MAX := 32           # 按点数：够 ~12 只召唤 × 1 槽 + 余量
@@ -21,13 +23,16 @@ var _player_trail: Array = []          # Vector2，距离采样：仅当玩家�
 var _trail_partial_dist := 0.0         # 玩家自上次 push 后又移动的距离（0~TRAIL_STEP_PX），用于 anchor 连续插值
 # Sheet5 sr=45 规格（同 rewards_v6.json 中的 special_values）：写死避免每次重新查
 const V6_SUMMON_SPEC: Dictionary = {
-	"summon_king":     {"kind": "king",     "atk_mult": 2.5, "interval": 2.0, "range": 600.0, "element": "",        "mechanic": "ranged_aoe",    "p1": 200.0, "p2": 0.0,  "count_field": "summon_king_count"},
+	"summon_king":     {"kind": "king",     "atk_mult": 1.2, "interval": 2.5, "range": 600.0, "element": "",        "mechanic": "ranged_aoe",    "p1": 200.0, "p2": 0.0,  "count_field": "summon_king_count"},
 	"summon_god":      {"kind": "god",      "atk_mult": 1.8, "interval": 1.5, "range": 500.0, "element": "",        "mechanic": "ranged_single", "p1": 0.0,   "p2": 0.0,  "count_field": "summon_god_count"},
 	"summon_gorilla":  {"kind": "gorilla",  "atk_mult": 1.0, "interval": 1.0, "range": 400.0, "element": "",        "mechanic": "ranged_taunt",  "p1": 10.0,  "p2": 3.0,  "count_field": "summon_gorilla_count"},
 	"summon_thunder":  {"kind": "thunder",  "atk_mult": 1.2, "interval": 3.0, "range": 0.0,   "element": "thunder", "mechanic": "random_aoe",    "p1": 0.0,   "p2": 0.0,  "count_field": "summon_thunder_count"},
 	"summon_bear":     {"kind": "bear",     "atk_mult": 1.0, "interval": 1.0, "range": 500.0, "element": "ice",     "mechanic": "ranged_single", "p1": 0.0,   "p2": 0.0,  "count_field": "summon_bear_count"},
 	"summon_snake":    {"kind": "snake",    "atk_mult": 1.0, "interval": 1.0, "range": 500.0, "element": "poison",  "mechanic": "ranged_single", "p1": 0.0,   "p2": 0.0,  "count_field": "summon_snake_count"},
 	"summon_fire":     {"kind": "fire",     "atk_mult": 1.2, "interval": 1.5, "range": 500.0, "element": "fire",    "mechanic": "ranged_single", "p1": 0.0,   "p2": 0.0,  "count_field": "summon_fire_count"},
+	# 主题关：恶魔 / 天使宝宝
+	"demon_baby":      {"kind": "demon_baby","atk_mult": 1.5, "interval": 1.2, "range": 600.0, "element": "fire",    "mechanic": "ranged_laser",  "p1": 0.0,   "p2": 0.0,  "count_field": "summon_demon_baby_count"},
+	"angel_baby":      {"kind": "angel_baby","atk_mult": 1.5, "interval": 1.0, "range": 550.0, "element": "thunder", "mechanic": "ranged_single", "p1": 0.0,   "p2": 0.0,  "count_field": "summon_angel_baby_count"},
 }
 
 
@@ -39,12 +44,29 @@ func reset(keep_companions := false) -> void:
 	if not keep_companions:
 		v6_companions.clear()
 	v6_projectiles.clear()
+	v6_aoe_rings.clear()
 	_player_trail.clear()
 	_trail_partial_dist = 0.0
 
 
+# 关卡 REBASE 后调：把所有保留下来的召唤物瞬移到玩家身边，清空旧轨迹。
+# 没这一步的话，召唤物的 c.pos 还是上一关 REBASE 前的世界坐标，新关开局会从奇怪位置
+# 平滑 lerp 到新 anchor — 视觉上就是用户看到的"先出现在奇怪地方再瞬移回身边"。
+func snap_to_player(player: BattlePlayer) -> void:
+	if player == null:
+		return
+	_player_trail.clear()
+	_trail_partial_dist = 0.0
+	var snap_pos: Vector2 = player.global_position + Vector2(0, -40)
+	for i in range(v6_companions.size()):
+		var c: Dictionary = v6_companions[i]
+		c.pos = snap_pos
+		c.vel = Vector2.ZERO
+		v6_companions[i] = c
+
+
 func has_active_fx() -> bool:
-	return not v6_projectiles.is_empty()
+	return not v6_projectiles.is_empty() or not v6_aoe_rings.is_empty()
 
 
 func update(delta: float, player: BattlePlayer, monsters: Array) -> void:
@@ -79,6 +101,30 @@ func draw_fx(canvas: Node2D, below_monsters: bool) -> void:
 	if not below_monsters:
 		_draw_v6_companions(canvas)
 		_draw_v6_projectiles(canvas)
+		_draw_v6_aoe_rings(canvas)
+
+
+# AOE 命中视觉环：ease_out_cubic 扩散 + 渐隐
+func _draw_v6_aoe_rings(canvas: Node2D) -> void:
+	var offset := -canvas.global_position
+	for r in v6_aoe_rings:
+		var max_life: float = float(r.get("max_life", 0.45))
+		var life: float = float(r.get("life", 0.0))
+		var p: float = clampf(1.0 - life / max_life, 0.0, 1.0)
+		var ease_p: float = 1.0 - pow(1.0 - p, 3.0)
+		var base_r: float = float(r.get("radius", 100.0))
+		var radius: float = base_r * ease_p
+		var fade: float = 1.0 - p
+		var col: Color = r.get("color", Color(1.0, 0.85, 0.35))
+		var outer := Color(col.r, col.g, col.b, 0.85 * fade)
+		var fill := Color(col.r, col.g, col.b, 0.22 * fade)
+		var inner := Color(min(col.r + 0.2, 1.0), min(col.g + 0.2, 1.0), min(col.b + 0.2, 1.0), 0.55 * fade)
+		var center: Vector2 = Vector2(r.pos) + offset
+		canvas.draw_circle(center, radius, fill)
+		canvas.draw_arc(center, radius, 0.0, TAU, 48, outer, 4.0)
+		var inner_r: float = radius * 0.6
+		if inner_r > 2.0:
+			canvas.draw_arc(center, inner_r, 0.0, TAU, 32, inner, 2.0)
 
 
 func _play_bottom() -> float:
@@ -90,7 +136,7 @@ func _play_width() -> float:
 
 
 func _summon_deal_damage(m, damage: int, _color: Color, from_pos: Vector2, source: String = "summon_hit", element: String = "") -> void:
-	if m == null or not is_instance_valid(m) or m.get("alive") == false:
+	if m == null or not is_instance_valid(m) or not bool(m.get("alive", false)):
 		return
 	var info: DamageInfo = null
 	if battle and battle.player and battle.player.has_method("make_damage"):
@@ -180,6 +226,17 @@ func _update_v6_summons(delta: float, player: BattlePlayer, monsters: Array) -> 
 		v6_companions[i] = c
 	# 投射物推进
 	_update_v6_projectiles(delta, player)
+	_update_v6_aoe_rings(delta)
+
+
+func _update_v6_aoe_rings(delta: float) -> void:
+	for i in range(v6_aoe_rings.size() - 1, -1, -1):
+		var r: Dictionary = v6_aoe_rings[i]
+		r.life = float(r.life) - delta
+		if float(r.life) <= 0.0:
+			v6_aoe_rings.remove_at(i)
+		else:
+			v6_aoe_rings[i] = r
 
 
 # v6 召唤跟随位置：距离链—第 index 个跟在玩家身后 (index+1) × TRAIL_STEP_PX 距离处。
@@ -249,6 +306,11 @@ func _v6_summon_attack(c: Dictionary, player: BattlePlayer, monsters: Array, siz
 				MathUtils.rand_range(PLAY_TOP + 24.0, h - 24.0)
 			)
 			_v6_spawn_sky_strike(c, fall_pos, damage, source, element, 80.0)
+		"ranged_laser":
+			# 主题关 demon_baby：朝最近怪发射穿透激光（火属性）
+			var laser_target = _v6_nearest_in_range(c, monsters)
+			if laser_target != null:
+				_v6_spawn_laser(c, laser_target.global_position, damage, source, element)
 
 
 func _v6_nearest_in_range(c: Dictionary, monsters: Array):
@@ -257,7 +319,7 @@ func _v6_nearest_in_range(c: Dictionary, monsters: Array):
 	var best_d2 := best_d * best_d
 	var origin: Vector2 = c.pos
 	for m in monsters:
-		if not is_instance_valid(m) or not bool(m.get("alive")) or bool(m.get("dying")):
+		if not is_instance_valid(m) or not bool(m.get("alive", false)) or bool(m.get("dying", false)):
 			continue
 		var d2: float = origin.distance_squared_to(m.global_position)
 		if d2 <= best_d2:
@@ -296,7 +358,7 @@ func _v6_spawn_projectile(c: Dictionary, target_pos: Vector2, damage: int, sourc
 
 # 天雷专用：从屏幕顶部上方垂直落下，到达 fall_pos 时触发 AOE（不查怪碰撞）
 func _v6_spawn_sky_strike(c: Dictionary, fall_pos: Vector2, damage: int, source: String, element: String, aoe_radius: float) -> void:
-	var fall_speed: float = 1400.0
+	var fall_speed: float = 3000.0
 	var spawn_pos := Vector2(fall_pos.x, PLAY_TOP - 80.0)
 	var distance: float = maxf(0.0, fall_pos.y - spawn_pos.y)
 	var life: float = (distance / fall_speed) if fall_speed > 0.0 else 0.3
@@ -330,6 +392,16 @@ func _update_v6_projectiles(delta: float, player: BattlePlayer) -> void:
 		var p: Dictionary = v6_projectiles[i]
 		p.pos = Vector2(p.pos) + Vector2(p.vel) * delta
 		p.life = float(p.life) - delta
+		# 主题关：恶魔宝宝激光 — 一次性穿透命中，存活短时间用于视觉
+		if str(p.kind) == "laser":
+			if not bool(p.get("applied", false)):
+				_v6_apply_laser_pierce(p, player)
+				p["applied"] = true
+			if float(p.life) <= 0.0:
+				v6_projectiles.remove_at(i)
+				continue
+			v6_projectiles[i] = p
+			continue
 		# 天雷弹道：到达落点 OR life 到时即爆，不与怪做碰撞
 		if str(p.kind) == "sky_strike":
 			var arrived: bool = float(p.life) <= 0.0 \
@@ -359,7 +431,7 @@ func _v6_projectile_hit_check(p: Dictionary):
 	if battle == null or battle.spawner == null:
 		return null
 	for m in battle.spawner.get_active_monsters():
-		if not is_instance_valid(m) or not bool(m.get("alive")) or bool(m.get("dying")):
+		if not is_instance_valid(m) or not bool(m.get("alive", false)) or bool(m.get("dying", false)):
 			continue
 		var hit_r: float = 13.0
 		if m.has_method("get_hitbox_radius"):
@@ -378,14 +450,83 @@ func _v6_apply_aoe_hit(center: Vector2, radius: float, damage: int, player: Batt
 	if battle == null or battle.spawner == null:
 		return
 	for m in battle.spawner.get_active_monsters():
-		if not is_instance_valid(m) or not bool(m.get("alive")) or bool(m.get("dying")):
+		if not is_instance_valid(m) or not bool(m.get("alive", false)) or bool(m.get("dying", false)):
 			continue
 		var hit_r: float = 13.0
 		if m.has_method("get_hitbox_radius"):
 			hit_r = m.get_hitbox_radius()
 		if center.distance_to(m.global_position) <= radius + hit_r:
 			_summon_deal_damage(m, damage, _v6_element_color(element), center, source, element)
+	_spawn_aoe_ring(center, radius, element)
 	_maybe_summon_burst(source, center)
+
+
+# AOE 命中视觉：扩散冲击环（外圈描边 + 半透明填充 + 内核高光），ease_out_cubic
+func _spawn_aoe_ring(center: Vector2, radius: float, element: String) -> void:
+	var col := _v6_element_color(element)
+	# 非元素的精灵王（element=""）走金黄
+	if element == "":
+		col = Color(1.0, 0.85, 0.35, 1.0)
+	v6_aoe_rings.append({
+		"pos": center,
+		"radius": radius,
+		"life": 0.45,
+		"max_life": 0.45,
+		"color": col,
+	})
+
+
+# 主题关：恶魔宝宝激光 — 沿线穿透命中所有怪
+func _v6_spawn_laser(c: Dictionary, target_pos: Vector2, damage: int, source: String, element: String) -> void:
+	var dir: Vector2 = (target_pos - Vector2(c.pos)).normalized()
+	if dir.length_squared() < 0.001:
+		dir = Vector2.RIGHT
+	v6_projectiles.append({
+		"pos": Vector2(c.pos),
+		"origin": Vector2(c.pos),
+		"vel": Vector2.ZERO,  # 静态可视
+		"dir": dir,
+		"target_pos": target_pos,
+		"life": 0.18,
+		"damage": damage,
+		"source": source,
+		"element": element,
+		"kind": "laser",
+		"color": _v6_element_color(element),
+		"summon_kind": str(c.get("kind", "")),
+		"applied": false,
+	})
+
+
+func _v6_apply_laser_pierce(p: Dictionary, player: BattlePlayer) -> void:
+	if battle == null or battle.spawner == null:
+		return
+	var origin: Vector2 = Vector2(p.get("origin", p.pos))
+	var dir: Vector2 = Vector2(p.get("dir", Vector2.RIGHT))
+	# 在屏幕边界内取最远点
+	var w: float = _play_width()
+	var h: float = _play_bottom()
+	var max_dist: float = 2000.0
+	var end_pt: Vector2 = origin + dir * max_dist
+	for m in battle.spawner.get_active_monsters():
+		if not is_instance_valid(m) or not bool(m.get("alive", false)) or bool(m.get("dying", false)):
+			continue
+		var hit_r: float = 13.0
+		if m.has_method("get_hitbox_radius"):
+			hit_r = m.get_hitbox_radius()
+		if _point_segment_distance(m.global_position, origin, end_pt) > hit_r + 8.0:
+			continue
+		_summon_deal_damage(m, int(p.damage), _v6_element_color(str(p.element)), m.global_position, str(p.source), str(p.element))
+	_maybe_summon_burst(str(p.source), origin)
+
+
+static func _point_segment_distance(pt: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var len_sq := ab.length_squared()
+	if len_sq < 0.0001:
+		return pt.distance_to(a)
+	var t := clampf((pt - a).dot(ab) / len_sq, 0.0, 1.0)
+	return pt.distance_to(a + ab * t)
 
 
 # source 形如 "summon_gorilla"/"summon_god" 等，提取 kind 后调爆点
@@ -417,6 +558,9 @@ func _draw_v6_projectiles(canvas: Node2D) -> void:
 		if str(p.get("kind", "")) == "sky_strike":
 			_draw_sky_strike(canvas, p)
 			continue
+		if str(p.get("kind", "")) == "laser":
+			_draw_v6_summon_laser(canvas, p)
+			continue
 		if SUMMON_DRAW_DATA.has(summon_kind):
 			var life_left: float = float(p.get("life", 1.2))
 			var age: float = 1.2 - life_left
@@ -429,6 +573,20 @@ func _draw_v6_projectiles(canvas: Node2D) -> void:
 			var r: float = 5.0 if str(p.get("kind", "")) == "aoe" else 3.5
 			canvas.draw_circle(pos, r + 2.0, Color(col, 0.35))
 			canvas.draw_circle(pos, r, col)
+
+
+# demon_baby 激光绘制：从 origin 沿 dir 到屏幕边缘的多层光束 + 命中外发光
+func _draw_v6_summon_laser(canvas: Node2D, p: Dictionary) -> void:
+	var offset := -canvas.global_position
+	var origin: Vector2 = Vector2(p.get("origin", p.pos)) + offset
+	var dir: Vector2 = Vector2(p.get("dir", Vector2.RIGHT))
+	var end_pt: Vector2 = origin + dir * 2000.0
+	var col: Color = p.get("color", Color(1.0, 0.4, 0.25))
+	var life_left: float = float(p.get("life", 0.2))
+	var alpha: float = clampf(life_left / 0.18, 0.0, 1.0)
+	canvas.draw_line(origin, end_pt, Color(col, 0.25 * alpha), 14.0)
+	canvas.draw_line(origin, end_pt, Color(col, 0.55 * alpha), 7.0)
+	canvas.draw_line(origin, end_pt, Color(1.0, 1.0, 1.0, 0.85 * alpha), 2.5)
 
 
 # 天雷弹道绘制：从屏幕顶上方一道锯齿闪电下落到当前位置 + 落点预兆圆 + 头部像素体
@@ -754,6 +912,77 @@ var SUMMON_DRAW_DATA := {
 		"hit_dust_count": 22, "hit_debris_count": 12,
 		"hit_shake": 5.5, "hit_dur": 0.13,
 	},
+	# 主题关：恶魔宝宝（血红 + 黑底 + 红光） 与 天使宝宝（圣黄 + 白底 + 金光）
+	"demon_baby": {
+		"body_grid": [
+			[0, 0, 3, 3, 3, 3, 3, 0, 0],
+			[0, 3, 2, 9, 2, 9, 2, 3, 0],
+			[3, 2, 1, 9, 1, 9, 1, 2, 3],
+			[3, 2, 1, 1, 1, 1, 1, 2, 3],
+			[3, 2, 2, 1, 1, 1, 2, 2, 3],
+			[0, 3, 2, 2, 2, 2, 2, 3, 0],
+			[0, 3, 1, 2, 2, 2, 1, 3, 0],
+			[0, 0, 3, 1, 1, 1, 3, 0, 0],
+		],
+		"rock_grid": [
+			[0, 1, 1, 1, 0],
+			[1, 9, 1, 9, 1],
+			[1, 1, 9, 1, 1],
+			[1, 9, 1, 9, 1],
+			[0, 1, 1, 1, 0],
+		],
+		"palette": {
+			9: [Color("#ffe0d0"), Color("#fff8e0")],
+			1: [Color("#d83020"), Color("#c81810")],
+			2: [Color("#801010"), null],
+			3: [Color("#380808"), Color("#200404")],
+			4: [Color("#100202"), null],
+		},
+		"body_flicker_ms": 70,
+		"rock_flicker_ms": 55,
+		"glow_color": Color(0.95, 0.2, 0.1),
+		"glow_inner_color": Color(0.6, 0.05, 0.05),
+		"glow_r1": 24.0, "glow_r2": 16.0,
+		"rock_rot_speed": 6.0, "rock_shadow_r": 7.0,
+		"hit_dust_color": Color("#d83020"), "hit_debris_color": Color("#200404"),
+		"hit_dust_count": 18, "hit_debris_count": 10,
+		"hit_shake": 5.0, "hit_dur": 0.12,
+	},
+	"angel_baby": {
+		"body_grid": [
+			[0, 0, 1, 1, 9, 1, 1, 0, 0],
+			[0, 1, 9, 9, 9, 9, 9, 1, 0],
+			[1, 9, 1, 9, 9, 9, 1, 9, 1],
+			[1, 9, 9, 1, 1, 1, 9, 9, 1],
+			[1, 9, 9, 9, 9, 9, 9, 9, 1],
+			[0, 1, 9, 9, 9, 9, 9, 1, 0],
+			[0, 1, 1, 1, 1, 1, 1, 1, 0],
+			[0, 0, 1, 0, 1, 0, 1, 0, 0],
+		],
+		"rock_grid": [
+			[0, 9, 1, 9, 0],
+			[9, 1, 9, 1, 9],
+			[1, 9, 1, 9, 1],
+			[9, 1, 9, 1, 9],
+			[0, 9, 1, 9, 0],
+		],
+		"palette": {
+			9: [Color("#ffffff"), Color("#fff8c0")],
+			1: [Color("#fff488"), Color("#ffe860")],
+			2: [Color("#e8c040"), null],
+			3: [Color("#a07820"), Color("#806010")],
+			4: [Color("#4a3408"), null],
+		},
+		"body_flicker_ms": 90,
+		"rock_flicker_ms": 65,
+		"glow_color": Color(1.0, 0.95, 0.55),
+		"glow_inner_color": Color(1.0, 0.85, 0.3),
+		"glow_r1": 26.0, "glow_r2": 18.0,
+		"rock_rot_speed": 4.0, "rock_shadow_r": 7.0,
+		"hit_dust_color": Color("#fff488"), "hit_debris_color": Color("#4a3408"),
+		"hit_dust_count": 20, "hit_debris_count": 10,
+		"hit_shake": 4.0, "hit_dur": 0.11,
+	},
 }
 
 
@@ -852,5 +1081,4 @@ func _summon_hit_burst(pos: Vector2, kind: String) -> void:
 				randf_range(0.2, 0.4), randf_range(3.0, 6.0) * FX_SCALE * ws,
 				debris_color, 220.0, true, false
 			)
-	if battle.has_method("shake_camera"):
-		battle.shake_camera(float(data.get("hit_shake", 5.0)), float(data.get("hit_dur", 0.12)))
+	# 召唤物普攻命中只用粒子反馈，不触发屏幕震动（玩家反馈：召唤物攻击频繁，震屏太烦）

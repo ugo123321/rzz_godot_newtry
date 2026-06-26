@@ -16,3 +16,5 @@ signal wood_changed(total_wood: int)
 signal stage_countdown_changed(remaining_sec: float)
 signal tower_height_changed(height_m: float, target_m: float)
 signal equipment_changed
+signal forge_buff_applied(buff_name_cn: String, delta_pct: float, world_pos: Vector2)
+signal forge_session_complete(rarity: String, stacked_count: int)

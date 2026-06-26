@@ -86,6 +86,10 @@ var luck_roll_blue_offset := 0.0
 var luck_roll_purple_offset := 0.0
 var luck_roll_orange_offset := 0.0
 var run_acquired_once: Dictionary = {}
+# 卡牌获得顺序：apply_upgrade 时 _card_acquired_counter += 1，并把当前值写到 _card_acquired_seq[id]
+# 用途：两张"普攻整把换形态"卡（元气弹 / 血飞刀）同时装备时，按 seq 大小决定哪张的视觉胜出（后获得的覆盖之前）
+var _card_acquired_seq: Dictionary = {}
+var _card_acquired_counter: int = 0
 
 # === v2 分层 stat 字段 (默认 0，待 v6 emitter 迁移时填充；v==1 路径完全忽略) ===
 # ATK 层：同层加和。effective_atk = base_attack × (1 + atk_pct_total) [v2 启用时]
@@ -110,6 +114,18 @@ var elem_poison_attach_atk_mult := 0.0
 var cooldown_sec_total := 0.0
 var duration_sec_total := 0.0
 var tick_interval_sec_total := 0.0
+# === 属性打造关 forge buff 累加器 ===
+# 整局持续，_rebuild_upgrades() 不重置（声明在 reset 段外，整局结束 / 死亡 / 回主菜单时 reset_run_forge_buffs 清零）。
+# 每次 _rebuild_upgrades() 末段加进对应的 *_pct_total / crit_rate 累加器，与卡牌同层叠加。
+var forge_atk_pct_total := 0.0
+var forge_atk_speed_pct_total := 0.0
+var forge_move_speed_pct_total := 0.0
+var forge_max_hp_pct_total := 0.0
+var forge_ki_max_pct_total := 0.0
+var forge_ki_regen_pct_total := 0.0
+var forge_crit_rate_total := 0.0
+# 注：画线气力消耗用负值存（例如 -0.03 = -3%），consume_ki_by_distance 中以 (1 + forge_draw_cost_pct_total) 倍率消耗。
+var forge_draw_cost_pct_total := 0.0
 # DMG 层(按来源细分)：(1 + dmg_all_pct + dmg_[source]_pct) 同层加和
 var dmg_all_pct := 0.0
 var dmg_slash_pct := 0.0
@@ -202,6 +218,46 @@ var orb_glow_dmg_pct: float = 0.0        # sr=36 orb_glow：拾取后下一斩�
 var orb_glow_pending_active: bool = false  # 下一斩击是否启用 orb_glow buff
 var orb_mark_dup_chance: float = 0.0     # sr=32 orb_mark：拾取后复制概率
 var orb_tide_interval_sec: float = 0.0   # sr=31 orb_tide：周期生成间隔（>0 启用）
+
+# 主题关字段（恶魔 / 天使）
+var summon_demon_baby_count: int = 0     # attr 43 恶魔宝宝（远程激光）
+var summon_angel_baby_count: int = 0     # attr 44 天使宝宝（远程单体雷）
+var sword_spear_count: int = 0           # attr 45 命运之矛
+# sr=48 multi_revive（九命猫）
+var multi_revive_extra: int = 0          # 剩余复活次数（初始 = sv[0]）
+var multi_revive_post_hp: int = 1        # 复活后绝对 HP 值（sv[1]）
+var multi_revive_used: bool = false      # 本局是否已用过至少一次（避免 rebuild 时重置剩余次数）
+# sr=47 periodic_laser（硫磺火）
+var sulfur_laser_cd: float = 4.0         # 冷却（attr 40）— 距下次释放的周期
+var sulfur_laser_duration: float = 1.0   # 单条激光持续秒数（attr 41）
+var sulfur_laser_atk_mult: float = 0.5   # 每 tick ATK 倍率
+var sulfur_laser_tick: float = 0.1       # 内部 tick 间隔
+var sulfur_laser_timer: float = 0.0      # 距下次释放秒数（≤0 → 触发并重置为 cd）
+# sr=49 blood_bullet（血飞刀）
+var blood_blade_pierce: bool = false
+var blood_blade_range_mult: float = 1.0
+# sr=6 sv_holy_guard（圣盾）— dispatcher.on_stage_start 时每关补满
+var holy_shield_charges: int = 0
+# sr=0 angel_light_ward（光之守护）— 装备后开启环绕小盾视觉
+var angel_light_ward_active: bool = false
+# sr=0 demon_vampire（吸血鬼）— 装备数量驱动环绕小蝙蝠视觉
+var demon_vampire_count: int = 0
+# sr=46 scythe_on_slash_end（死神镰刀）
+var scythe_atk_mult: float = 0.0         # 0 = 关
+var scythe_pierce: bool = false
+var slash_end_ki_drained: bool = false    # 仅当本次画线把气力耗尽时为 true；on_slash_end 读取并清零（避免短画线反复触发"画线末释放"类奖励）
+# sr=50 proximity_slow（无下限术式）
+var proximity_slow_radius: float = 0.0   # 0 = 关
+
+# 打造关结算后头顶 ↑ 箭头：表示"属性提升"。
+# show_forge_buff_arrow(duration) 启动；duration 秒后自动淡出消失。
+var _forge_arrow_timer := 0.0
+var _forge_arrow_duration := 0.0
+var _forge_arrow_t := 0.0
+# 传送门进出动画期间标记 — true 时 _apply_combat_modulate 不再覆盖 modulate，
+# 让 portal_traverse_animator 的 scale/rot/alpha tween 能正常生效。
+var _portal_traverse_active := false
+var proximity_slow_max: float = 0.0      # 最大减速% (0~1)
 var _last_position := Vector2.ZERO
 var _joystick_locomotion_active := false
 
@@ -518,6 +574,8 @@ func add_path_point(point: Vector2) -> void:
 
 func consume_ki_by_distance(distance: float) -> bool:
 	var cost := distance * float(GameConfig.get_player_value("ki_per_pixel", 0.18))
+	# 属性打造关「画线气力消耗 -X%」：负值减少消耗，正值增加，钳到 5% 下限避免 0 消耗。
+	cost *= maxf(0.05, 1.0 + forge_draw_cost_pct_total)
 	if ki < cost:
 		return false
 	ki -= cost
@@ -675,11 +733,21 @@ func _finish_attack(combat: CombatDirector) -> void:
 	# Phase 5 sr=22 combo_shuriken：斩击末段 spawn 辅助子弹
 	var battle := get_tree().get_first_node_in_group("battle")
 	if battle and battle.abilities:
-		SpecialRuleDispatcherT.on_slash_end(self, battle.abilities)
+		var slash_end_pos: Vector2 = global_position
+		var slash_end_ang: float = 0.0
+		if attack_path.size() >= 2:
+			var p_last: Vector2 = attack_path[attack_path.size() - 1]
+			var p_prev: Vector2 = attack_path[attack_path.size() - 2]
+			slash_end_pos = p_last
+			var d: Vector2 = (p_last - p_prev)
+			slash_end_ang = d.angle() if d.length() > 0.01 else 0.0
+		SpecialRuleDispatcherT.on_slash_end(self, battle.abilities, slash_end_pos, slash_end_ang)
 		# Phase 6 sr=26 trail_slash_wave：末段 spawn 推开 AOE
 		SpecialRuleDispatcherT.on_slash_wave(self, battle.abilities, global_position)
 		# Phase 6 sr=25 trail_elem_field：沿 path 生成元素场域
 		SpecialRuleDispatcherT.on_trail_field_spawn(self, battle.abilities, attack_path)
+	# 清零气力耗尽标记：sr=22/26/27/46 都已读完，下次画线重新累计
+	slash_end_ki_drained = false
 	attack_path.clear()
 	_update_path_line()
 
@@ -912,10 +980,35 @@ func apply_upgrade(upgrade: Dictionary) -> void:
 	if int(def.get("once_per_chapter", 0)) != 0:
 		chapter_acquired_once[id] = true
 	upgrade_stacks[id] = int(upgrade_stacks.get(id, 0)) + 1
+	# 记录获得顺序（后获得的覆盖之前，用于"普攻换形态"等视觉互斥卡）
+	_card_acquired_counter += 1
+	_card_acquired_seq[id] = _card_acquired_counter
 	_rebuild_upgrades()
 	# v6 sv_life_spring 等 on_pickup 卡：选卡瞬间也算一次拾取触发
 	if trigger_dispatcher != null and str(def.get("trigger", "")) == "on_pickup":
 		trigger_dispatcher.fire_on_pickup()
+
+
+# 返回当前普攻子弹视觉类型（后获得的"换形态"卡胜出）：
+#   "spirit"      → 元气弹（蓝白能量球，由 bullet_spirit_bomb 触发）
+#   "blood_blade" → 血飞刀（红刃匕首，由 demon_blood_blade 触发）
+#   ""            → 默认普攻（像素小火球）
+# 顺序由 _card_acquired_seq 比较：seq 大 = 后获得 = 视觉胜出
+func get_active_bullet_visual_kind() -> String:
+	const CONVERTERS := {
+		"bullet_spirit_bomb": "spirit",
+		"demon_blood_blade":  "blood_blade",
+	}
+	var best_kind: String = ""
+	var best_seq: int = -1
+	for card_id in CONVERTERS:
+		if int(upgrade_stacks.get(card_id, 0)) <= 0:
+			continue
+		var seq: int = int(_card_acquired_seq.get(card_id, 0))
+		if seq > best_seq:
+			best_seq = seq
+			best_kind = String(CONVERTERS[card_id])
+	return best_kind
 
 
 func is_upgrade_pool_blocked(id: String) -> bool:
@@ -1057,9 +1150,29 @@ func _rebuild_upgrades() -> void:
 	orb_glow_dmg_pct = 0.0
 	orb_mark_dup_chance = 0.0
 	orb_tide_interval_sec = 0.0
+	# 主题关静态字段重置（动态计时如 sulfur_laser_timer / multi_revive_extra 不重置）
+	summon_demon_baby_count = 0
+	summon_angel_baby_count = 0
+	sword_spear_count = 0
+	scythe_atk_mult = 0.0
+	scythe_pierce = false
+	blood_blade_pierce = false
+	blood_blade_range_mult = 1.0
+	sulfur_laser_atk_mult = 0.0  # 0 = 未装备硫磺火
+	proximity_slow_radius = 0.0
+	proximity_slow_max = 0.0
 
 	# 表驱动写入：遍历所有 v6 卡，AttrEngine 按 trigger 判断是否激活
 	AttrEngineT.apply_cards(self, upgrade_stacks, GameConfig.upgrades_by_id)
+
+	# 属性打造关 forge buff：加在卡牌同层（*_pct_total），最终一起换算成实际生效字段。
+	atk_pct_total += forge_atk_pct_total
+	atk_speed_pct_total += forge_atk_speed_pct_total
+	move_speed_pct_total += forge_move_speed_pct_total
+	max_hp_pct_total += forge_max_hp_pct_total
+	ki_max_pct_total += forge_ki_max_pct_total
+	ki_regen_pct_total += forge_ki_regen_pct_total
+	crit_rate += forge_crit_rate_total
 
 	# v6 attr 累加 -> 实际生效字段
 	attack_speed_mult = 1.0 + atk_speed_pct_total
@@ -1206,6 +1319,10 @@ func _on_animation_finished() -> void:
 
 
 func _apply_combat_modulate() -> void:
+	# 传送门进出动画期间：portal_traverse 用 tween 控制 modulate.a，
+	# 这里不能用 Color.WHITE / 受伤色覆盖。
+	if _portal_traverse_active:
+		return
 	if damage_flash_timer > 0.0 and int(floor(damage_flash_timer * 22.0)) % 2 == 0:
 		modulate = Color(1.0, 0.45, 0.45)
 	elif invincible_timer > 0.0 and damage_flash_timer <= 0.0 and int(floor(invincible_timer * 18.0)) % 2 == 0:
@@ -1305,14 +1422,78 @@ func reset_for_new_run() -> void:
 	upgrade_stacks.clear()
 	run_acquired_once.clear()
 	chapter_acquired_once.clear()
+	_card_acquired_seq.clear()
+	_card_acquired_counter = 0
 	force_legendary_upgrade_count = 0
 	clear_fail_death_visuals()
+	reset_run_forge_buffs()
 	_load_base_stats()
 	hp = max_hp
 	ki = ki_max
 	home_position = global_position
 	begin_stage()
 	_rebuild_upgrades()
+
+
+# 属性打造关 forge buff 重置：开局 / 回主菜单 / 死亡新开时清零。
+func reset_run_forge_buffs() -> void:
+	forge_atk_pct_total = 0.0
+	forge_atk_speed_pct_total = 0.0
+	forge_move_speed_pct_total = 0.0
+	forge_max_hp_pct_total = 0.0
+	forge_ki_max_pct_total = 0.0
+	forge_ki_regen_pct_total = 0.0
+	forge_crit_rate_total = 0.0
+	forge_draw_cost_pct_total = 0.0
+
+
+# 属性打造关：每块成功堆稳调一次，按 idx 选 1 个基础属性 ±3%，调 _rebuild_upgrades() 立即生效。
+# idx 范围 0..7，返回 {name_cn, delta} 供 UI 显示。
+func apply_forge_buff(idx: int) -> Dictionary:
+	var name_cn := ""
+	var delta := 0.0
+	match idx:
+		0:
+			forge_max_hp_pct_total += 0.03
+			name_cn = "基础生命"
+			delta = 0.03
+		1:
+			forge_atk_pct_total += 0.03
+			name_cn = "基础攻击力"
+			delta = 0.03
+		2:
+			forge_ki_max_pct_total += 0.03
+			name_cn = "气力上限"
+			delta = 0.03
+		3:
+			forge_crit_rate_total += 0.03
+			name_cn = "暴击率"
+			delta = 0.03
+		4:
+			forge_move_speed_pct_total += 0.03
+			name_cn = "移速"
+			delta = 0.03
+		5:
+			forge_atk_speed_pct_total += 0.03
+			name_cn = "攻速"
+			delta = 0.03
+		6:
+			forge_ki_regen_pct_total += 0.03
+			name_cn = "气力恢复"
+			delta = 0.03
+		7:
+			forge_draw_cost_pct_total = maxf(-0.95, forge_draw_cost_pct_total - 0.03)
+			name_cn = "画线消耗"
+			delta = -0.03
+		_:
+			return {}
+	# Preserve current hp/ki ratios so max_hp/ki_max growth doesn't drop us proportionally.
+	var hp_ratio := float(hp) / float(maxi(1, max_hp))
+	var ki_ratio := ki / maxf(0.001, ki_max)
+	_rebuild_upgrades()
+	hp = clampi(int(round(float(max_hp) * hp_ratio)), 1, max_hp)
+	ki = clampf(ki_max * ki_ratio, 0.0, ki_max)
+	return {"name_cn": name_cn, "delta": delta}
 
 
 func on_enemy_killed(_kill_pos: Vector2) -> void:
@@ -1536,6 +1717,14 @@ func _process(delta: float) -> void:
 	for _l in _trail_extra_lines:
 		_l.visible = path_line.visible
 	_update_trigger_ring_fade(delta)
+	# sr=50 无下限术式：领域圈有脉冲动画，需每帧重绘
+	if float(proximity_slow_radius) > 0.0:
+		queue_redraw()
+	# 打造关头顶 ↑ 箭头 tick：放 _process（而非 update_idle）让 LEVEL_UP 状态下也能更新
+	if _forge_arrow_timer > 0.0:
+		_forge_arrow_timer = maxf(0.0, _forge_arrow_timer - delta)
+		_forge_arrow_t += delta
+		queue_redraw()
 
 
 func _should_show_hp_bar() -> bool:
@@ -1583,6 +1772,16 @@ func _draw() -> void:
 		return
 	if _should_show_hp_bar():
 		_draw_hp_bar()
+	# 打造关结算后头顶 ↑ 箭头
+	if _forge_arrow_timer > 0.0:
+		_draw_forge_buff_arrow()
+	# 无下限术式（sr=50）：脚下减速领域 — 半径 = proximity_slow_radius
+	# 与触发环独立，独立于 ring_alpha：玩家移动 / 战斗中也始终可见
+	if float(proximity_slow_radius) > 0.0:
+		_draw_proximity_slow_aura(float(proximity_slow_radius))
+	# sr=6 圣盾：每层 charges 画一圈金色像素环绕（旋转 + 闪烁）
+	if holy_shield_charges > 0:
+		_draw_holy_shield(holy_shield_charges)
 	var ring_alpha := _get_trigger_ring_alpha()
 	if ring_alpha <= 0.0:
 		return
@@ -1602,3 +1801,155 @@ func _draw() -> void:
 		Color(1.0, 0.9, 0.3, 0.12 * ring_alpha),
 		visual_radius * 1.3
 	)
+
+
+# 圣盾视觉：像素栅格金色光环，按 charges 数堆叠不同半径同心环。
+# 参考 _draw_pixel_fireball / _draw_pixel_scythe_blade 的 4 档调色板 + 周期闪烁 + 旋转。
+const HOLY_SHIELD_PIXEL := 3.0
+const HOLY_SHIELD_BASE_RADIUS := 11.0   # 单位：块数（基础半径 11 块 × 3px ≈ 33px）
+const HOLY_SHIELD_RADIUS_PER_LAYER := 1.6
+
+func _draw_holy_shield(charges: int) -> void:
+	var t_ms: int = Time.get_ticks_msec()
+	var flicker: bool = int(t_ms / 120) % 2 == 0
+	var rot: float = float(t_ms) * 0.002
+	for layer in range(charges):
+		var rb: float = HOLY_SHIELD_BASE_RADIUS + HOLY_SHIELD_RADIUS_PER_LAYER * float(layer)
+		_draw_holy_shield_ring(rb, rot + float(layer) * 0.6, flicker)
+
+
+func _draw_holy_shield_ring(rb: float, rot: float, flicker: bool) -> void:
+	var px: float = HOLY_SHIELD_PIXEL
+	# 旋转坐标系，逐像素块绘制空心圆环（厚度约 1.4 块）
+	draw_set_transform(Vector2.ZERO, rot, Vector2.ONE)
+	for by in range(-int(rb) - 1, int(rb) + 2):
+		for bx in range(-int(rb) - 1, int(rb) + 2):
+			var d: float = sqrt(float(bx * bx + by * by))
+			# 环厚：rb-1.4 < d < rb+0.3
+			if d > rb + 0.3 or d < rb - 1.4:
+				continue
+			# 环上四档颜色：外圈深 → 中亮 → 高光
+			var ring_t: float = (d - (rb - 1.4)) / 1.7  # 0~1，外 → 内
+			var col: Color = _holy_shield_color(ring_t, flicker)
+			draw_rect(Rect2(bx * px - px * 0.5, by * px - px * 0.5, px, px), col)
+	# 4 个旋转高光点（环上 90° 均分）
+	for i in range(4):
+		var ang: float = float(i) * (TAU * 0.25)
+		var hx: float = cos(ang) * rb * px
+		var hy: float = sin(ang) * rb * px
+		var hi_col: Color = Color("#ffffff") if not flicker else Color("#fffae0")
+		draw_rect(Rect2(hx - px * 0.5, hy - px * 0.5, px, px), hi_col)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# 外发光圆晕（双层）
+	var glow_r1: float = rb * px * 1.35
+	var glow_r2: float = rb * px * 1.05
+	var glow_outer: Color = Color(1.0, 0.85, 0.35, 0.18 if flicker else 0.22)
+	var glow_inner: Color = Color(1.0, 0.95, 0.6, 0.10 if flicker else 0.14)
+	draw_circle(Vector2.ZERO, glow_r1, glow_outer)
+	draw_circle(Vector2.ZERO, glow_r2, glow_inner)
+
+
+func _holy_shield_color(ring_t: float, flicker: bool) -> Color:
+	# ring_t: 0=外圈深棕，1=内圈白
+	if ring_t < 0.25:
+		return Color("#5a4810") if not flicker else Color("#3a3008")
+	if ring_t < 0.55:
+		return Color("#a87810") if not flicker else Color("#8a6010")
+	if ring_t < 0.80:
+		return Color("#ffd848") if not flicker else Color("#ffe890")
+	return Color("#fff8d8") if not flicker else Color("#ffffff")
+
+
+# 无下限术式视觉：紫红色双层减速领域圈 + 周期脉冲外晕
+func _draw_proximity_slow_aura(aura_r: float) -> void:
+	var t: float = float(Time.get_ticks_msec()) * 0.001
+	var pulse: float = 0.5 + 0.5 * sin(t * 2.4)
+	var inner_a: float = 0.05 + pulse * 0.05
+	var ring_a: float = 0.35 + pulse * 0.15
+	var aura_color := Color(0.85, 0.25, 0.55)  # 紫红
+	# 内填淡色
+	draw_circle(Vector2.ZERO, aura_r, Color(aura_color, inner_a))
+	# 外环主线
+	_draw_closed_ring(Vector2.ZERO, aura_r, 64, Color(aura_color, ring_a), GameConfig.scale_world(2.5))
+	# 内环（次圈，给层次感）
+	_draw_closed_ring(Vector2.ZERO, aura_r * 0.62, 48, Color(aura_color, ring_a * 0.55), GameConfig.scale_world(1.5))
+	# 脉冲外晕（向外扩散同时淡出）
+	var ripple_t: float = fmod(t * 0.7, 1.0)
+	var ripple_r: float = aura_r * (0.55 + ripple_t * 0.55)
+	var ripple_a: float = (1.0 - ripple_t) * 0.28
+	_draw_closed_ring(Vector2.ZERO, ripple_r, 56, Color(aura_color, ripple_a), GameConfig.scale_world(1.8))
+
+
+# 打造关结算后头顶 ↑ 绿色像素箭头（表示属性提升）。
+# 由 battle._on_forge_settlement_continue 调用，duration 秒后自动淡出。
+func show_forge_buff_arrow(duration: float) -> void:
+	_forge_arrow_timer = maxf(0.0, duration)
+	_forge_arrow_duration = _forge_arrow_timer
+	_forge_arrow_t = 0.0
+	queue_redraw()
+
+
+func _draw_forge_buff_arrow() -> void:
+	# alpha 包络：前 0.3s 0→1，最后 0.4s 1→0，中间 hold 1.0
+	var elapsed: float = _forge_arrow_duration - _forge_arrow_timer
+	var fade_in := 0.3
+	var fade_out := 0.4
+	var alpha := 1.0
+	if elapsed < fade_in:
+		alpha = clampf(elapsed / fade_in, 0.0, 1.0)
+	elif _forge_arrow_timer < fade_out:
+		alpha = clampf(_forge_arrow_timer / fade_out, 0.0, 1.0)
+	# 头顶 y 偏移 + 上下浮动（amplitude 4px，period 0.6s）
+	var head_y: float = -42.0
+	var bob: float = sin(_forge_arrow_t * TAU / 0.6) * 4.0
+	var cx: float = 0.0
+	var cy: float = head_y + bob
+	# 绿色 ↑ 像素箭头：3 行（顶尖 1px + 中部 3px 翼 + 4px 杆），缩放到约 16px 宽 × 18px 高
+	# 调色板：亮绿主色 + 深绿描边
+	var bright := Color(0.37, 1.0, 0.56, alpha)   # #5eff90
+	var outline := Color(0.10, 0.23, 0.13, alpha)  # #1a3a20
+	var px := 2.0  # 像素块大小
+	# 描边层（外扩 1px）
+	_draw_arrow_grid(cx, cy, px, outline, true)
+	# 主色层
+	_draw_arrow_grid(cx, cy, px, bright, false)
+
+
+# ↑ 箭头像素网格（9 像素宽 × 11 像素高）。
+# outline=true 时画外扩 1px 的描边版本（先画，让主色叠在上面）。
+func _draw_arrow_grid(cx: float, cy: float, px: float, color: Color, outline: bool) -> void:
+	# 网格定义：每个 (gx, gy) 表示像素单元的相对位置（gy 越小越靠上）
+	# 形状：
+	#   row -5:        ▓
+	#   row -4:       ▓▓▓
+	#   row -3:      ▓▓▓▓▓
+	#   row -2:     ▓▓ ▓ ▓▓     (V 字开口处用 -2 顶层)
+	#   row -1:         ▓
+	#   row  0:         ▓
+	#   row  1:         ▓
+	#   row  2:         ▓
+	#   row  3:         ▓
+	# 即：箭头三角形 + 主杆
+	var arrow_cells := [
+		Vector2(0, -5),
+		Vector2(-1, -4), Vector2(0, -4), Vector2(1, -4),
+		Vector2(-2, -3), Vector2(-1, -3), Vector2(0, -3), Vector2(1, -3), Vector2(2, -3),
+		Vector2(-3, -2), Vector2(-2, -2), Vector2(0, -2), Vector2(2, -2), Vector2(3, -2),
+		Vector2(0, -1), Vector2(0, 0), Vector2(0, 1), Vector2(0, 2), Vector2(0, 3),
+	]
+	for cell in arrow_cells:
+		var gx: float = cell.x
+		var gy: float = cell.y
+		if outline:
+			# 描边层：在每个 cell 外扩 1px 画 8 邻
+			for ox in [-1, 0, 1]:
+				for oy in [-1, 0, 1]:
+					if ox == 0 and oy == 0:
+						continue
+					var px_x: float = cx + (gx * px) + (ox * px)
+					var px_y: float = cy + (gy * px) + (oy * px)
+					draw_rect(Rect2(px_x - px * 0.5, px_y - px * 0.5, px, px), color)
+		else:
+			var px_x: float = cx + gx * px
+			var px_y: float = cy + gy * px
+			draw_rect(Rect2(px_x - px * 0.5, px_y - px * 0.5, px, px), color)

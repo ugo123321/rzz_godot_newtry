@@ -62,6 +62,10 @@ const SCHEMA: Dictionary = {
 	40: {"field": "cooldown_sec_total",   "kind": "passive_pct_add"},
 	41: {"field": "duration_sec_total",   "kind": "passive_pct_add"},
 	42: {"field": "tick_interval_sec_total", "kind": "passive_pct_add"},
+	# ---- 主题召唤 / 主题剑（恶魔/天使主题关）----
+	43: {"field": "summon_demon_baby_count", "kind": "passive_int_add"},
+	44: {"field": "summon_angel_baby_count", "kind": "passive_int_add"},
+	45: {"field": "sword_spear_count",       "kind": "passive_int_add"},
 }
 
 

@@ -4,6 +4,9 @@ class_name CentipedeSegment
 var boss_ref
 var segment_index := 0
 var alive := true
+# 与 BattleMonster 对齐 —— 召唤物 / 元素 DoT 系统统一靠 `bool(m.get("dying"))` 过滤死亡中目标。
+# 没有这个字段会让 Godot 4 在 `bool(null)` 处抛 "Nonexistent 'bool' constructor"。
+var dying := false
 var vulnerable_mark := false
 var path_target_hit_count := 0
 

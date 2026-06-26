@@ -1,6 +1,14 @@
 extends Node2D
 class_name MonsterSpawner
 
+# 精英化（修饰层，与 stages.json 的 ELITE kind_id 是两个独立概念）
+# 概率 idx=0 5% → idx=19 15% 线性；主题关保底 1 只精英
+# phantom（隐形）已从掷骰列表移除 — 剩余 3 种等权随机（uniform pick）
+const ELITE_KINDS := ["bomb", "tank", "swift"]
+const ELITE_BASE_CHANCE := 0.05
+const ELITE_END_CHANCE := 0.15
+const ELITE_END_STAGE := 19
+
 var monsters: Array = []
 var spawn_clusters: Array = []
 var boss: Node = null
@@ -81,7 +89,12 @@ func update_spawns(delta: float, battle: Node) -> void:
 	if _spawn_queue.is_empty() or _spawn_timer > 0.0:
 		return
 	var entry: Dictionary = _spawn_queue.pop_front()
-	_spawn_monster(str(entry.get("kind_id", "NORMAL")), int(entry.get("stage_index", 0)), battle)
+	_spawn_monster(
+		str(entry.get("kind_id", "NORMAL")),
+		int(entry.get("stage_index", 0)),
+		battle,
+		str(entry.get("elite_kind", ""))
+	)
 	if not _spawn_queue.is_empty():
 		_spawn_timer = _infinite_spawn_interval() if infinite_spawn else _spawn_interval()
 
@@ -112,6 +125,7 @@ func _refill_queue_for_infinite(stage_index: int) -> void:
 			_spawn_queue.append({"kind_id": kind_id, "stage_index": stage_index})
 	if not has_any:
 		_spawn_queue.append({"kind_id": "NORMAL", "stage_index": stage_index})
+	_apply_elite_rolls(stage_index, get_tree().get_first_node_in_group("battle"))
 	_spawn_queue.shuffle()
 	if _spawn_timer <= 0.0:
 		_spawn_timer = _infinite_wave_delay()
@@ -158,6 +172,7 @@ func _spawn_stage_content(stage_index: int, battle: Node) -> void:
 	for kind_id in counts.keys():
 		for i in range(counts[kind_id]):
 			_spawn_queue.append({"kind_id": kind_id, "stage_index": stage_index})
+	_apply_elite_rolls(stage_index, battle)
 	_spawn_queue.shuffle()
 
 
@@ -297,11 +312,34 @@ func _pick_weighted_cluster() -> Dictionary:
 	return spawn_clusters.back()
 
 
-func _spawn_monster(kind_id: String, stage_index: int, battle: Node) -> void:
+# 精英化掷骰：给当前 _spawn_queue 里的每个条目按 stage_index 概率挂 elite_kind；
+# 主题关（demon/angel）若整波无精英，强制 _spawn_queue[0] 精英化（保底 1 只）
+func _apply_elite_rolls(stage_index: int, battle: Node) -> void:
+	var t: float = clampf(float(stage_index) / float(ELITE_END_STAGE), 0.0, 1.0)
+	var chance: float = ELITE_BASE_CHANCE + t * (ELITE_END_CHANCE - ELITE_BASE_CHANCE)
+	var any_elite := false
+	for entry in _spawn_queue:
+		# 已经被前次掷骰挂过精英的不重掷（防止 append_stage 重入覆盖）
+		if str(entry.get("elite_kind", "")) != "":
+			any_elite = true
+			continue
+		if randf() < chance:
+			entry["elite_kind"] = ELITE_KINDS[randi() % ELITE_KINDS.size()]
+			any_elite = true
+		else:
+			entry["elite_kind"] = ""
+	var theme := ""
+	if battle and battle.has_method("get_stage_theme"):
+		theme = String(battle.get_stage_theme(stage_index))
+	if (theme == "demon" or theme == "angel") and not any_elite and not _spawn_queue.is_empty():
+		_spawn_queue[0]["elite_kind"] = ELITE_KINDS[randi() % ELITE_KINDS.size()]
+
+
+func _spawn_monster(kind_id: String, stage_index: int, battle: Node, elite_kind: String = "") -> void:
 	var scene: PackedScene = load("res://scenes/entities/monster.tscn")
 	var monster = scene.instantiate()
 	battle.monster_container.add_child(monster)
-	monster.setup(kind_id, stage_index, _pick_spawn_pos(battle))
+	monster.setup(kind_id, stage_index, _pick_spawn_pos(battle), elite_kind)
 	monster.begin_spawn()
 	monsters.append(monster)
 

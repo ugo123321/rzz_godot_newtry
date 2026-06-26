@@ -29,6 +29,29 @@ func generate_choices(player: Node) -> void:
 			available.remove_at(idx)
 
 
+# 属性打造关结束时：以指定品质强制 roll 3 选 1（不走 _roll_rarity），
+# 其余卡池过滤 / 空池回退 / 加权抽取逻辑与 generate_choices 一致。
+func generate_choices_with_rarity(player: Node, forced_rarity: String) -> void:
+	active = true
+	popup_timer = 0.0
+	choices.clear()
+	rolled_rarity = forced_rarity
+	var pool: Array = _build_pool(forced_rarity, player)
+	if pool.is_empty():
+		pool = _build_pool("", player)
+	var available := pool.duplicate()
+	for i in range(3):
+		if available.is_empty():
+			var fallback := pool if not pool.is_empty() else _build_pool("", player)
+			if fallback.is_empty():
+				fallback = GameConfig.upgrades
+			choices.append(_weighted_pick(fallback))
+		else:
+			var idx := _weighted_index(available)
+			choices.append(available[idx])
+			available.remove_at(idx)
+
+
 func _weighted_index(arr: Array) -> int:
 	if arr.is_empty():
 		return 0
@@ -55,10 +78,34 @@ func _build_pool(rarity: String, player: Node) -> Array:
 	for u in GameConfig.upgrades:
 		if not rarity.is_empty() and str(u.get("rarity", "")) != rarity:
 			continue
+		# 主题关专属（恶魔 / 天使）：pool_weight==0 永不出现在常规升级池
+		if float(u.get("pool_weight", 1.0)) <= 0.0:
+			continue
 		if not _is_upgrade_available(u, player):
 			continue
 		pool.append(u)
 	return pool
+
+
+# 主题关用：按 group 过滤的卡池（无视 rarity / pool_weight），返回所有该组未达上限的可选卡。
+# 由 battle.gd 在 demon/angel 主题关结束时调，随机抽 1 张展示给玩家。
+func get_themed_pool(group_name: String, player: Node) -> Array:
+	var pool: Array = []
+	for u in GameConfig.upgrades:
+		if str(u.get("group", "")) != group_name:
+			continue
+		if not _is_upgrade_available(u, player):
+			continue
+		pool.append(u)
+	return pool
+
+
+# 主题关用：从 group 池子里随机抽 1 张
+func roll_themed(group_name: String, player: Node) -> Dictionary:
+	var pool := get_themed_pool(group_name, player)
+	if pool.is_empty():
+		return {}
+	return pool[randi() % pool.size()]
 
 
 func _is_upgrade_available(def: Dictionary, player: Node) -> bool:

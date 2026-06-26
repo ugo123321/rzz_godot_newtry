@@ -82,6 +82,10 @@ ATTR_CODES: list[tuple[int, str, str, str, str]] = [
     (40, "计时", "冷却秒", "cooldown_sec", "触发冷却"),
     (41, "计时", "持续秒", "duration_sec", "通用持续秒（轨迹/光环/buff）"),
     (42, "计时", "tick间隔秒", "tick_interval_sec", "周期性效果间隔"),
+    # ----- 主题召唤 / 主题剑（仅恶魔/天使主题关解锁）-----
+    (43, "召唤", "恶魔宝宝召唤数+", "summon_demon_baby_count_add", "恶魔宝宝（远程激光穿透）召唤数量"),
+    (44, "召唤", "天使宝宝召唤数+", "summon_angel_baby_count_add", "天使宝宝（远程单体雷伤）召唤数量"),
+    (45, "剑", "命运之矛数量+", "sword_spear_count_add", "命运之矛（环绕长枪）数量"),
 ]
 
 EN_KEY_TO_CODE: dict[str, int] = {en: c for c, _, _, en, _ in ATTR_CODES}
@@ -99,6 +103,8 @@ GROUP_CODES: list[tuple[int, str]] = [
     (7, "环绕剑"),
     (8, "召唤"),
     (9, "元素"),
+    (10, "恶魔"),
+    (11, "天使"),
 ]
 GROUP_NAME_TO_CODE = {n: c for c, n in GROUP_CODES}
 
@@ -134,6 +140,7 @@ TRIGGER_KEY_TO_CODE = {k: c for c, k, _ in TRIGGER_CODES}
 GROUP_DEFAULT_ICON = {
     "基础属性": "💪", "生存防御": "🛡️", "普攻子弹": "🔫", "连击": "🌀",
     "画线轨迹": "✨", "强化球": "🔮", "环绕剑": "⚔️", "召唤": "👥", "元素": "🌈",
+    "恶魔": "👹", "天使": "😇",
 }
 SPECIAL_RULE_CODES: list[tuple[int, str, str, str, str]] = [
     # (type_id, type_key, name_cn, schema 数组字段顺序, 数组字段中文含义)
@@ -234,10 +241,26 @@ SPECIAL_RULE_CODES: list[tuple[int, str, str, str, str]] = [
     # ---- 召唤 ----
     (44, "summon_pact", "召唤盟约", "[summon_size_pct, summon_atk_speed_pct]",
         "召唤物体型%；召唤物攻速%（解锁的单位走属性槽 summon_*_count_add += 1 表达，与其他召唤卡一致）"),
-    (45, "summon_unit", "召唤单位", "[atk_mult, atk_interval_sec, range_px, element, mechanic, p1, p2] / mechanic ∈ ranged_single/ranged_aoe/ranged_taunt/random_aoe；p1-2 仅用于 ranged_aoe 的 radius_px 或 ranged_taunt 的 cd/duration；元素自带状态由 Sheet4 自动应用",
-        "ATK 倍率；攻击间隔秒；攻击距离(像素)；元素；机制(ranged_single/ranged_aoe/ranged_taunt/random_aoe)；p1=AOE 半径或嘲讽 CD；p2=嘲讽持续秒"),
+    (45, "summon_unit", "召唤单位", "[atk_mult, atk_interval_sec, range_px, element, mechanic, p1, p2] / mechanic ∈ ranged_single/ranged_aoe/ranged_taunt/random_aoe/ranged_laser；p1-2 仅用于 ranged_aoe 的 radius_px 或 ranged_taunt 的 cd/duration；ranged_laser = 持续穿透激光（无 p1/p2）；元素自带状态由 Sheet4 自动应用",
+        "ATK 倍率；攻击间隔秒；攻击距离(像素)；元素；机制(ranged_single/ranged_aoe/ranged_taunt/random_aoe/ranged_laser)；p1=AOE 半径或嘲讽 CD；p2=嘲讽持续秒"),
     # 元素子弹 (elem_*_bullet) 走 sr=0：机制由 applies_<elem> 布尔列直接触发 Sheet4 element_effects，
     # 不需要 dispatcher 实现 — 见 CLAUDE.md 第 3 条。
+    # ---- 主题关专属（恶魔 / 天使，46-50）----
+    (46, "scythe_on_slash_end", "死神镰刀（划线末释放无限射程贯通镰刀）",
+        "[atk_mult, pierce]",
+        "镰刀 ATK 倍率；是否贯通(1/0)；射程无限"),
+    (47, "periodic_laser", "硫磺火（定时无限激光）",
+        "[atk_mult_per_tick, tick_interval_sec, element]",
+        "激光每 tick 的 ATK 倍率；tick 间隔秒；元素 key(fire/ice/thunder/poison)；冷却走属性槽 cooldown_sec；持续走 duration_sec；元素状态由 Sheet4 自动应用"),
+    (48, "multi_revive", "多命复活（九命猫）",
+        "[extra_lives, max_hp_after_revive_abs]",
+        "额外复活次数（初始 1 命之外）；复活后绝对 HP 值（1 = 1HP）"),
+    (49, "blood_bullet", "血飞刀（普攻替换为穿透血刃）",
+        "[pierce, range_mult]",
+        "是否穿透(1/0)；射程倍率；攻速/攻击调整走属性槽 atk_speed_pct / atk_pct"),
+    (50, "proximity_slow", "无下限术式（近距离怪物线性减速）",
+        "[aura_radius_px, max_slow_pct]",
+        "光环半径(像素)；最大减速%（距离玩家越近减速越高，线性插值）"),
 ]
 
 # rid -> (type_id, special_values_array)
@@ -316,7 +339,7 @@ SPECIAL_RULES: dict[str, tuple[int, list]] = {
     # 召唤
     "summon_pact":          (44, [0.15, 0.50]),
     "summon_rage":          (0, []),  # 数值全在 attr 21；纯属性卡
-    "summon_king":          (45, [2.5, 2.0, 600, "none", "ranged_aoe", 200, None]),
+    "summon_king":          (45, [1.2, 2.5, 600, "none", "ranged_aoe", 200, None]),
     "summon_god":           (45, [1.8, 1.5, 500, "none", "ranged_single", None, None]),
     "summon_gorilla":       (45, [1.0, 1.0, 400, "none", "ranged_taunt", 10, 3]),
     "summon_thunder":       (45, [1.2, 3.0, 0, "thunder", "random_aoe", None, None]),
@@ -328,6 +351,20 @@ SPECIAL_RULES: dict[str, tuple[int, list]] = {
     "elem_thunder_bullet":  (0, []),
     "elem_poison_bullet":   (0, []),
     "elem_ice_bullet":      (0, []),
+    # ===== 主题关：恶魔（group=10）=====
+    "demon_scythe":         (46, [4.0, 1]),
+    "demon_sulfur_laser":   (47, [0.5, 0.1, "fire"]),
+    "demon_baby":           (45, [1.5, 1.2, 600, "fire", "ranged_laser", None, None]),
+    "demon_nine_lives":     (48, [8, 1]),
+    "demon_vampire":        (0, []),  # 纯属性 + trigger=on_kill + proc_chance + attr 20
+    "demon_blood_blade":    (49, [1, 2.0]),
+    # ===== 主题关：天使（group=11）=====
+    # sv_holy_guard 已在生存防御段：(6, [1,1,1])，仅源表改 group → 天使，不动 SR
+    "angel_holy_bullet":    (13, [0.10, 0, 2.0, 150]),  # 复用 bullet_proc_spell
+    "angel_light_ward":     (0, []),  # 纯属性 attr 11
+    "angel_baby":           (45, [1.5, 1.0, 550, "thunder", "ranged_single", None, None]),
+    "angel_fate_spear":     (40, [1.5, 0.4, "none", None, None, None]),  # 复用 sword_unit
+    "angel_proximity_slow": (50, [300, 0.50]),
 }
 
 # rid -> special_values_per_lv 数组（与 SPECIAL_RULES 的 special_values 等长，
@@ -541,6 +578,20 @@ PER_ID_ATTRS: dict[str, list[tuple[str, float, float]]] = {
     "elem_thunder_bullet": [],
     "elem_poison_bullet": [],
     "elem_ice_bullet": [],
+    # ===== 主题关：恶魔（6 张，全部 max_hp_pct 惩罚）=====
+    "demon_scythe":        [A("max_hp_pct", -0.30, 0)],
+    "demon_sulfur_laser":  [A("max_hp_pct", -0.30, 0), A("cooldown_sec", 6.0, 0), A("duration_sec", 1.0, 0)],
+    "demon_baby":          [A("summon_demon_baby_count_add", 1, 0), A("max_hp_pct", -0.30, 0)],
+    "demon_nine_lives":    [A("max_hp_pct", -0.99, 0)],
+    "demon_vampire":       [A("max_hp_pct", -0.10, 0), A("kill_heal_pct", 0.20, 0)],
+    "demon_blood_blade":   [A("max_hp_pct", -0.20, 0), A("atk_speed_pct", 1.0, 0), A("atk_pct", -0.80, 0)],
+    # ===== 主题关：天使（6 张，无惩罚）=====
+    # sv_holy_guard 已是 [] — 仅源表 group 改 → 天使
+    "angel_holy_bullet":   [],  # 全在 sr=13 special_values
+    "angel_light_ward":    [A("damage_reduction_pct", 0.50, 0)],
+    "angel_baby":          [A("summon_angel_baby_count_add", 1, 0)],
+    "angel_fate_spear":    [A("sword_spear_count_add", 1, 0)],
+    "angel_proximity_slow":[],  # 全在 sr=50 special_values
 }
 
 
@@ -576,6 +627,11 @@ PER_ID_APPLIES: dict[str, dict[str, int]] = {
     "sword_poison":       {"poison": 1},
     "summon_snake":       {"poison": 1},
     "elem_poison_bullet": {"poison": 1},
+    # ===== 主题关：恶魔 / 天使 =====
+    "demon_sulfur_laser": {"fire": 1},
+    "demon_baby":         {"fire": 1},
+    "angel_holy_bullet":  {"thunder": 1},
+    "angel_baby":         {"thunder": 1},
 }
 
 
@@ -608,6 +664,11 @@ PER_ID_META: dict[str, dict] = {
     "summon_bear": {"max_level": 3},
     "summon_snake": {"max_level": 3},
     "summon_fire": {"max_level": 3},
+    # ===== 主题关 =====
+    # max_level 已在源表填 1（主题关只刷 1 张），此处仅覆盖额外字段
+    "demon_vampire":       {"proc_chance": 0.05},
+    "angel_holy_bullet":   {"proc_chance": 0.10, "weapon_mult": 2.0},
+    "angel_fate_spear":    {"weapon_mult": 1.5},
 }
 
 
@@ -619,6 +680,10 @@ PER_ID_DESC_OVERRIDE: dict[str, str] = {
     "bullet_swift_shoot":   "攻速 +30%/级，攻击 -10%/级",
     # combo_multi：v7 改语义——不再是"连击数计入伤害的倍率"，而是单次斩击产生的连击数翻倍
     "combo_multi":          "每次斩击产生的连击数 ×2",
+    # 「画线末释放」类奖励：仅当本次画线把气力条耗尽时触发（避免短画线反复释放）
+    "combo_shuriken":       "气力耗尽时，向斩击末端方向 spawn +2 枚手里剑/级 0.6×ATK",
+    "trail_slash_wave":     "气力耗尽时，画线末端范围冲击 2.5×ATK，推开半径 200px (+0.3/级)",
+    "trail_loop_explode":   "气力耗尽且画线轨迹首次闭合时，闭合区间内释放爆炸 3.0×ATK (+0.3/级)",
     # 7 张召唤单位卡：全部远程、跟随玩家
     "summon_king":          "召唤精灵王 远程aoe攻击",
     "summon_god":           "召唤天神  远程单体攻击",
@@ -632,6 +697,21 @@ PER_ID_DESC_OVERRIDE: dict[str, str] = {
     "elem_thunder_bullet":  "子弹附雷 普攻触发雷链效果",
     "elem_poison_bullet":   "子弹附毒 普攻触发中毒效果",
     "elem_ice_bullet":      "子弹附冰 普攻触发冰伤 + 减速效果",
+    # ===== 主题关：圣盾（sv_holy_guard 由 神圣守护 → 圣盾，移到天使组）=====
+    "sv_holy_guard":        "每关开始获得 1 层圣盾，抵挡 1 次伤害（含致死）",
+    # ===== 主题关：恶魔（带惩罚文案）=====
+    "demon_scythe":         "气力耗尽时，画线末端释放无限射程贯通镰刀，4×ATK 伤害（最大生命 -30%）",
+    "demon_sulfur_laser":   "每 6 秒朝最近敌人射出 1 条暗红激光，持续 1 秒，附加燃烧（最大生命 -30%）",
+    "demon_baby":           "召唤恶魔宝宝跟随玩家 远程激光穿透攻击 火伤（最大生命 -30%）",
+    "demon_nine_lives":     "九命：初始 1 命 + 8 次复活，复活后 HP=1（最大生命 -99%）",
+    "demon_vampire":        "击杀时 5% 概率恢复 20% 最大生命（最大生命 -10%）",
+    "demon_blood_blade":    "普攻改为血飞刀：穿透 + 射程 ×2 + 攻速 +100%，攻击 -80%（最大生命 -20%）",
+    # ===== 主题关：天使（无惩罚）=====
+    "angel_holy_bullet":    "普攻 10% 概率召唤光柱 AOE 雷伤",
+    "angel_light_ward":     "受到伤害 -50%",
+    "angel_baby":           "召唤天使宝宝跟随玩家 远程单体攻击 雷伤",
+    "angel_fate_spear":     "环绕命运之矛 ×1",
+    "angel_proximity_slow": "玩家周围 300px 内怪物按距离线性减速，最高 50%",
 }
 
 

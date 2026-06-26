@@ -74,6 +74,35 @@ var poison_tick_interval := 1.0
 var paralyze_timer := 0.0
 var slow_timer := 0.0
 var slow_pct_active := 0.0
+var proximity_slow_pct := 0.0  # sr=50 无下限术式：每帧由 dispatcher 写入（按到玩家距离线性插值）
+
+# 水地块：与玩家一致的浅蓝染色 + 移速减速；视觉优先级最低（被所有元素状态压过）
+var on_water_terrain := false
+var water_tint_timer := 0.0
+const WATER_SLOW_MULT := 0.55
+const WATER_TINT_FADE := 0.2
+const WATER_TINT_COLOR := Color(0.65, 0.85, 1.0, 1.0)
+const WATER_TINT_BLEND := 0.45
+
+# 精英化（与 stages.json 的 ELITE kind_id 是两个独立概念，可叠加）
+# - 属性加成基于 monsters.json 原值算 extra（不被 stage 二次放大）
+# - hp=2.0 表示「基础生命 +100%」(extra = base_hp × 1.0 加到当前 max_hp 上)
+# - 隐形精英用 self.modulate.a 渐变（与 anim_sprite.modulate 状态染色互不影响）
+# - 自爆精英在 begin_dying 末尾触发 AoE
+const ELITE_CONFIG := {
+	"bomb":    {"size": 1.80, "hp": 2.0, "def": 1.25, "spd": 1.00, "tint": Color(0.30, 0.28, 0.30), "aoe_r": 48.0, "aoe_dmg_mul": 2.5},
+	"tank":    {"size": 1.80, "hp": 2.0, "def": 1.60, "spd": 0.75, "tint": Color(1.35, 1.15, 0.55)},
+	"swift":   {"size": 1.50, "hp": 2.0, "def": 1.25, "spd": 1.30, "tint": Color(1.05, 0.70, 1.25)},
+	"phantom": {"size": 1.50, "hp": 2.0, "def": 1.25, "spd": 1.00, "tint": Color(0.85, 0.85, 0.85)},
+}
+const ELITE_ICON_COLOR_HEX := "#ffd84a"
+const PHANTOM_MIN_ALPHA := 0.18
+const PHANTOM_FADE_DUR := 4.0
+
+var elite_kind := ""
+var elite_size_mult := 1.0
+var _phantom_fade_time := 0.0
+var _phantom_target_alpha := 1.0
 
 var _sprite_folder := "Skeleton"
 var _sprite_prefix := "Skeleton"
@@ -84,7 +113,7 @@ var _theme := ""
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 
-func setup(monster_kind: String, stage_index: int, spawn_pos: Vector2) -> void:
+func setup(monster_kind: String, stage_index: int, spawn_pos: Vector2, elite: String = "") -> void:
 	kind_id = monster_kind
 	stage_index_cached = stage_index
 	var stats := GameConfig.scaled_monster_stats(monster_kind, stage_index)
@@ -129,6 +158,8 @@ func setup(monster_kind: String, stage_index: int, spawn_pos: Vector2) -> void:
 	_sprite_folder = str(stats.get("character_folder", "Skeleton"))
 	_sprite_prefix = str(stats.get("sprite_prefix", "Skeleton"))
 	_apply_theme(stage_index)
+	elite_kind = elite
+	_apply_elite_modifier()
 	_apply_sprite()
 
 
@@ -143,6 +174,31 @@ func _apply_theme(stage_idx: int) -> void:
 		defense = int(round(float(defense) * 1.10))
 		var theme_tint: Color = Color(1.4, 0.55, 0.55) if _theme == "demon" else Color(1.2, 1.15, 0.7)
 		sprite_tint *= theme_tint
+
+
+# 精英修饰：基于 monsters.json 原值算 hp/def/spd 加成（避免 stage 二次放大膨胀）；
+# 体型直接乘 size_mult；染色与已有 sprite_tint 相乘叠加；phantom 写隐形目标 alpha
+func _apply_elite_modifier() -> void:
+	if elite_kind == "" or not ELITE_CONFIG.has(elite_kind):
+		return
+	var cfg: Dictionary = ELITE_CONFIG[elite_kind]
+	elite_size_mult = float(cfg.size)
+	var base := GameConfig.get_monster(kind_id)
+	var base_hp: int = int(base.get("hp", 1))
+	var base_def: int = int(base.get("def", 0))
+	var base_speed: float = float(base.get("speed", 19))
+	var hp_extra: int = int(round(float(base_hp) * (float(cfg.get("hp", 1.0)) - 1.0)))
+	var def_extra: int = int(round(float(base_def) * (float(cfg.def) - 1.0)))
+	var spd_extra: float = base_speed * (float(cfg.spd) - 1.0)
+	max_hp = maxi(1, max_hp + hp_extra)
+	hp = max_hp
+	defense = maxi(0, defense + def_extra)
+	move_speed = maxf(1.0, move_speed + spd_extra)
+	hitbox_radius *= elite_size_mult
+	var et: Color = cfg.tint
+	sprite_tint = Color(sprite_tint.r * et.r, sprite_tint.g * et.g, sprite_tint.b * et.b, 1.0)
+	if elite_kind == "phantom":
+		_phantom_target_alpha = PHANTOM_MIN_ALPHA
 
 
 func begin_spawn(duration: float = -1.0, target_scale: Vector2 = Vector2.ONE) -> void:
@@ -172,7 +228,7 @@ func _apply_sprite() -> void:
 	anim_sprite.sprite_frames = SpriteHelper.build_character_frames(_sprite_folder, _sprite_prefix)
 	SpriteHelper.apply_pixel_art(anim_sprite)
 	var scale_val := float(GameConfig.get_tuning("monster_sprite_scale", 1.0))
-	anim_sprite.scale = Vector2.ONE * SpriteHelper.pixel_scale(scale_val)
+	anim_sprite.scale = Vector2.ONE * SpriteHelper.pixel_scale(scale_val) * elite_size_mult
 	if sprite_tint != Color.WHITE:
 		anim_sprite.modulate = sprite_tint
 	if anim_sprite.sprite_frames.has_animation(SpriteHelper.ANIM_IDLE):
@@ -446,6 +502,8 @@ func begin_dying(stagger_delay: float) -> bool:
 		if battle and battle.spawner:
 			battle.spawner.spawn_split_children(self)
 		spawned_children = true
+	if elite_kind == "bomb":
+		_trigger_bomb_aoe()
 	return true
 
 
@@ -466,6 +524,10 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 	if not alive or dying or player == null:
 		return
 	_update_status_effects(delta)
+	_check_water_under_feet(battle)
+	if water_tint_timer > 0.0:
+		water_tint_timer = maxf(0.0, water_tint_timer - delta)
+		_apply_status_tint()
 	if spawn_lock_timer > 0.0:
 		spawn_lock_timer = maxf(0.0, spawn_lock_timer - delta)
 		return
@@ -490,8 +552,10 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 		if ranged:
 			stop_dist = attack_range * 0.85 if attack_range > 0.0 else GameConfig.scale_world(140.0)
 		if dist > stop_dist:
-			# 冰减速：当前速度 = move_speed × (1 - slow_pct_active)
-			var eff_speed: float = move_speed * maxf(0.0, 1.0 - slow_pct_active)
+			# 冰减速 + sr=50 无下限术式：取叠加最大减速
+			var eff_slow: float = clampf(slow_pct_active + proximity_slow_pct - slow_pct_active * proximity_slow_pct, 0.0, 0.95)
+			var water_mult: float = WATER_SLOW_MULT if on_water_terrain else 1.0
+			var eff_speed: float = move_speed * maxf(0.0, 1.0 - eff_slow) * water_mult
 			var dir: Vector2 = to_player.normalized()
 			var step_len: float = eff_speed * delta
 			var next_pos := global_position + dir * step_len
@@ -704,6 +768,8 @@ func _draw() -> void:
 	_draw_theme_aura()
 	if _should_show_hp_bar():
 		_draw_hp_bar()
+	if elite_kind != "":
+		_draw_elite_icon()
 	if burn_timer > 0.0:
 		var t := 0.65 + 0.35 * sin(Time.get_ticks_msec() * 0.018)
 		draw_arc(Vector2.ZERO, hitbox_radius + GameConfig.scale_world(7.0), 0.0, TAU, 30, Color(1.0, 0.35, 0.2, 0.55 + 0.25 * t), GameConfig.scale_world(2.0))
@@ -755,7 +821,8 @@ func _update_status_effects(delta: float) -> void:
 	_tick_poison(delta)
 	# 视觉刷新（modulate 由 _apply_status_tint 综合处理）
 	_apply_status_tint()
-	if burn_timer > 0.0 or slow_timer > 0.0 or poison_timer > 0.0 or paralyze_timer > 0.0 or _theme != "":
+	_update_phantom_alpha(delta)
+	if burn_timer > 0.0 or slow_timer > 0.0 or poison_timer > 0.0 or paralyze_timer > 0.0 or _theme != "" or elite_kind != "":
 		queue_redraw()
 
 
@@ -805,7 +872,7 @@ func _tick_poison(delta: float) -> void:
 			EventBus.monster_killed.emit(self)
 
 
-# 综合 modulate：火 > 麻痹（金黄闪烁）> 毒 > 冰；仅取最高优先级一种染色
+# 综合 modulate：火 > 麻痹（金黄闪烁）> 毒 > 冰 > 水；仅取最高优先级一种染色
 func _apply_status_tint() -> void:
 	var anim_sprite := _get_sprite()
 	if anim_sprite == null:
@@ -822,7 +889,107 @@ func _apply_status_tint() -> void:
 		anim_sprite.modulate = base_tint.lerp(Color(0.6, 1.0, 0.55, 1.0), 0.40)
 		return
 	if slow_timer > 0.0:
-		anim_sprite.modulate = base_tint.lerp(Color(0.65, 0.85, 1.0, 1.0), 0.45)
+		anim_sprite.modulate = base_tint.lerp(WATER_TINT_COLOR, WATER_TINT_BLEND)
+		return
+	# 踩水浅蓝（与玩家一致；fade-out 用 timer 衰减强度）
+	if water_tint_timer > 0.0:
+		var blend: float = WATER_TINT_BLEND * (water_tint_timer / WATER_TINT_FADE)
+		anim_sprite.modulate = base_tint.lerp(WATER_TINT_COLOR, blend)
 		return
 	# 都没有则恢复 baseline
 	anim_sprite.modulate = base_tint
+
+
+func _check_water_under_feet(battle: Node) -> void:
+	on_water_terrain = false
+	if battle == null:
+		return
+	var t = battle.terrain if "terrain" in battle else null
+	if t == null or not t.has_method("get_tile_at_world"):
+		return
+	if t.get_tile_at_world(global_position.x, global_position.y) == "water":
+		on_water_terrain = true
+		water_tint_timer = WATER_TINT_FADE
+
+
+# 隐形精英：spawn tween 结束后，4 秒内把 self.modulate.a 渐变到 PHANTOM_MIN_ALPHA。
+# 走 self.modulate 通道（与 _apply_status_tint 的 anim_sprite.modulate 互不影响），
+# 死亡时被 _apply_death_modulate 整体覆盖，无冲突。
+func _update_phantom_alpha(delta: float) -> void:
+	if elite_kind != "phantom" or dying or not alive:
+		return
+	if spawn_lock_timer > 0.0:
+		# 等 begin_spawn 的出生 tween 自己跑完（它也在写 modulate.a），避免互相覆盖
+		return
+	_phantom_fade_time = minf(PHANTOM_FADE_DUR, _phantom_fade_time + delta)
+	var t: float = _phantom_fade_time / PHANTOM_FADE_DUR
+	modulate.a = lerpf(1.0, _phantom_target_alpha, t)
+
+
+# 精英怪头顶金色五角星图标（带 pulse）；alpha 自然继承 self.modulate.a（phantom 同步透明）
+func _draw_elite_icon() -> void:
+	var head := to_local(get_head_top_global_position())
+	var center := head + Vector2(0.0, -GameConfig.scale_world(12.0))
+	var pulse := 0.70 + 0.30 * sin(Time.get_ticks_msec() * 0.006)
+	var col := Color(ELITE_ICON_COLOR_HEX)
+	col.a = pulse
+	var px: int = int(maxf(2.0, GameConfig.scale_world(1.5)))
+	var star := [
+		[0, 0, 1, 0, 0],
+		[0, 1, 1, 1, 0],
+		[1, 1, 1, 1, 1],
+		[0, 1, 0, 1, 0],
+		[1, 0, 0, 0, 1],
+	]
+	for r in range(5):
+		for c in range(5):
+			if star[r][c] == 0:
+				continue
+			var x: float = center.x + float(c - 2) * float(px)
+			var y: float = center.y + float(r - 2) * float(px)
+			draw_rect(Rect2(x, y, float(px), float(px)), col)
+
+
+# 自爆精英死亡时触发：玩家近距离掉血 + 屏震 + 复用 ability_manager.abyss_explosions 池播放视觉
+const _EffectHelperT = preload("res://scripts/utils/effect_helper.gd")
+
+func _trigger_bomb_aoe() -> void:
+	var battle := get_tree().get_first_node_in_group("battle")
+	if battle == null:
+		return
+	var cfg: Dictionary = ELITE_CONFIG["bomb"]
+	var radius: float = GameConfig.scale_world(float(cfg.aoe_r))
+	var dmg_mul: float = float(cfg.aoe_dmg_mul)
+	# 1) 玩家伤害（独立距离判定，不依赖 abyss 系统）
+	if battle.player and is_instance_valid(battle.player):
+		var player_r: float = 0.0
+		if battle.player.has_method("get_effective_radius"):
+			player_r = float(battle.player.get_effective_radius())
+		var d: float = global_position.distance_to(battle.player.global_position)
+		if d <= radius + player_r:
+			var dmg: int = int(round(float(attack) * dmg_mul))
+			if battle.player.has_method("take_damage"):
+				battle.player.take_damage(dmg)
+	# 2) 屏震
+	if battle.has_method("shake_camera"):
+		battle.shake_camera(6.0, 0.18)
+	# 3) 视觉：复用 abyss_explosions 池（damage_applied:true 阻止 abyss 系统二次伤害）
+	if battle.abilities and "abyss_explosions" in battle.abilities and "_explosion_frames" in battle.abilities:
+		var frames = battle.abilities._explosion_frames
+		var anim_life: float = 0.55
+		if frames:
+			anim_life = _EffectHelperT.one_shot_anim_duration(frames)
+			if anim_life <= 0.0:
+				anim_life = 0.55
+		battle.abilities.abyss_explosions.append({
+			"kind": "abyss_explosion",
+			"pos": global_position,
+			"radius": radius,
+			"life": anim_life,
+			"max_life": anim_life,
+			"anim_t": 0.0,
+			"dmg_mul": 1.0,
+			"damage": 0,
+			"hit": {},
+			"damage_applied": true,
+		})

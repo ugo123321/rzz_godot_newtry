@@ -14,15 +14,25 @@ var cfg: Dictionary = {}
 var phase := Phase.WARNING
 var warning_timer := 3.0
 var warning_pulse := 0.0
+var warning_total := 3.0           # 用于警告阶段进度计算（chevron 扫描 / 内缩边框）
 var defeated := false
 var defeat_rewarded := false
 var hp := 0
 var max_hp := 0
 var defense := 0
 var hitbox_radius := 14.0
+var body_scale_mult := 1.0         # bosses.json body_scale_mult；体型放大与碰撞同步
 var move_speed := 48.0
 var death_fade_timer := 0.0
 var death_fade_dur := 0.35
+
+# Boss 出现特效：WARNING 前 0.6s 走 scale 0→1 + alpha 0→1 + 黄色冲击波 + 屏抖。
+# 走完后接现有 warning 倒计时。
+const APPEAR_DURATION := 0.65
+var appear_timer := 0.0
+var appear_active := false
+var _appear_shockwave_r := 0.0     # 黄色冲击波当前半径
+var _appear_shockwave_alpha := 0.0
 
 var skill_state := SkillState.CHASE
 var skill_cooldown := 5.0
@@ -34,6 +44,9 @@ var facing := 1.0
 var vulnerable_mark := false
 var path_target_hit_count := 0
 var alive := true
+# `dying` 与 BattleMonster 对齐 —— 召唤物 / 元素 DoT / 剑环绕等系统统一靠 `bool(m.get("dying"))`
+# 过滤死亡中目标。没有这个字段会让 Godot 4 在 `bool(null)` 处抛 "Nonexistent 'bool' constructor"。
+var dying := false
 
 # v2 元素抗性/易伤(从 bosses.json 加载)
 var elem_resist_fire := 0.0
@@ -49,6 +62,7 @@ var vuln_poison := 0.0
 var _warning_alpha := 0.0
 var _speed_fx_t := 0.0
 var _specter_archers: Array = []
+var _base_sprite_scale := 1.0      # _apply_sprite 算出来的最终 scale，appear tween 用作目标值
 
 var logical_w := 720.0
 var logical_h := 1280.0
@@ -85,13 +99,22 @@ func setup(battle_node, p_stage_index: int) -> void:
 	play_top = 88.0
 	play_bottom = logical_h - 120.0
 	hitbox_radius = float(cfg.get("hitbox_radius", 14))
+	body_scale_mult = float(cfg.get("body_scale_mult", 1.0))
+	# body_scale_mult 同步放大 hitbox（与精英化 size_mult 思路一致）
+	hitbox_radius *= body_scale_mult
 	move_speed = float(cfg.get("move_speed", 48))
 	warning_timer = float(cfg.get("warning_time", 3))
+	warning_total = warning_timer
 	skill_cooldown = float(cfg.get("skill_interval", 5.0))
 	phase = Phase.WARNING
 	defeated = false
 	defeat_rewarded = false
 	skill_state = SkillState.CHASE
+	# Boss 出现特效：scale 0 + alpha 0 起步，appear_timer 推进到 APPEAR_DURATION 时归位
+	appear_active = true
+	appear_timer = APPEAR_DURATION
+	_appear_shockwave_r = 0.0
+	_appear_shockwave_alpha = 1.0
 	var scale := GameConfig.stage_stat_scale(stage_index)
 	max_hp = int(round(float(cfg.get("hp", 3200)) * scale.hp))
 	hp = max_hp
@@ -109,6 +132,41 @@ func setup(battle_node, p_stage_index: int) -> void:
 	_apply_sprite()
 	global_position = _pick_spawn_position()
 	sprite.play(SpriteHelper.ANIM_IDLE)
+	# 起步小 + 透明，让 update_boss 的 tween 拉到位（避免第一帧露出全尺寸）
+	sprite.scale = Vector2.ONE * _base_sprite_scale * 0.4
+	sprite.modulate.a = 0.0
+	_spawn_appear_particles()
+
+
+# Boss 出现：地面砖石粉尘 + 金色火星向外 + 屏抖
+func _spawn_appear_particles() -> void:
+	if battle == null:
+		return
+	battle.shake_camera(7.5, 0.35)
+	if battle.particles == null:
+		return
+	# 24 个棕色尘土向外
+	for i in range(24):
+		var a := randf() * TAU
+		var sp := randf_range(160.0, 320.0)
+		battle.particles.emit_particle(
+			global_position.x, global_position.y,
+			cos(a) * sp, sin(a) * sp,
+			randf_range(0.35, 0.6),
+			randf_range(6.0, 11.0),
+			Color("#8a6244"), 80.0, true, true
+		)
+	# 14 个金色火星更快、更亮、向上抛
+	for i in range(14):
+		var a2 := -PI * 0.5 + randf_range(-PI * 0.5, PI * 0.5)
+		var sp2 := randf_range(240.0, 420.0)
+		battle.particles.emit_particle(
+			global_position.x, global_position.y,
+			cos(a2) * sp2, sin(a2) * sp2,
+			randf_range(0.3, 0.55),
+			randf_range(4.0, 7.0),
+			Color("#ffd040"), 320.0, true, false
+		)
 
 
 func _apply_sprite() -> void:
@@ -117,7 +175,9 @@ func _apply_sprite() -> void:
 	sprite.sprite_frames = SpriteHelper.build_character_frames(folder, prefix)
 	SpriteHelper.apply_pixel_art(sprite)
 	var scale_val := float(GameConfig.get_tuning("monster_sprite_scale", 1.0))
-	sprite.scale = Vector2.ONE * SpriteHelper.pixel_scale(scale_val)
+	# pixel_scale 接受 size_mult 参数自动按 0.5 步进对齐避免糊边
+	_base_sprite_scale = SpriteHelper.pixel_scale(scale_val, body_scale_mult)
+	sprite.scale = Vector2.ONE * _base_sprite_scale
 
 
 func _pick_spawn_position() -> Vector2:
@@ -215,6 +275,25 @@ func activate() -> void:
 
 
 func update_boss(delta: float, player: BattlePlayer) -> void:
+	# Boss 出现 tween：scale 0.6→1.0 (back-out)；alpha 0→1；冲击波扩散
+	# 跨任何 phase 都跑（实际 WARNING 阶段刚 setup 完触发，0.65s 后退场）
+	if appear_active:
+		appear_timer = maxf(0.0, appear_timer - delta)
+		_appear_shockwave_r += delta * 480.0
+		_appear_shockwave_alpha = clampf(appear_timer / APPEAR_DURATION, 0.0, 1.0)
+		var p: float = 1.0 - (appear_timer / APPEAR_DURATION)
+		# back-out 缓动：1 - (1-p)^2 × (1 - 1.4*(1-p))
+		var k: float = 1.0 - p
+		var ease_p: float = 1.0 - k * k * (1.0 - 1.4 * k)
+		var scale_now: float = _base_sprite_scale * lerpf(0.4, 1.0, clampf(ease_p, 0.0, 1.0))
+		sprite.scale = Vector2.ONE * scale_now
+		sprite.modulate.a = clampf(p * 1.6, 0.0, 1.0)
+		if appear_timer <= 0.0:
+			appear_active = false
+			sprite.scale = Vector2.ONE * _base_sprite_scale
+			sprite.modulate.a = 1.0
+			modulate = Color.WHITE
+		queue_redraw()
 	match phase:
 		Phase.WARNING:
 			warning_timer -= delta
@@ -437,6 +516,7 @@ func _defeat() -> void:
 	hp = 0
 	defeated = true
 	alive = false
+	dying = true
 	phase = Phase.DEAD
 	death_fade_timer = death_fade_dur
 	_play_anim(SpriteHelper.ANIM_DEATH, true)
@@ -459,18 +539,89 @@ func get_warning_text() -> String:
 
 
 func _draw_warning_overlay() -> void:
-	var pulse := 0.45 + sin(warning_pulse) * 0.35
-	var border_w := maxf(6.0, 10.0 + pulse * 8.0)
-	var alpha := 0.5 + pulse * 0.45
-	var col := Color(1.0, 0.16, 0.16, alpha)
-	var inset := border_w * 0.5
-	var origin := -global_position
-	draw_rect(
-		Rect2(origin + Vector2(inset, inset), Vector2(logical_w - border_w, logical_h - border_w)),
-		col,
-		false,
-		border_w
-	)
+	# 警告视觉重做（替代纯红色矩形描边）：
+	# 1. 屏幕外圈深色 vignette 渐淡 — 玩家视野收紧
+	# 2. 上下两条扫动 chevron（黄/红箭头条纹）— 强烈"小心冲锋"暗示
+	# 3. boss 周围多层警告环（红 + 金）— 标记目标
+	# 4. 倒计时进度按 stage 边框内缩 — 时间感
+	# origin: world (0,0) 相对自己 = -global_position
+	var origin: Vector2 = -global_position
+	var t: float = warning_pulse
+	# 警告强度：剩余越少越急
+	var urgency: float = clampf(1.0 - warning_timer / maxf(0.001, warning_total), 0.0, 1.0)
+	var fast_pulse: float = 0.5 + 0.5 * sin(t * (6.0 + urgency * 8.0))
+	# 1) Vignette: 屏幕外圈黑色衰减（从边缘到中心淡出）
+	var vignette_a: float = 0.18 + 0.10 * urgency + 0.06 * fast_pulse
+	var vignette_thick: float = 32.0 + 12.0 * urgency
+	draw_rect(Rect2(origin, Vector2(logical_w, vignette_thick)), Color(0.05, 0.0, 0.02, vignette_a))
+	draw_rect(Rect2(origin + Vector2(0, logical_h - vignette_thick), Vector2(logical_w, vignette_thick)), Color(0.05, 0.0, 0.02, vignette_a))
+	draw_rect(Rect2(origin, Vector2(vignette_thick, logical_h)), Color(0.05, 0.0, 0.02, vignette_a))
+	draw_rect(Rect2(origin + Vector2(logical_w - vignette_thick, 0), Vector2(vignette_thick, logical_h)), Color(0.05, 0.0, 0.02, vignette_a))
+	# 2) 上下 chevron 扫动条 —— 8 个三角形像素箭头，沿 X 方向滚动，方向相对（上往右、下往左）
+	_draw_warning_chevron_band(origin + Vector2(0, vignette_thick - 4.0), logical_w, t, 1.0, urgency)
+	_draw_warning_chevron_band(origin + Vector2(0, logical_h - vignette_thick - 14.0), logical_w, t, -1.0, urgency)
+	# 3) boss 周围多层环：内圈红，中圈金，外圈淡白 — 标记目标
+	var pulse_r: float = 38.0 + sin(t * 7.0) * 6.0
+	draw_arc(Vector2.ZERO, pulse_r, 0.0, TAU, 48, Color(1.0, 0.18, 0.18, 0.85), 4.0)
+	draw_arc(Vector2.ZERO, pulse_r + 14.0, 0.0, TAU, 48, Color(1.0, 0.78, 0.20, 0.6), 2.5)
+	draw_arc(Vector2.ZERO, pulse_r + 24.0 + sin(t * 4.0) * 4.0, 0.0, TAU, 48, Color(1.0, 0.95, 0.7, 0.32 + 0.18 * fast_pulse), 1.5)
+	# 红色脉冲填充（淡）
+	draw_circle(Vector2.ZERO, pulse_r * 0.85, Color(1.0, 0.18, 0.10, 0.08 + 0.10 * fast_pulse))
+	# 4) 边框（红+金双层）按倒计时进度收紧 —— 玩家看见 frame 在向中心压
+	var inset: float = lerpf(2.0, 18.0, urgency)
+	var inner_origin: Vector2 = origin + Vector2(inset, inset)
+	var inner_size: Vector2 = Vector2(logical_w - inset * 2.0, logical_h - inset * 2.0)
+	var border_w_inner: float = 4.0 + 3.0 * fast_pulse
+	draw_rect(Rect2(inner_origin, inner_size), Color(1.0, 0.18, 0.18, 0.72), false, border_w_inner)
+	draw_rect(Rect2(inner_origin + Vector2(border_w_inner, border_w_inner) * 0.5, inner_size - Vector2(border_w_inner, border_w_inner)), Color(1.0, 0.82, 0.25, 0.55), false, 1.5)
+
+
+# 8 个朝向 dir 的扫动三角箭头，间距 90px，整体随 t 滚动，速度按 urgency 加快。
+# dir=+1 朝右；dir=-1 朝左。每个箭头 14px 高 × 18px 宽，黄/红渐变。
+func _draw_warning_chevron_band(top_left: Vector2, band_w: float, t: float, dir: float, urgency: float) -> void:
+	var roll: float = fposmod(t * (90.0 + 60.0 * urgency) * dir, 90.0)
+	var arrow_h: float = 14.0
+	var arrow_w: float = 22.0
+	var y: float = top_left.y
+	var x_start: float = top_left.x - 90.0
+	var n: int = int(ceil((band_w + 180.0) / 90.0))
+	var col_outer := Color(1.0, 0.20, 0.18, 0.85)
+	var col_inner := Color(1.0, 0.85, 0.28, 0.95)
+	var outer_colors := PackedColorArray([col_outer, col_outer, col_outer])
+	var inner_colors := PackedColorArray([col_inner, col_inner, col_inner])
+	for i in range(n):
+		var cx: float = x_start + roll + float(i) * 90.0
+		var tip_x: float = cx + arrow_w * 0.5 * dir
+		var base_x: float = cx - arrow_w * 0.5 * dir
+		var top_y: float = y
+		var bot_y: float = y + arrow_h
+		var pts := PackedVector2Array([
+			Vector2(tip_x, y + arrow_h * 0.5),
+			Vector2(base_x, top_y),
+			Vector2(base_x, bot_y),
+		])
+		draw_polygon(pts, outer_colors)
+		# 内层小箭头（金心）
+		var shrink: float = 5.0
+		var pts2 := PackedVector2Array([
+			Vector2(tip_x - shrink * dir, y + arrow_h * 0.5),
+			Vector2(base_x + shrink * dir, top_y + 3.0),
+			Vector2(base_x + shrink * dir, bot_y - 3.0),
+		])
+		draw_polygon(pts2, inner_colors)
+
+
+# Boss 出现：黄色扩散冲击波（绘制在 _draw 末尾，不受 warning vignette 影响）
+func _draw_appear_shockwave() -> void:
+	if not appear_active and _appear_shockwave_alpha <= 0.01:
+		return
+	var ring_w: float = 6.0 * _appear_shockwave_alpha
+	var col_outer := Color(1.0, 0.85, 0.30, 0.6 * _appear_shockwave_alpha)
+	var col_inner := Color(1.0, 1.0, 0.7, 0.85 * _appear_shockwave_alpha)
+	draw_arc(Vector2.ZERO, _appear_shockwave_r, 0.0, TAU, 48, col_outer, ring_w)
+	draw_arc(Vector2.ZERO, _appear_shockwave_r * 0.7, 0.0, TAU, 48, col_inner, ring_w * 0.6)
+	# 内圈实心闪光
+	draw_circle(Vector2.ZERO, maxf(0.0, 28.0 - _appear_shockwave_r * 0.1), Color(1.0, 0.95, 0.65, 0.45 * _appear_shockwave_alpha))
 
 
 func _draw_skill_windup(ring_color: Color, marker_color: Color) -> void:
@@ -522,3 +673,6 @@ func _draw() -> void:
 	if path_target_hit_count > 0:
 		var ring := CombatDirector.path_preview_ring_color(path_target_hit_count)
 		draw_arc(Vector2.ZERO, hitbox_radius + 5.0, 0.0, TAU, 24, ring, 3.0)
+	# Boss 出现冲击波（warning 阶段前 0.65s，扩散黄色 ring）
+	if appear_active or _appear_shockwave_alpha > 0.01:
+		_draw_appear_shockwave()

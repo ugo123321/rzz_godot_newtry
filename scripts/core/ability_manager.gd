@@ -34,11 +34,18 @@ var _explosion_frames: SpriteFrames
 var _smoke_hit_frames: SpriteFrames
 var shurikens: Array = []
 var lasers: Array = []
+var v6_demon_scythes: Array = []  # sr=46 死神镰刀实例（弯月像素体 + 渐进展开 + 拖尾光带）
 var abyss_explosions: Array = []
 var hit_fx: Array = []
 var water_tornados: Array = []
 var black_holes: Array = []
 var whirls: Array = []
+# sr=13 视觉实体：火力支援像素爆炸 / 圣光柱（与 _skill_burst 微粒子分开管理）
+var bomb_explosions: Array = []   # {pos, radius_px, life, max_life}
+var holy_pillars: Array = []      # {pos, life, max_life, fall_t}
+# sr=13 手榴弹弹道（抛物线投掷 → 落地引爆 bomb_explosion）。与直接的 bomb_explosions 区分：
+# bomb_explosions 是命中/落地后的视觉烟花；grenade_arcs 是飞行中的弹道。
+var grenade_arcs: Array = []      # {start, end, t, total_t, peak, atk_mult, radius_px, style, rot_spin}
 # Phase 6 sr=25 trail_elem_field：场域格列表
 var v6_trail_fields: Array = []
 var auto_bullet_cooldown := 0.0
@@ -167,11 +174,15 @@ func _draw_sprite_fx(
 func reset() -> void:
 	shurikens.clear()
 	lasers.clear()
+	v6_demon_scythes.clear()
 	abyss_explosions.clear()
 	hit_fx.clear()
 	water_tornados.clear()
 	black_holes.clear()
 	whirls.clear()
+	bomb_explosions.clear()
+	holy_pillars.clear()
+	grenade_arcs.clear()
 	v6_trail_fields.clear()
 	auto_bullet_cooldown = 0.0
 	black_hole_spawned_this_resolve = false
@@ -193,7 +204,7 @@ func on_resolve_started() -> void:
 
 
 func has_active_fx() -> bool:
-	return not shurikens.is_empty() or not lasers.is_empty() or not abyss_explosions.is_empty() or not hit_fx.is_empty() or not water_tornados.is_empty() or not black_holes.is_empty() or not whirls.is_empty()
+	return not shurikens.is_empty() or not lasers.is_empty() or not v6_demon_scythes.is_empty() or not abyss_explosions.is_empty() or not hit_fx.is_empty() or not water_tornados.is_empty() or not black_holes.is_empty() or not whirls.is_empty() or not bomb_explosions.is_empty() or not holy_pillars.is_empty() or not grenade_arcs.is_empty()
 
 
 func update(delta: float, player: BattlePlayer, monsters: Array) -> void:
@@ -205,11 +216,15 @@ func update(delta: float, player: BattlePlayer, monsters: Array) -> void:
 	_update_auto_bullets(delta, player, monsters)
 	_update_shurikens(delta, player, monsters)
 	_update_lasers(delta, player, monsters)
+	_update_v6_demon_scythes(delta, player, monsters)
 	_update_abyss_explosions(delta, player, monsters)
 	_update_hit_fx(delta)
 	_update_water_tornados(delta, player, monsters)
 	_update_black_holes(delta, player, monsters)
 	_update_whirls(delta, player, monsters)
+	_update_bomb_explosions(delta)
+	_update_holy_pillars(delta)
+	_update_grenade_arcs(delta, player)
 	_update_v6_trail_fields(delta, player, monsters)
 
 
@@ -254,15 +269,18 @@ func _spawn_auto_bullet_volley(player: BattlePlayer, monsters: Array) -> void:
 	var base_ang := _nearest_monster_angle(player.global_position, -PI * 0.5, monsters)
 	var dmg := player.get_auto_bullet_damage()
 	var count := maxi(1, player.bullet_count)
+	# sr=11 bullet_spirit_bomb：装备此卡时把所有普攻子弹切换到元气弹视觉（蓝白能量球）
+	# 不依赖 player 字段，直接看 upgrade_stacks（sr=11 没有持久化的 player buff 字段）
+	var is_spirit: bool = int(player.upgrade_stacks.get("bullet_spirit_bomb", 0)) > 0
 	for i in range(count):
 		var ang := base_ang
 		if count > 1:
 			ang = base_ang + (float(i) - (count - 1) * 0.5) * AUTO_BULLET_FAN_SPREAD
-		_spawn_bullet_from_angle(player, ang, dmg, false, 1.0)
+		_spawn_bullet_from_angle(player, ang, dmg, is_spirit, 1.0)
 	# Phase 3 sr=17 bullet_side：dispatcher 返回斜射额外角度
 	var extra_angles: Array = SpecialRuleDispatcher.collect_extra_bullet_angles(player, base_ang)
 	for ang2 in extra_angles:
-		_spawn_bullet_from_angle(player, float(ang2), dmg, false, 1.0)
+		_spawn_bullet_from_angle(player, float(ang2), dmg, is_spirit, 1.0)
 
 
 func _on_auto_bullet_released() -> void:
@@ -356,12 +374,14 @@ func _auto_projectile_should_remove(s: Dictionary, player: BattlePlayer, out_of_
 		return true
 	if _auto_outbound_mirror_pending(s, player):
 		return false
-	# 普攻主子弹：飞行距离达到 auto_bullet_range 后消失；split/bounce 仍按 life
+	# 普攻主子弹：飞行距离达到 auto_bullet_range 或 life 到时消失
+	# 注意：必须 life 兜底 — homing 子弹会绕怪拐弯，pos→origin 直线距离可能永远 < range_px
+	# 没 life 兜底的话拐弯子弹会卡在屏幕上无限绕圈，再没怪打就再也不死。
 	if not bool(s.get("is_split", false)) and not bool(s.get("is_bounce", false)):
 		var origin: Vector2 = Vector2(s.get("origin", s.get("pos", Vector2.ZERO)))
 		var traveled: float = Vector2(s.get("pos", Vector2.ZERO)).distance_to(origin)
 		var range_px: float = float(s.get("range_px", GameConfig.get_player_value("auto_bullet_range", 378)))
-		return traveled >= range_px
+		return traveled >= range_px or float(s.life) <= 0.0
 	return float(s.life) <= 0.0
 
 
@@ -421,6 +441,14 @@ func _spawn_bullet_from_angle(player: BattlePlayer, ang: float, damage: int, is_
 	var spawn_pos := player.global_position + dir * (player.get_effective_radius() + GameConfig.scale_world(AUTO_BULLET_SPAWN_OFFSET))
 	var max_life := float(GameConfig.get_player_value("auto_bullet_life", 0.9))
 	var range_px := float(GameConfig.get_player_value("auto_bullet_range", 378))
+	# sr=49 血飞刀：射程 ×range_mult；穿透由 _apply_projectile_hit 末段判定（行为永远生效，不受视觉互斥影响）
+	var blood_blade: bool = bool(player.blood_blade_pierce)
+	if blood_blade:
+		range_px *= float(player.blood_blade_range_mult)
+		max_life *= float(player.blood_blade_range_mult)
+	# 视觉互斥：玩家可能同时装备元气弹 + 血飞刀。按 player.get_active_bullet_visual_kind() 决出胜者（后获得者覆盖之前）
+	# 调用方传进的 is_spirit 只表示"元气弹卡当前是否装备"；真正画哪张交给 visual_kind 字段决定
+	var visual_kind: String = player.get_active_bullet_visual_kind() if player.has_method("get_active_bullet_visual_kind") else ("spirit" if is_spirit else ("blood_blade" if blood_blade else ""))
 	shurikens.append(_with_upgrade_fx_layer({
 		"kind": "auto",
 		"pos": spawn_pos,
@@ -437,7 +465,9 @@ func _spawn_bullet_from_angle(player: BattlePlayer, ang: float, damage: int, is_
 		"is_spirit": is_spirit,
 		"returning": false,
 		"mirror_used": false,
-	}, "spirit_bomb" if is_spirit else "multi_bullet"))
+		"is_blood_blade": blood_blade,
+		"visual_kind": visual_kind,
+	}, "spirit_bomb" if visual_kind == "spirit" else ("blood_blade" if visual_kind == "blood_blade" else "multi_bullet")))
 	_finalize_spawned_projectile(shurikens.back(), player)
 
 
@@ -627,6 +657,127 @@ func spawn_v6_blade_storm(player: BattlePlayer, pos: Vector2, level: int, weapon
 	_skill_burst(pos, 6.0, 0.15, Color("#ffe060"), 16)
 
 
+# sr=39 sword_rage 旋风弹道：从剑当前位置朝命中怪方向直线飞行，途中持续 AOE 命中。
+# 与 spawn_v6_blade_storm 的差别 — 那个 vel=0 原地转刀阵；这个 vel ≠ 0 是飞行旋风。
+func spawn_v6_sword_whirlwind(player: BattlePlayer, spawn_pos: Vector2, dir: Vector2, atk_mult: float, radius_px: float) -> void:
+	var dmg: int = player.get_ability_damage(atk_mult)
+	var d: Vector2 = dir.normalized() if dir.length_squared() > 0.001 else Vector2.RIGHT
+	var travel_life: float = 1.2
+	whirls.append(_with_upgrade_fx_layer({
+		"kind": "whirl",
+		"pos": spawn_pos,
+		"vel": d * 260.0,
+		"radius": GameConfig.scale_world(radius_px) * FX_SCALE * 0.55,
+		"max_radius": GameConfig.scale_world(radius_px) * FX_SCALE * 0.95,
+		"life": travel_life,
+		"max_life": travel_life,
+		"anim_t": 0.0,
+		"hit": {},
+		"damage": dmg,
+		"dmg_mul": 1.0,
+	}, "sword_rage"))
+	_skill_burst(spawn_pos, 4.0, 0.10, Color("#e0d0a0"), 10)
+
+
+# sr=13 bullet_fire_support 手榴弹弹道：从玩家投出抛物线落到命中点，落地引爆 bomb_explosion。
+# style="holy" 不走弧线（圣光柱本来就是天降）；只有 "bomb" 走 grenade_arc 流程。
+func spawn_v6_grenade_arc(player: BattlePlayer, start_pos: Vector2, end_pos: Vector2, atk_mult: float, radius_px: float, style: String = "bomb") -> void:
+	if style != "bomb":
+		spawn_v6_bullet_aoe(player, end_pos, atk_mult, radius_px, style)
+		return
+	var dist: float = start_pos.distance_to(end_pos)
+	var total_t: float = clampf(0.30 + dist * 0.0008, 0.32, 0.65)
+	var peak: float = clampf(dist * 0.32, 48.0, 140.0)
+	grenade_arcs.append({
+		"start": start_pos,
+		"end": end_pos,
+		"t": 0.0,
+		"total_t": total_t,
+		"peak": peak,
+		"atk_mult": atk_mult,
+		"radius_px": radius_px,
+		"style": style,
+		"rot_spin": randf_range(-10.0, 10.0),
+	})
+
+
+func _update_grenade_arcs(delta: float, player: BattlePlayer) -> void:
+	if player == null:
+		return
+	var i := grenade_arcs.size() - 1
+	while i >= 0:
+		var g: Dictionary = grenade_arcs[i]
+		g["t"] = float(g.t) + delta
+		if float(g.t) >= float(g.total_t):
+			# 着地 → 复用现有 bomb_explosion 视觉 + AOE 伤害
+			spawn_v6_bullet_aoe(player, Vector2(g.end), float(g.atk_mult), float(g.radius_px), str(g.style))
+			grenade_arcs.remove_at(i)
+		else:
+			grenade_arcs[i] = g
+		i -= 1
+
+
+func _grenade_arc_position(g: Dictionary) -> Vector2:
+	var t_norm: float = clampf(float(g.t) / float(g.total_t), 0.0, 1.0)
+	var linear_pos: Vector2 = Vector2(g.start).lerp(Vector2(g.end), t_norm)
+	var y_off: float = -float(g.peak) * sin(PI * t_norm)
+	return linear_pos + Vector2(0.0, y_off)
+
+
+# 手榴弹像素图：dark gray 圆体 + 顶部黑色短引信 + 闪烁火星。约 3x3 块 × 2.5px = 7.5px 球径。
+func _draw_pixel_grenade(canvas: Node2D, local_pos: Vector2, rot: float, _g: Dictionary) -> void:
+	var px := 2.5
+	canvas.draw_set_transform(local_pos, rot, Vector2.ONE)
+	var body_grid := [
+		[0, 1, 1, 0],
+		[1, 2, 2, 1],
+		[1, 2, 3, 1],
+		[0, 1, 1, 0],
+	]
+	var palette := {
+		1: Color("#2a2828"),
+		2: Color("#48433f"),
+		3: Color("#7a6f60"),
+	}
+	for ry in range(body_grid.size()):
+		var row: Array = body_grid[ry]
+		for cx in range(row.size()):
+			var layer: int = int(row[cx])
+			if layer == 0:
+				continue
+			var col: Color = palette.get(layer, Color.BLACK)
+			var x: float = (float(cx) - 1.5) * px
+			var y: float = (float(ry) - 1.5) * px
+			canvas.draw_rect(Rect2(x, y, px, px), col)
+	# 引信柄
+	canvas.draw_rect(Rect2(-px * 0.5, -2.5 * px, px, px), Color("#1a1410"))
+	# 火星（每 60ms 闪烁，黄→橙）
+	var spark_flicker: bool = int(Time.get_ticks_msec() / 60) % 2 == 0
+	var spark_col: Color = Color("#fff080") if spark_flicker else Color("#ff8830")
+	canvas.draw_rect(Rect2(-px * 0.5, -3.5 * px, px, px), spark_col)
+	# 闪烁外光晕
+	var glow_alpha: float = 0.22 if spark_flicker else 0.32
+	canvas.draw_circle(Vector2(0.0, -3.0 * px), px * 1.4, Color(1.0, 0.7, 0.25, glow_alpha))
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_grenade_arcs(canvas: Node2D, below_monsters: bool) -> void:
+	if below_monsters:
+		return
+	var offset: Vector2 = -canvas.global_position
+	for g in grenade_arcs:
+		var t_norm: float = clampf(float(g.t) / float(g.total_t), 0.0, 1.0)
+		# 地面阴影：沿 start → end 直线，随飞行靠近 end 缩小 / 变暗
+		var ground_pos: Vector2 = Vector2(g.start).lerp(Vector2(g.end), t_norm)
+		var shadow_local: Vector2 = ground_pos + offset
+		var shadow_r: float = 4.5 * (1.0 - 0.35 * sin(PI * t_norm))  # 飞到高点时阴影最小
+		canvas.draw_circle(shadow_local, shadow_r, Color(0.0, 0.0, 0.0, 0.28))
+		# 弹体
+		var pos: Vector2 = _grenade_arc_position(g) + offset
+		var rot: float = float(g.t) * float(g.rot_spin)
+		_draw_pixel_grenade(canvas, pos, rot, g)
+
+
 # combo_thunder：circle — 雷链 + AOE
 func spawn_v6_thunder(player: BattlePlayer, pos: Vector2, level: int, weapon_mult: float, radius: float) -> void:
 	var dmg: int = player.get_ability_damage(weapon_mult)
@@ -658,8 +809,9 @@ func spawn_v6_thunder(player: BattlePlayer, pos: Vector2, level: int, weapon_mul
 
 # ============= Phase 6 v6 bullet proc helpers (sr=13 / sr=18) =============
 
-# sr=13 bullet_fire_support：在命中位置 spawn 小爆炸
-func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, radius_px: float) -> void:
+# sr=13 bullet_fire_support / angel_holy_bullet：在命中位置 spawn 小爆炸（火力支援）或天降光柱（圣光子弹）
+# style="bomb" → 橙色像素爆炸圆环；style="holy" → 蓝白雷电像素光柱
+func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, radius_px: float, style: String = "bomb") -> void:
 	if battle == null or battle.spawner == null:
 		return
 	var dmg: int = player.get_ability_damage(atk_mult)
@@ -681,7 +833,52 @@ func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, ra
 				ElementEffectManager.try_apply(m, info, player)
 			if bool(result.get("started_dying", false)):
 				EventBus.monster_killed.emit(m)
-	_skill_burst(pos, 4.0, 0.1, Color("#ff8040"), 10)
+	# 视觉实体 + 屏幕抖（按 style 分发）
+	if style == "holy":
+		holy_pillars.append(_with_upgrade_fx_layer({
+			"pos": pos,
+			"life": 0.5,
+			"max_life": 0.5,
+			"fall_t": 0.0,
+			"fall_dur": 0.18,
+			"radius_px": radius_px,
+		}, "angel_holy_bullet"))
+		battle.shake_camera(7.0 * FX_SCALE, 0.15)
+	else:
+		bomb_explosions.append(_with_upgrade_fx_layer({
+			"pos": pos,
+			"life": 0.4,
+			"max_life": 0.4,
+			"radius_px": radius_px,
+		}, "bullet_fire_support"))
+		battle.shake_camera(8.0 * FX_SCALE, 0.18)
+	_skill_burst(pos, 4.0, 0.1, Color("#ff8040") if style != "holy" else Color("#a8c8ff"), 10)
+
+
+# 视觉实体生命周期：bomb_explosions / holy_pillars 仅做计时淡出，不再造成伤害（伤害已在 spawn 时结算）
+func _update_bomb_explosions(delta: float) -> void:
+	var i := bomb_explosions.size() - 1
+	while i >= 0:
+		var e: Dictionary = bomb_explosions[i]
+		e["life"] = float(e.life) - delta
+		if float(e.life) <= 0.0:
+			bomb_explosions.remove_at(i)
+		else:
+			bomb_explosions[i] = e
+		i -= 1
+
+
+func _update_holy_pillars(delta: float) -> void:
+	var i := holy_pillars.size() - 1
+	while i >= 0:
+		var p: Dictionary = holy_pillars[i]
+		p["life"] = float(p.life) - delta
+		p["fall_t"] = clampf(float(p.fall_t) + delta / float(p.get("fall_dur", 0.18)), 0.0, 1.0)
+		if float(p.life) <= 0.0:
+			holy_pillars.remove_at(i)
+		else:
+			holy_pillars[i] = p
+		i -= 1
 
 
 # sr=18 bullet_beam：spawn 一条 laser 短射线
@@ -701,6 +898,166 @@ func spawn_v6_bullet_beam(player: BattlePlayer, pos: Vector2, ang: float, atk_mu
 		"hit": {},
 		"rot": ang,
 	}, "bullet_beam"))
+
+
+# sr=46 死神镰刀：实体镰刀飞行物 — 慢速向前飞 + 自身高速自转 + 沿途贯通命中
+# 与激光的关键区别：镰刀有实体（一个旋转的弯月像素体在某个位置），不是从 origin 拉到 head 的光条
+const SCYTHE_SPEED := 280.0          # 实体飞行速度（px/s）— 再次降速，强调投掷感、便于看清弯月旋转
+const SCYTHE_SPIN_SPEED := TAU * 4.0  # 自转角速度（rad/s）— 每秒 4 圈，切割感
+const SCYTHE_HIT_RADIUS := 36.0       # 镰刀本体的命中半径
+const SCYTHE_PIXEL := 4.0             # 弯月像素块尺寸
+const SCYTHE_RADIUS_BLOCKS := 6       # 弯月外接半径（块数）
+
+func spawn_v6_demon_scythe(player: BattlePlayer, pos: Vector2, ang: float, atk_mult: float, pierce: bool) -> void:
+	var dir := Vector2(cos(ang), sin(ang))
+	# 飞出屏幕外稍远一点后自然消失（不再 fade，越界即死）
+	v6_demon_scythes.append(_with_upgrade_fx_layer({
+		"pos": pos,
+		"dir": dir,
+		"vel": dir * SCYTHE_SPEED * FX_SCALE,
+		"ang": ang,
+		"spin": 0.0,
+		"damage": player.get_ability_damage(atk_mult),
+		"hit": {},
+		"pierce": pierce,
+		"life": 6.0,  # 最长 6 秒兜底（极慢分辨率下也能死）
+	}, "demon_scythe"))
+
+
+func _update_v6_demon_scythes(delta: float, player: BattlePlayer, monsters: Array) -> void:
+	var i := v6_demon_scythes.size() - 1
+	while i >= 0:
+		var s: Dictionary = v6_demon_scythes[i]
+		var new_pos: Vector2 = Vector2(s.pos) + Vector2(s.vel) * delta
+		s["pos"] = new_pos
+		s["spin"] = float(s.get("spin", 0.0)) + SCYTHE_SPIN_SPEED * delta
+		s["life"] = float(s.life) - delta
+		# 命中扫描：圆形碰撞（镰刀本体）
+		_scythe_hit_pos(s, player, monsters, new_pos)
+		# 出屏 / 寿命结束 → 移除
+		if _is_out_of_playfield(new_pos) or float(s.life) <= 0.0:
+			v6_demon_scythes.remove_at(i)
+		else:
+			v6_demon_scythes[i] = s
+		i -= 1
+
+
+# 镰刀当前位置做圆形命中扫描；贯通模式下命中后只记 hit dict 不停飞
+func _scythe_hit_pos(s: Dictionary, player: BattlePlayer, monsters: Array, scythe_pos: Vector2) -> void:
+	var thickness: float = SCYTHE_HIT_RADIUS * FX_SCALE
+	var hit: Dictionary = s.get("hit", {})
+	for m in monsters:
+		if not is_instance_valid(m) or not bool(m.get("alive")) or bool(m.get("dying")):
+			continue
+		var key := str(m.get_instance_id())
+		if hit.has(key):
+			continue
+		var hit_r := 16.0
+		if m.has_method("get_hitbox_radius"):
+			hit_r = m.get_hitbox_radius()
+		if scythe_pos.distance_to(m.global_position) > hit_r + thickness:
+			continue
+		hit[key] = true
+		var fake_proj: Dictionary = {
+			"kind": "laser",  # 借 laser 通道：bullet 层的伤害分类
+			"pos": m.global_position,
+			"origin": Vector2(s.pos),
+			"damage": int(s.damage),
+			"hit": {},
+			"rot": float(s.ang),
+		}
+		_apply_projectile_hit(fake_proj, m, player)
+		if not bool(s.pierce):
+			s["hit"] = hit
+			s["life"] = 0.0  # 非贯通：第一击即消失
+			return
+	s["hit"] = hit
+
+
+# 镰刀实体绘制：弯月像素体 + 自身周围 1 圈外发光（不再画 origin→head 的拖尾光带）
+func _draw_v6_demon_scythe(canvas: Node2D, s: Dictionary) -> void:
+	var world_pos: Vector2 = Vector2(s.pos) - canvas.global_position
+	var rot: float = float(s.get("spin", 0.0))
+	var flicker: bool = int(Time.get_ticks_msec() / 60) % 2 == 0
+	# 外发光圆晕（豪火球术配方：双层 + 闪烁）
+	var glow_r1: float = SCYTHE_HIT_RADIUS * FX_SCALE * 1.4
+	var glow_r2: float = SCYTHE_HIT_RADIUS * FX_SCALE * 0.9
+	var glow_outer := Color(0.6, 0.05, 0.18, 0.22 if flicker else 0.28)
+	var glow_inner := Color(0.95, 0.18, 0.20, 0.35 if flicker else 0.45)
+	canvas.draw_circle(world_pos, glow_r1, glow_outer)
+	canvas.draw_circle(world_pos, glow_r2, glow_inner)
+	# 弯月本体（按当前自转角度旋转）
+	_draw_pixel_scythe_blade(canvas, world_pos, rot, flicker, 1.0)
+
+
+# 弯月像素体：13x13 网格画一个 C 形月牙 + 核心高光
+func _draw_pixel_scythe_blade(canvas: Node2D, world_pos: Vector2, rot: float, flicker: bool, alpha: float) -> void:
+	var px := SCYTHE_PIXEL * FX_SCALE
+	var rb := float(SCYTHE_RADIUS_BLOCKS)
+	canvas.draw_set_transform(world_pos, rot, Vector2.ONE)
+	# 外圈月牙（深紫 → 血红渐变）
+	for by in range(-int(rb), int(rb) + 1):
+		for bx in range(-int(rb), int(rb) + 1):
+			var d_out := sqrt(float(bx * bx + by * by))
+			if d_out > rb + 0.2 or d_out < rb - 1.6:
+				continue
+			# 月牙缺口：保留 bx>0 半圆，遮掉左侧 1.5 块的内圈以形成 C 形
+			var inner_d := sqrt(float((bx + 2) * (bx + 2) + by * by))
+			if inner_d < rb - 0.8:
+				continue
+			var ratio := d_out / rb
+			canvas.draw_rect(
+				Rect2(bx * px - px * 0.5, by * px - px * 0.5, px, px),
+				_scythe_block_color(ratio, flicker and ratio > 0.6, alpha)
+			)
+	# 核心高光（白点）
+	canvas.draw_rect(Rect2(rb * px * 0.5 - px * 0.5, -px * 0.5, px, px), Color(1.0, 1.0, 1.0, 0.95 * alpha))
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _scythe_block_color(dist_ratio: float, flicker: bool, alpha: float) -> Color:
+	var c: Color
+	if dist_ratio > 0.92:
+		c = Color("#280418") if not flicker else Color("#1a0210")
+	elif dist_ratio > 0.78:
+		c = Color("#7a0a25") if not flicker else Color("#6a0820")
+	elif dist_ratio > 0.55:
+		c = Color("#d81830") if not flicker else Color("#c81528")
+	elif dist_ratio > 0.32:
+		c = Color("#ff5848") if not flicker else Color("#ff4838")
+	else:
+		c = Color("#ffd8b0") if not flicker else Color("#ffe8c0")
+	c.a *= alpha
+	return c
+# sr=47 硫磺火：单条持续激光 — 寿命 duration 秒、原点跟随玩家、每 tick_interval 秒对沿途怪 tick 一次伤害
+# 与 bullet_beam 不同：不飞行（origin 跟随玩家），到寿后整体移除（不是按 traveled 距离）
+func spawn_v6_sulfur_laser(player: BattlePlayer, atk_mult: float, duration: float, tick_interval: float) -> void:
+	if battle == null or battle.spawner == null:
+		return
+	var monsters: Array = battle.spawner.get_active_monsters()
+	var ang: float = _nearest_monster_angle(player.global_position, -PI * 0.5, monsters)
+	var dir := Vector2(cos(ang), sin(ang))
+	var pos: Vector2 = player.global_position
+	var exit_dist := _ray_playfield_exit_distance(pos, dir)
+	var beam_length := exit_dist + GameConfig.scale_world(48.0) * FX_SCALE
+	lasers.append(_with_upgrade_fx_layer({
+		"kind": "laser",
+		"tail": pos,
+		"origin": pos,
+		"dir": dir,
+		"exit_dist": exit_dist,
+		"beam_length": beam_length,
+		"vel": Vector2.ZERO,
+		"damage": player.get_ability_damage(atk_mult),
+		"atk_mult": atk_mult,                 # 用于每 tick 重算 damage（应对 base_attack 变化）
+		"hit": {},
+		"rot": ang,
+		"is_sulfur_laser": true,
+		"follow_player": true,                # _update_lasers 走持续跟随分支
+		"life": maxf(0.05, duration),         # 剩余存活秒数
+		"tick_interval": maxf(0.02, tick_interval),
+		"tick_timer": 0.0,                    # 立即触发首次 tick
+	}, "demon_sulfur_laser"))
 
 
 # Phase 7 sr=37 orb_fire/ice/poison/thunder：拾取触发的元素 AOE
@@ -918,6 +1275,9 @@ func _should_remove_auto_projectile(s: Dictionary, player: BattlePlayer, monster
 	if bool(s.get("returning", false)):
 		var dist := Vector2(s.pos).distance_to(player.global_position)
 		return dist <= player.get_effective_radius() + 10.0
+	# sr=49 血飞刀：穿透 — 命中后保留（仍受 life / out_of_bounds / range 限制）
+	if bool(s.get("is_blood_blade", false)):
+		return false
 	# Phase 5 sr=16 bullet_mirror：命中后回弹（mult>0 启用；split/bounce 不参与）
 	if not bool(s.get("is_split", false)) and not bool(s.get("is_bounce", false)) and float(player.bullet_mirror_mult) > 0.0 and not bool(s.get("mirror_used", false)):
 		s["damage"] = int(max(1, round(float(s.get("damage", 1)) * float(player.bullet_mirror_mult))))
@@ -971,6 +1331,10 @@ func _apply_projectile_hit(s: Dictionary, m, player: BattlePlayer) -> bool:
 	# crit roll 移到 resolver；emitter 端不再预乘暴击倍率
 	# 构造 DamageInfo：按 projectile kind 映射到 v6 dmg_layer/element
 	var info := _build_projectile_damage_info(kind, dmg, false, player)
+	# sr=47 sulfur laser：标记火属性 + applies_fire（Sheet4 element_effects 自动触发燃烧）
+	if bool(s.get("is_sulfur_laser", false)):
+		info.element = "fire"
+		info.applies_fire = true
 	var result: Dictionary = {}
 	if m.has_method("take_damage_info"):
 		result = m.take_damage_info(info, pos)
@@ -983,8 +1347,8 @@ func _apply_projectile_hit(s: Dictionary, m, player: BattlePlayer) -> bool:
 		# Sheet4 元素状态注入（仅当伤害实际生效）
 		if int(result.get("damage", 0)) > 0:
 			ElementEffectManager.try_apply(m, info, player)
-		# Phase 3 sr=14/15 bullet_split / bounce
-		if kind == "auto" and int(result.get("damage", 0)) > 0:
+		# Phase 3 sr=14/15 bullet_split / bounce — 命中就触发（即使护盾挡掉 damage=0 也算命中）
+		if kind == "auto":
 			SpecialRuleDispatcher.on_bullet_hit(player, self, s, m, info, int(result.get("damage", 0)))
 		# Phase 6 sr=13 / sr=18 bullet proc spell / beam
 		if kind == "auto" and int(result.get("damage", 0)) > 0:
@@ -1084,13 +1448,42 @@ func _update_lasers(delta: float, player: BattlePlayer, monsters: Array) -> void
 	var i := lasers.size() - 1
 	while i >= 0:
 		var s: Dictionary = lasers[i]
-		s["tail"] = Vector2(s.get("tail", s.get("pos", Vector2.ZERO))) + Vector2(s.vel) * delta
-		s["pos"] = _laser_head(s)
-		var origin: Vector2 = s.get("origin", s.get("tail", Vector2.ZERO))
-		var traveled := (Vector2(s.get("tail", Vector2.ZERO)) - origin).dot(Vector2(s.get("dir", Vector2.RIGHT)))
-		var remove: bool = battle == null or traveled >= float(s.get("exit_dist", 0.0)) + float(s.get("beam_length", 0.0))
-		if not remove:
-			_apply_laser_hits(s, player, monsters)
+		var remove: bool = battle == null
+		if not remove and bool(s.get("follow_player", false)) and is_instance_valid(player):
+			# sr=47 硫磺火 / 持续跟随激光：origin/tail 实时贴在玩家身上；按寿命移除；周期 tick 伤害
+			# 方向在 spawn 时锁定，期间不再重新锁敌（参考以撒硫磺火：射出后方向不变）。
+			# 玩家移动激光跟随平移，但 dir/rot 保持不变。
+			s["life"] = float(s.get("life", 0.0)) - delta
+			if float(s["life"]) <= 0.0:
+				remove = true
+			else:
+				var ppos: Vector2 = player.global_position
+				var dir: Vector2 = Vector2(s.get("dir", Vector2.RIGHT))
+				if dir.length_squared() < 0.0001:
+					dir = Vector2.RIGHT
+				var exit_dist := _ray_playfield_exit_distance(ppos, dir)
+				var beam_length := exit_dist + GameConfig.scale_world(48.0) * FX_SCALE
+				s["tail"] = ppos
+				s["origin"] = ppos
+				s["exit_dist"] = exit_dist
+				s["beam_length"] = beam_length
+				s["pos"] = _laser_head(s)
+				s["tick_timer"] = float(s.get("tick_timer", 0.0)) - delta
+				if float(s["tick_timer"]) <= 0.0:
+					s["tick_timer"] = float(s.get("tick_interval", 0.1))
+					s["hit"] = {}  # 每 tick 重置 hit 表 → 同一怪每 tick 可再受击一次
+					var mult: float = float(s.get("atk_mult", 0.5))
+					s["damage"] = player.get_ability_damage(mult)
+					_apply_laser_hits(s, player, monsters)
+		else:
+			# 飞行激光：tail 向前推进，到达 exit + beam_length 后移除
+			s["tail"] = Vector2(s.get("tail", s.get("pos", Vector2.ZERO))) + Vector2(s.vel) * delta
+			s["pos"] = _laser_head(s)
+			var origin: Vector2 = s.get("origin", s.get("tail", Vector2.ZERO))
+			var traveled := (Vector2(s.get("tail", Vector2.ZERO)) - origin).dot(Vector2(s.get("dir", Vector2.RIGHT)))
+			remove = battle == null or traveled >= float(s.get("exit_dist", 0.0)) + float(s.get("beam_length", 0.0))
+			if not remove:
+				_apply_laser_hits(s, player, monsters)
 		if remove:
 			lasers.remove_at(i)
 		else:
@@ -1238,6 +1631,10 @@ func _update_whirls(delta: float, player: BattlePlayer, monsters: Array) -> void
 		var w = whirls[i]
 		w.life -= delta
 		w.anim_t = float(w.get("anim_t", 0.0)) + delta
+		# 旋风弹道：vel ≠ 0 时每帧推进 pos（sword_rage 旋风用；combo_blade_storm 默认 vel=0 保持原地）
+		var vel: Vector2 = Vector2(w.get("vel", Vector2.ZERO))
+		if vel.length_squared() > 0.001:
+			w.pos = Vector2(w.pos) + vel * delta
 		var life_t := clampf(float(w.life) / float(w.max_life), 0.0, 1.0)
 		w.radius = lerpf(float(w.max_radius) * 0.55, float(w.max_radius), 1.0 - life_t)
 		if w.life <= 0.0:
@@ -1249,6 +1646,7 @@ func _update_whirls(delta: float, player: BattlePlayer, monsters: Array) -> void
 			if m.global_position.distance_to(w.pos) > float(w.radius) + m.get_hitbox_radius():
 				continue
 			_apply_projectile_hit(w, m, player)
+		whirls[i] = w
 
 
 func _draw_animated_projectile(
@@ -1258,7 +1656,8 @@ func _draw_animated_projectile(
 	frames: SpriteFrames,
 	scale_mul: float,
 	anim_t: float,
-	alpha: float = 1.0
+	alpha: float = 1.0,
+	tint: Color = Color(1.0, 1.0, 1.0, 1.0)
 ) -> void:
 	if frames == null or frames.get_frame_count(EffectHelperScript.ANIM_PREVIEW) <= 0:
 		return
@@ -1273,45 +1672,271 @@ func _draw_animated_projectile(
 		local_pos,
 		rot,
 		Vector2.ONE * draw_scale,
-		Color(1.0, 1.0, 1.0, alpha)
+		Color(tint.r, tint.g, tint.b, alpha)
 	)
+
+
+# 根据 player.current_applies["bullet"] 算混合染色：单元素返回该色；多元素取平均（亮度兜底 0.55）；无元素返回白。
+func _bullet_element_tint() -> Color:
+	if battle == null or battle.player == null:
+		return Color(1.0, 1.0, 1.0, 1.0)
+	var applies: Dictionary = battle.player.current_applies.get("bullet", {})
+	if applies.is_empty():
+		return Color(1.0, 1.0, 1.0, 1.0)
+	var r := 0.0
+	var g := 0.0
+	var b := 0.0
+	var n := 0
+	if bool(applies.get("fire", false)):
+		r += 1.0; g += 0.45; b += 0.18; n += 1
+	if bool(applies.get("ice", false)):
+		r += 0.55; g += 0.85; b += 1.0; n += 1
+	if bool(applies.get("thunder", false)):
+		r += 1.0; g += 0.92; b += 0.35; n += 1
+	if bool(applies.get("poison", false)):
+		r += 0.55; g += 1.0; b += 0.45; n += 1
+	if n == 0:
+		return Color(1.0, 1.0, 1.0, 1.0)
+	var inv := 1.0 / float(n)
+	var col := Color(r * inv, g * inv, b * inv, 1.0)
+	# 亮度兜底：多元素平均后亮度若 < 0.55 则整体抬升（避免变灰暗）
+	var luma := 0.299 * col.r + 0.587 * col.g + 0.114 * col.b
+	if luma < 0.55:
+		var lift := 0.55 / maxf(luma, 0.01)
+		col = Color(minf(1.0, col.r * lift), minf(1.0, col.g * lift), minf(1.0, col.b * lift), 1.0)
+	return col
 
 
 func _draw_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
-	var frames: SpriteFrames = _auto_bullet_frames
-	if bool(s.get("is_spirit", false)):
-		frames = _spirit_frames
-	var draw_scale := float(s.get("visual_scale", 1.0)) * AUTO_BULLET_DRAW_SCALE
-	if bool(s.get("is_spirit", false)):
-		draw_scale *= 1.15
-	var life_t: float
+	# 按 visual_kind 分发（由 player.get_active_bullet_visual_kind() 在 spawn 时决出，
+	# 同时装备元气弹 + 血飞刀时按"后获得者覆盖"规则胜出）。回落到老 is_spirit / is_blood_blade
+	# 兼容尚未带 visual_kind 的存量子弹。
+	var visual_kind: String = str(s.get("visual_kind", ""))
+	if visual_kind.is_empty():
+		if bool(s.get("is_spirit", false)):
+			visual_kind = "spirit"
+		elif bool(s.get("is_blood_blade", false)):
+			visual_kind = "blood_blade"
+	match visual_kind:
+		"spirit":
+			_draw_pixel_spirit_bomb(canvas, s)
+			return
+		"blood_blade":
+			_draw_pixel_blood_blade(canvas, s)
+			return
+	# 默认普攻：像素小火球（保留元素染色 + 返回态蓝色）
+	_draw_pixel_auto_bullet(canvas, s)
+
+
+const AUTO_BULLET_PIXEL: float = 3.0
+const AUTO_BULLET_RADIUS_BLOCKS: int = 4
+
+# 默认普攻子弹：像素小火球（rb=4 块、px=3、80ms 闪烁）
+# 调色板基色由 _bullet_element_tint() 派生 4 档（深→中→浅→白核心），保留元素混合染色。
+# returning=true（mirror 回弹）强制蓝调色板。
+func _draw_pixel_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
+	var pos: Vector2 = Vector2(s.get("pos", Vector2.ZERO))
+	var rot: float = float(s.get("rot", 0.0))
+	var life_t: float = _auto_bullet_life_t(s)
+	var t_ms: int = Time.get_ticks_msec()
+	var flicker: bool = int(t_ms / 80) % 2 == 0
+	# 选调色板：returning → 蓝；is_spirit 不会走到这里（前面已分发）；其余按元素色派生
+	var base_color: Color
+	if bool(s.get("returning", false)):
+		base_color = Color(0.30, 0.60, 1.0)  # 蓝
+	else:
+		base_color = _bullet_element_tint()
+	var palette: PackedColorArray = _derive_orb_palette(base_color)
+	var px: float = AUTO_BULLET_PIXEL
+	var rb: float = float(AUTO_BULLET_RADIUS_BLOCKS)
+	var local: Vector2 = pos - canvas.global_position
+	# 外发光圆晕（双层，按 life_t 淡出）
+	var glow_r1: float = px * (rb + 1.5)
+	var glow_r2: float = px * (rb + 0.5)
+	var glow_a1: float = 0.22 * life_t
+	var glow_a2: float = 0.32 * life_t
+	canvas.draw_circle(local, glow_r1, Color(base_color.r, base_color.g, base_color.b, glow_a1))
+	canvas.draw_circle(local, glow_r2, Color(base_color.r * 1.2, base_color.g * 1.2, base_color.b * 1.2, glow_a2))
+	# 像素栅格本体
+	canvas.draw_set_transform(local, rot, Vector2.ONE)
+	for by in range(-int(rb), int(rb) + 1):
+		for bx in range(-int(rb), int(rb) + 1):
+			var d: float = sqrt(float(bx * bx + by * by))
+			if d > rb + 0.35:
+				continue
+			var ratio: float = d / rb
+			var col: Color = _pixel_orb_block_color(ratio, flicker and ratio > 0.45, palette)
+			col.a *= 0.7 + life_t * 0.3
+			canvas.draw_rect(Rect2(bx * px - px * 0.5, by * px - px * 0.5, px, px), col)
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# 元气弹：蓝白能量球（比普攻大一圈，rb=5、px=3、呼吸式外发光）
+static var SPIRIT_BOMB_PALETTE: PackedColorArray = PackedColorArray([
+	Color("#0c2050"),  # 外圈最深
+	Color("#1844a0"),  # 深蓝
+	Color("#3878d8"),  # 中蓝
+	Color("#88c4ff"),  # 浅蓝
+	Color("#ffffff"),  # 核心白
+])
+const SPIRIT_BOMB_PIXEL: float = 3.0
+const SPIRIT_BOMB_RADIUS_BLOCKS: int = 5
+
+func _draw_pixel_spirit_bomb(canvas: Node2D, s: Dictionary) -> void:
+	var pos: Vector2 = Vector2(s.get("pos", Vector2.ZERO))
+	var rot: float = float(s.get("rot", 0.0))
+	var life_t: float = _auto_bullet_life_t(s)
+	var t_ms: int = Time.get_ticks_msec()
+	var flicker: bool = int(t_ms / 80) % 2 == 0
+	var local: Vector2 = pos - canvas.global_position
+	# sr=11 视觉跟随飞行距离放大：t=0 时 1.0×，飞到最大射程时 1.4×（与伤害加成 +50% 呼应）
+	var origin: Vector2 = Vector2(s.get("origin", pos))
+	var travel: float = pos.distance_to(origin)
+	var max_range: float = maxf(50.0, float(s.get("range_px", 378.0)))
+	var travel_t: float = clampf(travel / max_range, 0.0, 1.0)
+	var size_scale: float = 1.0 + 0.4 * travel_t
+	var px: float = SPIRIT_BOMB_PIXEL * size_scale
+	var rb: float = float(SPIRIT_BOMB_RADIUS_BLOCKS)
+	# 呼吸式外发光
+	var breath: float = 0.95 + 0.1 * sin(float(t_ms) * 0.006)
+	var glow_r1: float = px * (rb + 2.0) * breath
+	var glow_r2: float = px * (rb + 0.8) * breath
+	canvas.draw_circle(local, glow_r1, Color(0.30, 0.55, 1.0, 0.24 * life_t))
+	canvas.draw_circle(local, glow_r2, Color(0.55, 0.80, 1.0, 0.36 * life_t))
+	canvas.draw_set_transform(local, rot, Vector2.ONE)
+	for by in range(-int(rb), int(rb) + 1):
+		for bx in range(-int(rb), int(rb) + 1):
+			var d: float = sqrt(float(bx * bx + by * by))
+			if d > rb + 0.35:
+				continue
+			var ratio: float = d / rb
+			var col: Color = _pixel_orb_block_color(ratio, flicker and ratio > 0.45, SPIRIT_BOMB_PALETTE)
+			col.a *= 0.75 + life_t * 0.25
+			canvas.draw_rect(Rect2(bx * px - px * 0.5, by * px - px * 0.5, px, px), col)
+	# 核心十字高光（4 个像素）
+	var core: Color = Color("#ffffff") if not flicker else Color("#e8f0ff")
+	canvas.draw_rect(Rect2(-px * 0.5, -px * 0.5, px, px), core)
+	canvas.draw_rect(Rect2(-px * 1.5, -px * 0.5, px, px), core)
+	canvas.draw_rect(Rect2(px * 0.5, -px * 0.5, px, px), core)
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# 血飞刀：红刃像素小匕首（剑尖朝飞行方向 = local +x，自转）
+# 结构：pommel（青铜圆头） + grip（皮革手柄） + cross-guard（黄铜横档） + 红色 tapered blade + 白色刀尖高光
+# 调色板：4 档红色血刃 + 3 档黄铜横档 + 2 档棕皮手柄；60ms 闪烁让锋刃像在反光
+const BLOOD_BLADE_PIXEL: float = 3.0
+
+func _draw_pixel_blood_blade(canvas: Node2D, s: Dictionary) -> void:
+	var pos: Vector2 = Vector2(s.get("pos", Vector2.ZERO))
+	# 直线投掷：刀尖恒朝飞行方向（s.rot），不自转 — 像投枪而不是像飞旋小刀
+	var t_ms: int = Time.get_ticks_msec()
+	var rot: float = float(s.get("rot", 0.0))
+	var life_t: float = _auto_bullet_life_t(s)
+	var flicker: bool = int(t_ms / 60) % 2 == 0
+	var local: Vector2 = pos - canvas.global_position
+	var px: float = BLOOD_BLADE_PIXEL
+	# 双层红色外发光（保留原版氛围）
+	canvas.draw_circle(local, px * 8.0, Color(0.85, 0.10, 0.15, 0.22 * life_t))
+	canvas.draw_circle(local, px * 5.5, Color(1.0, 0.30, 0.30, 0.32 * life_t))
+	canvas.draw_set_transform(local, rot, Vector2.ONE)
+	# 寿命 alpha：bullet 临近寿终时整把刀淡出，保持与默认 auto bullet 一致的退场感
+	var a: float = 0.75 + life_t * 0.25
+	# 调色板（已乘 life alpha；色调按 4 档红 + 3 档铜 + 2 档棕，配 60ms 闪烁让锋刃像在反光）
+	var blade_outline := Color(0.35, 0.04, 0.07, a) if not flicker else Color(0.26, 0.02, 0.06, a)
+	var blade_body := Color(0.78, 0.10, 0.14, a) if not flicker else Color(0.69, 0.06, 0.13, a)
+	var blade_highlight := Color(1.0, 0.31, 0.31, a) if not flicker else Color(1.0, 0.44, 0.38, a)
+	var blade_tip := Color(1.0, 0.94, 0.88, a) if not flicker else Color(1.0, 0.88, 0.75, a)
+	var guard_outline := Color(0.35, 0.22, 0.06, a)
+	var guard_main := Color(0.78, 0.63, 0.25, a) if not flicker else Color(0.66, 0.53, 0.16, a)
+	var guard_highlight := Color(1.0, 0.88, 0.50, a)
+	var grip_outline := Color(0.16, 0.09, 0.03, a)
+	var grip_main := Color(0.48, 0.25, 0.13, a)
+	var pommel_main := Color(0.63, 0.50, 0.31, a)
+	var pommel_outline := Color(0.23, 0.14, 0.09, a)
+	# ============ Pommel（青铜小球，x=-6 到 -5） ============
+	_blade_pixel(canvas, -6,  0, px, pommel_outline)
+	_blade_pixel(canvas, -5, -1, px, pommel_outline)
+	_blade_pixel(canvas, -5,  0, px, pommel_main)
+	_blade_pixel(canvas, -5,  1, px, pommel_outline)
+	_blade_pixel(canvas, -4,  0, px, pommel_outline)
+	# ============ Grip（皮革手柄，x=-4 到 -2，3 长 × 3 宽） ============
+	for bx in range(-4, -1):
+		for by in range(-1, 2):
+			var on_edge: bool = (bx == -4) or (by == -1) or (by == 1)
+			_blade_pixel(canvas, bx, by, px, grip_outline if on_edge else grip_main)
+	# ============ Cross-guard（黄铜横档，x=-1 到 0，垂直 7 高 × 2 宽） ============
+	for by in range(-3, 4):
+		_blade_pixel(canvas, -1, by, px, guard_outline)
+		# x=0 内列：中心 3 格高光，其它黄铜本色
+		if absi(by) <= 1:
+			_blade_pixel(canvas,  0, by, px, guard_highlight)
+		else:
+			_blade_pixel(canvas,  0, by, px, guard_main)
+	# ============ Blade（红色 tapered，x=+1 到 +7，越往尖越窄） ============
+	# 宽度分布（half-width）：x=1..4 → 1（3 宽含中线），x=5..6 → 1（仍 3 宽），x=7 → 0（只剩中线一格）
+	# 中线（y=0）用 blade_body 或末段 blade_highlight；y=±1 用 blade_outline 描边
+	for bx in range(1, 7):
+		# 3 宽段
+		_blade_pixel(canvas, bx, -1, px, blade_outline)
+		_blade_pixel(canvas, bx,  1, px, blade_outline)
+		# 中线：x=1..4 主红，x=5..6 渐亮（接近尖端）
+		var center_col: Color = blade_body if bx <= 4 else blade_highlight
+		_blade_pixel(canvas, bx,  0, px, center_col)
+	# 收尖（x=+7：1 宽，红色描边）
+	_blade_pixel(canvas, 7, 0, px, blade_outline)
+	# 刀尖白色反光高光（x=+8）
+	_blade_pixel(canvas, 8, 0, px, blade_tip)
+	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# 小工具：在 local 坐标 (bx, by) 画一个 px×px 块（在 _draw_pixel_blood_blade 调用前先把
+# canvas.modulate 设成 life_t 对应的 alpha，比给每个颜色加 alpha 干净；但 modulate 会污染整张画布，
+# 这里更稳：让调用方自己在 col.a 上乘 life_alpha；此 helper 不再做 alpha 修饰）
+func _blade_pixel(canvas: Node2D, bx: int, by: int, px: float, col: Color) -> void:
+	canvas.draw_rect(Rect2(float(bx) * px - px * 0.5, float(by) * px - px * 0.5, px, px), col)
+
+
+# 4 档调色板派生：根据基色（元素 tint）生成 [外圈深, 中暗, 中亮, 浅, 核心白]
+func _derive_orb_palette(base: Color) -> PackedColorArray:
+	var out: PackedColorArray = PackedColorArray()
+	out.push_back(base.darkened(0.75))  # 外圈最深
+	out.push_back(base.darkened(0.45))  # 深
+	out.push_back(base)                  # 中
+	out.push_back(base.lerp(Color.WHITE, 0.55))  # 浅
+	out.push_back(base.lerp(Color.WHITE, 0.85))  # 核心
+	return out
+
+
+# 5 档调色板按 dist_ratio 取色（被 #1 / #5 共用，替代旧 _fireball_block_color）
+func _pixel_orb_block_color(dist_ratio: float, flicker: bool, palette: PackedColorArray) -> Color:
+	var idx: int
+	if dist_ratio > 0.92:
+		idx = 0
+	elif dist_ratio > 0.72:
+		idx = 1
+	elif dist_ratio > 0.50:
+		idx = 2
+	elif dist_ratio > 0.28:
+		idx = 3
+	else:
+		idx = 4
+	var col: Color = palette[idx]
+	if flicker:
+		# 闪烁：相邻档颜色之间 lerp 0.4 制造跳动
+		var adj_idx: int = clamp(idx - 1, 0, palette.size() - 1)
+		col = col.lerp(palette[adj_idx], 0.4)
+	return col
+
+
+# 普攻子弹 life_t（剩余比例，1=新鲜，0=快消失）— 从旧 _draw_auto_bullet 抽出
+func _auto_bullet_life_t(s: Dictionary) -> float:
 	if not bool(s.get("is_split", false)) and not bool(s.get("is_bounce", false)) and not bool(s.get("returning", false)):
-		# 普攻主子弹：按飞行距离剩余比例计算视觉淡出
 		var origin: Vector2 = Vector2(s.get("origin", s.get("pos", Vector2.ZERO)))
 		var traveled: float = Vector2(s.get("pos", Vector2.ZERO)).distance_to(origin)
 		var range_px: float = float(s.get("range_px", GameConfig.get_player_value("auto_bullet_range", 378)))
-		life_t = clampf(1.0 - traveled / maxf(0.001, range_px), 0.0, 1.0)
-	else:
-		var max_life := float(s.get("max_life", GameConfig.get_player_value("auto_bullet_life", 0.9)))
-		life_t = clampf(float(s.life) / maxf(0.001, max_life), 0.0, 1.0)
-	var modulate := Color(1.0, 1.0, 1.0, 0.82 + life_t * 0.18)
-	if bool(s.get("returning", false)):
-		modulate = Color(0.75, 0.95, 1.0, modulate.a)
-	_draw_animated_projectile(
-		canvas,
-		Vector2(s.pos),
-		float(s.rot),
-		frames,
-		draw_scale,
-		float(s.get("anim_t", 0.0)),
-		modulate.a
-	)
-	var glow_r := GameConfig.scale_world(12.0) * FX_SCALE * draw_scale * PROJ_DRAW_SCALE
-	var local: Vector2 = Vector2(s.pos) - canvas.global_position
-	var glow_col := Color(1.0, 0.42, 0.1, 0.22 * life_t)
-	if bool(s.get("returning", false)):
-		glow_col = Color(0.55, 0.85, 1.0, 0.24 * life_t)
-	canvas.draw_circle(local, glow_r, glow_col)
+		return clampf(1.0 - traveled / maxf(0.001, range_px), 0.0, 1.0)
+	var max_life: float = float(s.get("max_life", GameConfig.get_player_value("auto_bullet_life", 0.9)))
+	return clampf(float(s.life) / maxf(0.001, max_life), 0.0, 1.0)
 
 
 func _fireball_block_color(dist_ratio: float, flicker: bool) -> Color:
@@ -1350,12 +1975,111 @@ func _draw_pixel_fireball(canvas: CanvasItem, world_pos: Vector2, rot: float, li
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
+# 火力支援像素爆炸：3 圈像素同心环按 life_t 扩张+淡出，50ms 闪烁
+# 调色板：外橙黑 #3a1808 → 中橙 #ff8040 → 核黄 #ffe080
+func _draw_pixel_bomb_explosion(canvas: Node2D, e: Dictionary) -> void:
+	var pos: Vector2 = Vector2(e.get("pos", Vector2.ZERO))
+	var max_life: float = float(e.get("max_life", 0.4))
+	var life: float = float(e.get("life", 0.0))
+	var t_norm: float = clampf(1.0 - life / maxf(0.001, max_life), 0.0, 1.0)
+	var alpha: float = clampf(1.0 - t_norm * 0.8, 0.0, 1.0)
+	var local: Vector2 = pos - canvas.global_position
+	var t_ms: int = Time.get_ticks_msec()
+	var flicker: bool = int(t_ms / 50) % 2 == 0
+	var max_r: float = float(e.get("radius_px", 80.0))
+	var px: float = 4.0
+	var rb_max: float = max_r / px
+	for ring_idx in range(3):
+		var ring_t: float = float(ring_idx) / 2.0
+		var ring_r: float = rb_max * lerpf(0.35, 1.0, t_norm) * (1.0 - ring_t * 0.25)
+		var ring_color: Color
+		match ring_idx:
+			0: ring_color = Color("#ffe080") if not flicker else Color("#fff4a0")
+			1: ring_color = Color("#ff8040") if not flicker else Color("#ff6020")
+			_: ring_color = Color("#3a1808") if not flicker else Color("#2a1208")
+		ring_color.a *= alpha
+		for by in range(-int(ring_r) - 1, int(ring_r) + 2):
+			for bx in range(-int(ring_r) - 1, int(ring_r) + 2):
+				var d: float = sqrt(float(bx * bx + by * by))
+				if d > ring_r + 0.4 or d < ring_r - 0.8:
+					continue
+				canvas.draw_rect(Rect2(local.x + bx * px - px * 0.5,
+					local.y + by * px - px * 0.5, px, px), ring_color)
+	var glow_r1: float = max_r * lerpf(0.55, 1.35, t_norm)
+	var glow_r2: float = max_r * lerpf(0.30, 0.90, t_norm)
+	canvas.draw_circle(local, glow_r1, Color(1.0, 0.55, 0.15, 0.22 * alpha))
+	canvas.draw_circle(local, glow_r2, Color(1.0, 0.85, 0.35, 0.32 * alpha))
+
+
+# 圣光柱：从屏幕上方降下的蓝白雷电像素柱（width=4 块 × height=20 块）+ 落地扩散圆
+func _draw_pixel_holy_pillar(canvas: Node2D, p: Dictionary) -> void:
+	var ground_pos: Vector2 = Vector2(p.get("pos", Vector2.ZERO))
+	var max_life: float = float(p.get("max_life", 0.5))
+	var life: float = float(p.get("life", 0.0))
+	var t_norm: float = clampf(1.0 - life / maxf(0.001, max_life), 0.0, 1.0)
+	var fall_t: float = float(p.get("fall_t", 0.0))
+	var alpha: float = clampf(1.0 - maxf(0.0, t_norm - 0.5) * 2.0, 0.0, 1.0)
+	var t_ms: int = Time.get_ticks_msec()
+	var flicker: bool = int(t_ms / 60) % 2 == 0
+	var px: float = 4.0
+	var pillar_cols: int = 4
+	var pillar_rows: int = 20
+	var pillar_height_px: float = float(pillar_rows) * px
+	var sky_offset: float = pillar_height_px * 4.0
+	var top_y: float = ground_pos.y - pillar_height_px - sky_offset * (1.0 - fall_t)
+	var top_local: Vector2 = Vector2(ground_pos.x, top_y) - canvas.global_position
+	var half_w: float = float(pillar_cols) * 0.5
+	for ry in range(pillar_rows):
+		for cx in range(pillar_cols):
+			var x: float = top_local.x + (float(cx) - half_w) * px
+			var y: float = top_local.y + float(ry) * px
+			var col_idx: int = mini(cx, pillar_cols - 1 - cx)
+			var col: Color
+			match col_idx:
+				0: col = Color("#1830a0") if not flicker else Color("#1024a0")
+				_: col = Color("#88c4ff") if not flicker else Color("#a8d0ff")
+			var jitter_seed: int = (ry * 13 + cx * 7 + int(t_ms / 60)) % 11
+			if jitter_seed < 3:
+				col = Color("#ffffff")
+			col.a *= alpha
+			canvas.draw_rect(Rect2(x, y, px, px), col)
+	var ground_local: Vector2 = Vector2(ground_pos.x, ground_pos.y) - canvas.global_position
+	if fall_t >= 0.95:
+		var splash_r: float = float(p.get("radius_px", 80.0)) * minf(1.0, (t_norm - 0.36) * 3.0)
+		if splash_r > 0.0:
+			canvas.draw_circle(ground_local, splash_r * 1.2, Color(0.30, 0.55, 1.0, 0.30 * alpha))
+			canvas.draw_circle(ground_local, splash_r * 0.7, Color(0.65, 0.85, 1.0, 0.45 * alpha))
+	canvas.draw_circle(ground_local, px * 6.0, Color(0.40, 0.60, 1.0, 0.28 * alpha))
+
+
 func _draw_laser(canvas: Node2D, s: Dictionary) -> void:
 	var tail: Vector2 = Vector2(s.get("tail", s.get("pos", Vector2.ZERO))) - canvas.global_position
 	var head := _laser_head(s) - canvas.global_position
 	var origin: Vector2 = Vector2(s.get("origin", s.tail)) - canvas.global_position
 	var dir := Vector2(s.get("dir", Vector2.RIGHT)).normalized()
 	var tip := head + dir * GameConfig.scale_world(12.0) * FX_SCALE
+	# 硫磺火走暗红配色（参考以撒 Brimstone）；其他 laser（bullet_beam 等）走原品红 / 白
+	if bool(s.get("is_sulfur_laser", false)):
+		var t_ms: int = Time.get_ticks_msec()
+		var flicker: bool = int(t_ms / 60) % 2 == 0
+		var halo := Color(0.55, 0.02, 0.04, 0.45 if flicker else 0.38)
+		var mid := Color(0.78, 0.08, 0.06, 0.92)
+		var core := Color(1.0, 0.42, 0.20, 0.95 if flicker else 0.85)
+		canvas.draw_line(tail, tip, halo, GameConfig.scale_world(24.0) * FX_SCALE)
+		canvas.draw_line(tail, tip, mid, GameConfig.scale_world(10.0) * FX_SCALE)
+		canvas.draw_line(tail, tip, core, GameConfig.scale_world(3.5) * FX_SCALE)
+		# 沿途 7 个像素方块（暗红 → 亮红交替），制造"硫磺火"颗粒感
+		for i in range(7):
+			var t := float(i) / 6.0
+			var p := tail.lerp(tip, t)
+			var dot_col: Color = Color(1.0, 0.62, 0.30, 0.85) if (i + int(t_ms / 80)) % 2 == 0 else Color(0.85, 0.18, 0.08, 0.85)
+			canvas.draw_rect(Rect2(p.x - 3.0, p.y - 3.0, 6.0, 6.0), dot_col)
+		# 起点深红光晕（吟唱口）
+		canvas.draw_circle(origin, GameConfig.scale_world(8.0) * FX_SCALE, Color(0.55, 0.05, 0.05, 0.60))
+		canvas.draw_circle(origin, GameConfig.scale_world(5.0) * FX_SCALE, Color(1.0, 0.40, 0.15, 0.85))
+		# 末端亮橙红高光
+		canvas.draw_circle(head, GameConfig.scale_world(6.0) * FX_SCALE, Color(1.0, 0.55, 0.20, 0.95))
+		return
 	canvas.draw_line(tail, tip, Color(1.0, 0.28, 0.82, 0.42), GameConfig.scale_world(22.0) * FX_SCALE)
 	canvas.draw_line(tail, tip, Color(1.0, 0.72, 1.0, 0.95), GameConfig.scale_world(9.0) * FX_SCALE)
 	canvas.draw_line(tail, tip, Color(1.0, 1.0, 1.0, 0.88), GameConfig.scale_world(3.5) * FX_SCALE)
@@ -1421,6 +2145,10 @@ func draw_fx(canvas: Node2D, below_monsters: bool) -> void:
 		if not _fx_on_layer(laser, below_monsters):
 			continue
 		_draw_laser(canvas, laser)
+	for sc in v6_demon_scythes:
+		if not _fx_on_layer(sc, below_monsters):
+			continue
+		_draw_v6_demon_scythe(canvas, sc)
 	for fx in abyss_explosions:
 		if not _fx_on_layer(fx, below_monsters):
 			continue
@@ -1451,3 +2179,12 @@ func draw_fx(canvas: Node2D, below_monsters: bool) -> void:
 				Vector2.ONE * whirl_scale,
 				Color(1.0, 1.0, 1.0, 0.75 + whirl_life_t * 0.25)
 			)
+	for e in bomb_explosions:
+		if not _fx_on_layer(e, below_monsters):
+			continue
+		_draw_pixel_bomb_explosion(canvas, e)
+	for p in holy_pillars:
+		if not _fx_on_layer(p, below_monsters):
+			continue
+		_draw_pixel_holy_pillar(canvas, p)
+	_draw_grenade_arcs(canvas, below_monsters)

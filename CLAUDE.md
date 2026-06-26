@@ -90,3 +90,32 @@
 7 张召唤物的统一接口在 `summon_ability_manager.gd:SUMMON_DRAW_DATA` 字典 + 4 个数据驱动函数（`_summon_color` / `_draw_summon_grid` / `_draw_pixel_summon_body` / `_draw_pixel_summon_projectile` / `_summon_hit_burst`）。新增召唤物只需在 `SUMMON_DRAW_DATA` 加一份配置（body_grid / rock_grid / palette / glow / flicker_ms / hit_*），不需要写新函数。
 
 新增**非召唤物**技能视觉（combo_*、orb_*、sword_*、trail_*、bullet_*）：照 `_draw_pixel_fireball` 同款写法 — 自定义 `_draw_pixel_<name>(canvas, world_pos, rot, life_t)`，调色板 4-5 档（最深→核心高光），闪烁周期 50-150ms（视觉冲击力越强、周期越短），外发光圆晕 + 命中粒子 + 屏幕抖。
+
+## 十、主题关专属奖励池（恶魔 / 天使）
+
+每 4 关（stage idx 3/7/11/15…）会被 `scripts/battle.gd:778 get_stage_theme` 随机分配为 demon 或 angel 主题，并在 `_themed_stage_overrides` 字典里持久化。**完成主题关后弹出对应主题的专属奖励 popup**（不走通用 3 选 1 升级），玩家面对一张随机抽出的同主题卡 + **接受 / 放弃** 二选一。
+
+**池子隔离信号**：所有主题卡都用 `group = 10 (恶魔) | 11 (天使)` + `pool_weight = 0`。`upgrade_manager._build_pool()` 必须按 `pool_weight == 0` 过滤掉这两组，确保主题卡不会出现在普通升级池里。
+
+**风格区分**：恶魔 = 血红色 UI + 全部带「最大生命 -X%」惩罚；天使 = 浅黄圣光色 UI + 无惩罚。恶魔卡 `desc_cn` **必须显式包含「最大生命 -X%」尾巴**（不靠 attr 列默默扣血，玩家必须看见惩罚）。
+
+**新 group code (build_rewards_v6_compact.py `GROUP_CODES`)**：
+- 10 = 恶魔（icon: 👹）
+- 11 = 天使（icon: 😇）
+
+**新 attr code (build_rewards_v6_compact.py `ATTR_CODES`)**：
+- 43 = summon_demon_baby_count_add（恶魔宝宝召唤数）
+- 44 = summon_angel_baby_count_add（天使宝宝召唤数）
+- 45 = sword_spear_count_add（命运之矛数量）
+
+**新 special_rule (build_rewards_v6_compact.py `SPECIAL_RULE_CODES`)**：
+- 46 `scythe_on_slash_end` `[atk_mult, pierce]` — 死神镰刀：on_slash_end 在终点释放贯通投掷物
+- 47 `periodic_laser` `[atk_mult_per_tick, tick_interval_sec, element]` — 硫磺火：cd 走 attr 40 / 持续走 attr 41 / 元素状态由 Sheet4 自动应用
+- 48 `multi_revive` `[extra_lives, max_hp_after_revive_abs]` — 九命猫：复活后绝对 HP（1 = 1HP，不是百分比）
+- 49 `blood_bullet` `[pierce, range_mult]` — 血飞刀：替换普攻；攻速/攻击调整走 attr 1 / attr 2
+- 50 `proximity_slow` `[aura_radius_px, max_slow_pct]` — 无下限术式：近距离怪物按距离线性减速
+
+**sr=45 mechanic 枚举扩展**：原 `ranged_single/ranged_aoe/ranged_taunt/random_aoe` 追加 `ranged_laser`（持续穿透激光，用于恶魔宝宝 demon_baby）。
+
+**圣盾去重**：原 `sv_holy_guard`（神圣守护，sr=6，每关 1 层挡致死护盾）效果与策划版圣盾完全一致 → 直接复用，仅在源表 `ys构思_v6.xlsx` 把它的 `name_cn`/`group`/`pool_weight` 改成 圣盾 / 天使 / 0，不新建第二张同效果卡。
+

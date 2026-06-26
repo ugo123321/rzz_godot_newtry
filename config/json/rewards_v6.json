@@ -666,13 +666,13 @@
   },
   {
     "id": "sv_holy_guard",
-    "name_cn": "神圣守护",
-    "group": "生存防御",
+    "name_cn": "圣盾",
+    "group": "天使",
     "rarity": "orange",
-    "icon": "🛡️",
-    "desc_cn": "每关战斗开始时获得 1 层护盾，抵挡 1 次伤害（含致命）",
+    "icon": "😇",
+    "desc_cn": "每关开始获得 1 层圣盾，抵挡 1 次伤害（含致死）",
     "max_level": 1,
-    "pool_weight": 30,
+    "pool_weight": 0,
     "special_rule": 6,
     "special_values": [
       1,
@@ -1581,7 +1581,7 @@
     "group": "连击",
     "rarity": "white",
     "icon": "🌀",
-    "desc_cn": "每次连击 +2 枚手里剑/级 0.6×ATK",
+    "desc_cn": "气力耗尽时，向斩击末端方向 spawn +2 枚手里剑/级 0.6×ATK",
     "max_level": 3,
     "pool_weight": 120,
     "special_rule": 22,
@@ -1827,7 +1827,7 @@
     "group": "画线轨迹",
     "rarity": "purple",
     "icon": "✨",
-    "desc_cn": "每次划线结束，末端范围冲击 2.5×ATK，推开半径 200px (+0.3/级)",
+    "desc_cn": "气力耗尽时，画线末端范围冲击 2.5×ATK，推开半径 200px (+0.3/级)",
     "max_level": 3,
     "pool_weight": 75,
     "special_rule": 26,
@@ -1858,7 +1858,7 @@
     "group": "画线轨迹",
     "rarity": "blue",
     "icon": "✨",
-    "desc_cn": "画线轨迹首次闭合区间内：释放爆炸 3.0×ATK (+0.3/级)",
+    "desc_cn": "气力耗尽且画线轨迹首次闭合时，闭合区间内释放爆炸 3.0×ATK (+0.3/级)",
     "max_level": 4,
     "pool_weight": 100,
     "special_rule": 27,
@@ -2735,8 +2735,8 @@
     "pool_weight": 70,
     "special_rule": 45,
     "special_values": [
+      1.2,
       2.5,
-      2.0,
       600,
       "none",
       "ranged_aoe",
@@ -3275,6 +3275,409 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·冰系附伤",
+    "attrs": []
+  },
+  {
+    "id": "demon_scythe",
+    "name_cn": "死神镰刀",
+    "group": "恶魔",
+    "rarity": "orange",
+    "icon": "👹",
+    "desc_cn": "气力耗尽时，画线末端释放无限射程贯通镰刀，4×ATK 伤害（最大生命 -30%）",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 46,
+    "special_values": [
+      4.0,
+      1
+    ],
+    "special_values_per_lv": [],
+    "card_path": "trail",
+    "trigger": "on_slash_end",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": null,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（恶魔）",
+    "attrs": [
+      {
+        "id": 4,
+        "value": -0.3,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "demon_sulfur_laser",
+    "name_cn": "硫磺火",
+    "group": "恶魔",
+    "rarity": "orange",
+    "icon": "👹",
+    "desc_cn": "每 6 秒朝最近敌人射出 1 条暗红激光，持续 1 秒，附加燃烧（最大生命 -30%）",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 47,
+    "special_values": [
+      0.5,
+      0.1,
+      "fire"
+    ],
+    "special_values_per_lv": [],
+    "card_path": "element",
+    "trigger": "timer",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": null,
+    "applies_fire": 1,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（恶魔）",
+    "attrs": [
+      {
+        "id": 4,
+        "value": -0.3,
+        "per_lv": null
+      },
+      {
+        "id": 40,
+        "value": 6,
+        "per_lv": null
+      },
+      {
+        "id": 41,
+        "value": 1,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "demon_baby",
+    "name_cn": "恶魔宝宝",
+    "group": "恶魔",
+    "rarity": "orange",
+    "icon": "👹",
+    "desc_cn": "召唤恶魔宝宝跟随玩家 远程激光穿透攻击 火伤（最大生命 -30%）",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 45,
+    "special_values": [
+      1.5,
+      1.2,
+      600,
+      "fire",
+      "ranged_laser",
+      null,
+      null
+    ],
+    "special_values_per_lv": [],
+    "card_path": "summon",
+    "trigger": "passive",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": null,
+    "applies_fire": 1,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（恶魔）",
+    "attrs": [
+      {
+        "id": 43,
+        "value": 1,
+        "per_lv": null
+      },
+      {
+        "id": 4,
+        "value": -0.3,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "demon_nine_lives",
+    "name_cn": "九命猫",
+    "group": "恶魔",
+    "rarity": "orange",
+    "icon": "👹",
+    "desc_cn": "九命：初始 1 命 + 8 次复活，复活后 HP=1（最大生命 -99%）",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 48,
+    "special_values": [
+      8,
+      1
+    ],
+    "special_values_per_lv": [],
+    "card_path": "survive",
+    "trigger": "passive",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": null,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（恶魔）",
+    "attrs": [
+      {
+        "id": 4,
+        "value": -0.99,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "demon_vampire",
+    "name_cn": "吸血鬼",
+    "group": "恶魔",
+    "rarity": "orange",
+    "icon": "👹",
+    "desc_cn": "击杀时 5% 概率恢复 20% 最大生命（最大生命 -10%）",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 0,
+    "special_values": [],
+    "special_values_per_lv": [],
+    "card_path": "survive",
+    "trigger": "on_kill",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": 0.05,
+    "weapon_mult": null,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（恶魔）",
+    "attrs": [
+      {
+        "id": 4,
+        "value": -0.1,
+        "per_lv": null
+      },
+      {
+        "id": 20,
+        "value": 0.2,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "demon_blood_blade",
+    "name_cn": "血飞刀",
+    "group": "恶魔",
+    "rarity": "orange",
+    "icon": "👹",
+    "desc_cn": "普攻改为血飞刀：穿透 + 射程 ×2 + 攻速 +100%，攻击 -80%（最大生命 -20%）",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 49,
+    "special_values": [
+      1,
+      2.0
+    ],
+    "special_values_per_lv": [],
+    "card_path": "bullet",
+    "trigger": "passive",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": null,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（恶魔）",
+    "attrs": [
+      {
+        "id": 4,
+        "value": -0.2,
+        "per_lv": null
+      },
+      {
+        "id": 2,
+        "value": 1,
+        "per_lv": null
+      },
+      {
+        "id": 1,
+        "value": -0.8,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "angel_holy_bullet",
+    "name_cn": "圣光子弹",
+    "group": "天使",
+    "rarity": "orange",
+    "icon": "😇",
+    "desc_cn": "普攻 10% 概率召唤光柱 AOE 雷伤",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 13,
+    "special_values": [
+      0.1,
+      0,
+      2.0,
+      150
+    ],
+    "special_values_per_lv": [],
+    "card_path": "bullet",
+    "trigger": "on_hit",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": 0.1,
+    "weapon_mult": 2,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 1,
+    "applies_poison": 0,
+    "notes": "主题关专属（天使）",
+    "attrs": []
+  },
+  {
+    "id": "angel_light_ward",
+    "name_cn": "光之守护",
+    "group": "天使",
+    "rarity": "orange",
+    "icon": "😇",
+    "desc_cn": "受到伤害 -50%",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 0,
+    "special_values": [],
+    "special_values_per_lv": [],
+    "card_path": "survive",
+    "trigger": "passive",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": null,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（天使）",
+    "attrs": [
+      {
+        "id": 11,
+        "value": 0.5,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "angel_baby",
+    "name_cn": "天使宝宝",
+    "group": "天使",
+    "rarity": "orange",
+    "icon": "😇",
+    "desc_cn": "召唤天使宝宝跟随玩家 远程单体攻击 雷伤",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 45,
+    "special_values": [
+      1.5,
+      1.0,
+      550,
+      "thunder",
+      "ranged_single",
+      null,
+      null
+    ],
+    "special_values_per_lv": [],
+    "card_path": "summon",
+    "trigger": "passive",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": null,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 1,
+    "applies_poison": 0,
+    "notes": "主题关专属（天使）",
+    "attrs": [
+      {
+        "id": 44,
+        "value": 1,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "angel_fate_spear",
+    "name_cn": "命运之矛",
+    "group": "天使",
+    "rarity": "orange",
+    "icon": "😇",
+    "desc_cn": "环绕命运之矛 ×1",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 40,
+    "special_values": [
+      1.5,
+      0.4,
+      "none",
+      null,
+      null,
+      null
+    ],
+    "special_values_per_lv": [],
+    "card_path": "sword",
+    "trigger": "passive",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": 1.5,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（天使）",
+    "attrs": [
+      {
+        "id": 45,
+        "value": 1,
+        "per_lv": null
+      }
+    ]
+  },
+  {
+    "id": "angel_proximity_slow",
+    "name_cn": "无下限术式",
+    "group": "天使",
+    "rarity": "orange",
+    "icon": "😇",
+    "desc_cn": "玩家周围 300px 内怪物按距离线性减速，最高 50%",
+    "max_level": 1,
+    "pool_weight": 0,
+    "special_rule": 50,
+    "special_values": [
+      300,
+      0.5
+    ],
+    "special_values_per_lv": [],
+    "card_path": "debuff",
+    "trigger": "passive",
+    "trigger_value": null,
+    "trigger_value_per_lv": null,
+    "proc_chance": null,
+    "weapon_mult": null,
+    "applies_fire": 0,
+    "applies_ice": 0,
+    "applies_thunder": 0,
+    "applies_poison": 0,
+    "notes": "主题关专属（天使）",
     "attrs": []
   }
 ]

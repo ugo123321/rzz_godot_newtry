@@ -20,6 +20,8 @@ const TYPE_DIRT := "dirt"
 const TYPE_STONE := "stone"
 const TYPE_DEMON_GROUND := "demon_ground"
 const TYPE_ANGEL_GROUND := "angel_ground"
+const TYPE_FORGE_GROUND := "forge_ground"
+const TYPE_PARADE_GROUND := "parade_ground"
 
 # 主题印记参数：在地形烘焙的最末段把 9×9 的 grid（每 cell 8px = 72×72 像素）画在视口中心
 const SIGIL_PIXEL := 8
@@ -131,6 +133,26 @@ const TILE_DATA := {
 		"deco_kind": "flake",
 		"deco_palette": [Color("#f0e8c8"), Color("#ffffff"), Color("#a8c0d8")],
 	},
+	"forge_ground": {
+		# 打造关：深紫神秘地面，rune 像素印记。
+		"base": Color("#2a1a55"),
+		"shade": Color("#1a0e33"),
+		"highlight": Color("#3d2570"),
+		"speckle_chance": 0.05,
+		"deco_chance": 0.04,
+		"deco_kind": "rune",
+		"deco_palette": [Color("#8a5cff"), Color("#c8a8ff"), Color("#5536a8")],
+	},
+	"parade_ground": {
+		# Boss 关「冲锋骑士」练兵操场：踩实的棕黄土地 + 干草 / 脚印 / 暗色裂痕。
+		"base": Color("#9a7244"),
+		"shade": Color("#7a5a30"),
+		"highlight": Color("#b08a58"),
+		"speckle_chance": 0.06,
+		"deco_chance": 0.05,
+		"deco_kind": "pebble",
+		"deco_palette": [Color("#4a3220"), Color("#5e4028"), Color("#7a5430"), Color("#d8b878")],
+	},
 }
 
 var _texture: ImageTexture
@@ -231,7 +253,14 @@ func has_grass_tiles() -> bool:
 
 
 # Override hook: stages can return any tile type key for a given cell. Default = grass everywhere.
-func _pick_tile_type_for(_stage_index: int, _col: int, _row: int) -> String:
+func _pick_tile_type_for(stage_index: int, _col: int, _row: int) -> String:
+	# 打造关（room_type == attr_forge）→ 全部 forge_ground 紫色 tile
+	var stage_dict: Dictionary = GameConfig.get_stage(stage_index)
+	if str(stage_dict.get("room_type", "")) == "attr_forge":
+		return TYPE_FORGE_GROUND
+	# Boss 关 → 棕色练兵操场（先于主题判定，因为 boss 关无主题）
+	if str(stage_dict.get("boss_id", "")) != "":
+		return TYPE_PARADE_GROUND
 	match _current_theme:
 		"demon":
 			return TYPE_DEMON_GROUND
@@ -249,8 +278,11 @@ func _build_grid(stage_index: int, safe_zone: Dictionary) -> void:
 		for c in range(_cols):
 			row[c] = _pick_tile_type_for(stage_index, c, r)
 		_grid[r] = row
-	# 第 2 关起（stage_index >= 1）随机生成水簇，覆盖 grass；主题关绝不生成水
-	if stage_index >= 1 and _current_theme.is_empty():
+	# 第 2 关起（stage_index >= 1）随机生成水簇，覆盖 grass；主题关、打造关、Boss 关都不生水
+	var stage_dict: Dictionary = GameConfig.get_stage(stage_index)
+	var is_forge_stage := str(stage_dict.get("room_type", "")) == "attr_forge"
+	var is_boss_stage := str(stage_dict.get("boss_id", "")) != ""
+	if stage_index >= 1 and _current_theme.is_empty() and not is_forge_stage and not is_boss_stage:
 		_generate_water_clusters(stage_index, safe_zone)
 
 
@@ -492,6 +524,14 @@ func _paint_decoration(img: Image, x: int, y: int, data: Dictionary, rng: Random
 			img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), fcol)
 			img.fill_rect(Rect2i(x + PIXEL, y + PIXEL, PIXEL, PIXEL), fcol)
 			img.fill_rect(Rect2i(x - PIXEL, y + PIXEL, PIXEL, PIXEL), fcol)
+		"rune":
+			# 打造关紫色地面里的 rune 印记：3 点小十字 + 1 颗亮核（参考 flake 但配色不同）
+			var rcol: Color = palette[rng.randi() % palette.size()]
+			img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), rcol)
+			img.fill_rect(Rect2i(x + PIXEL, y, PIXEL, PIXEL), rcol)
+			img.fill_rect(Rect2i(x, y + PIXEL, PIXEL, PIXEL), rcol)
+			if palette.size() >= 2:
+				img.fill_rect(Rect2i(x + PIXEL, y + PIXEL, PIXEL, PIXEL), palette[1])
 		_:
 			pass
 

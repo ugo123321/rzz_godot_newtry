@@ -35,6 +35,9 @@ const PREFIX_PALETTE: Dictionary = {
 	"summon": {"hi": Color("#e8f0ff"), "light": Color("#a0b8ff"), "base": Color("#5070d8"), "dark": Color("#1f3088"), "out": Color("#0a1238")},
 	"combo":  {"hi": Color("#ffe8f8"), "light": Color("#ff90d0"), "base": Color("#e04098"), "dark": Color("#88184c"), "out": Color("#380818")},
 	"elem":   {"hi": Color("#f8fcff"), "light": Color("#d7dcef"), "base": Color("#9098b4"), "dark": Color("#4a516a"), "out": Color("#1a1f30")},
+	# 主题关：恶魔（血红+暗黑） / 天使（圣金+白）
+	"demon":  {"hi": Color("#ffd0c0"), "light": Color("#ff5848"), "base": Color("#d81830"), "dark": Color("#7a0a25"), "out": Color("#280418")},
+	"angel":  {"hi": Color("#ffffff"), "light": Color("#fff488"), "base": Color("#ffd048"), "dark": Color("#a07820"), "out": Color("#2a2008")},
 }
 
 
@@ -61,6 +64,12 @@ func _draw() -> void:
 		pal = ELEM_PALETTE[element]
 	else:
 		pal = PREFIX_PALETTE.get(prefix, PREFIX_PALETTE["basic"])
+	# 主题关 sv_ 卡（sv_angel_shelter / sv_demon_recover）按主题色覆盖
+	if prefix == "sv":
+		if card_id.find("angel") >= 0:
+			pal = PREFIX_PALETTE["angel"]
+		elif card_id.find("demon") >= 0:
+			pal = PREFIX_PALETTE["demon"]
 
 	# 背景：暗色圆角卡牌底（与 PNG 实物图标的描边一致）
 	_draw_bg(g, pal["out"])
@@ -76,6 +85,8 @@ func _draw() -> void:
 		"summon": _draw_summon(card_id, g, pal)
 		"combo":  _draw_combo(card_id, g, pal)
 		"elem":   _draw_bullet(g, pal)
+		"demon":  _draw_demon(card_id, g, pal)
+		"angel":  _draw_angel(card_id, g, pal)
 		_:        _draw_question(g, pal)
 
 	# 元素徽章（右下 8×8）
@@ -116,7 +127,7 @@ func _draw_bg(g: float, outline: Color) -> void:
 
 
 func _id_prefix(card_id: String) -> String:
-	for p in ["basic", "sv", "bullet", "sword", "trail", "orb", "summon", "combo", "elem"]:
+	for p in ["basic", "sv", "bullet", "sword", "trail", "orb", "summon", "combo", "elem", "demon", "angel"]:
 		if card_id.begins_with(p + "_"):
 			return p
 	return ""
@@ -616,6 +627,375 @@ func _draw_question(g: float, p: Dictionary) -> void:
 		"......OOO.......",
 	]
 	_draw_pattern(pattern, 8, 7, g, p)
+
+
+# ============= 主题关：恶魔（demon_*）/ 天使（angel_*） =============
+
+func _draw_demon(card_id: String, g: float, p: Dictionary) -> void:
+	if card_id.find("scythe") >= 0:
+		_draw_scythe(g, p)
+	elif card_id.find("sulfur_laser") >= 0:
+		_draw_laser_beam(g, p)
+	elif card_id.find("baby") >= 0:
+		_draw_demon_baby(g, p)
+	elif card_id.find("nine_lives") >= 0:
+		_draw_cat_head(g, p)
+	elif card_id.find("vampire") >= 0:
+		_draw_blood_drop(g, p)
+	elif card_id.find("blood_blade") >= 0:
+		_draw_flying_dagger(g, p)
+	else:
+		_draw_pentagram(g, p)
+
+
+func _draw_angel(card_id: String, g: float, p: Dictionary) -> void:
+	if card_id.find("holy_bullet") >= 0:
+		_draw_light_pillar(g, p)
+	elif card_id.find("light_ward") >= 0:
+		_draw_shield_cross(g, p)
+	elif card_id.find("baby") >= 0:
+		_draw_angel_baby(g, p)
+	elif card_id.find("fate_spear") >= 0:
+		_draw_spear(g, p)
+	elif card_id.find("proximity_slow") >= 0:
+		_draw_aura_rings(g, p)
+	else:
+		_draw_halo(g, p)
+
+
+# ---- 死神镰刀：饱满弧形刀刃 + 长杆 ----
+func _draw_scythe(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"...OOOOOOOOOO....",
+		"..OBBBBBBBBBBO...",
+		".OBHHHHLLLLBBBO..",
+		"OBHLLLLLLLLBBBBO.",
+		"OBHLLLLLLLBBBBBO.",
+		"OBLLLLLLBBBBBBO..",
+		"OBLLLLBBBBBBO....",
+		".OBLBBBBBBO......",
+		"..OOBBBBOO.......",
+		".....OBO.........",
+		".....OBO.........",
+		".....OBO.........",
+		"....OBHBO........",
+		"....OBHBO........",
+		"....OBHBO........",
+		"....OBHBO........",
+		"....OBHBO........",
+		"....OBLBO........",
+		"....OBLBO........",
+		".....OOO.........",
+	]
+	_draw_pattern(pattern, 7, 6, g, p)
+
+
+# ---- 硫磺火：地狱火球 / 红色太阳 ----
+func _draw_laser_beam(g: float, p: Dictionary) -> void:
+	var pattern := [
+		".......OOOO.......",
+		".....OOBBBBOO.....",
+		"....OBHHLLLLBBO...",
+		"...OBHHLLLLLBBBO..",
+		"..OBHLLLLLLLLBBBO.",
+		"..OBHLLLLLLLLLBBO.",
+		".OBHLLLLOOOLLLBBO.",
+		".OBLLLLOHHLOLLBBO.",
+		".OBLLLLOHHLOLLBBO.",
+		".OBLLLLLOOLLLBBBO.",
+		"..OBLLLLLLLLLBBBO.",
+		"..OBLLLLLLLLBBBO..",
+		"...OBBLLLLLBBBBO..",
+		"....OBBBBBBBBBO...",
+		".....OOBBBBBOO....",
+		".......OOOO.......",
+	]
+	_draw_pattern(pattern, 7, 8, g, p)
+
+
+# ---- 恶魔宝宝：双角矮胖小恶魔 ----
+func _draw_demon_baby(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"..OO........OO..",
+		".OBHO......OBHO.",
+		".OBHO......OBHO.",
+		"OBHHOOOOOOOOBHHO",
+		"OBHHHHHHHHHHHHBO",
+		"OBHLLLLLLLLLLLBO",
+		"OBHLLOOLLLLOOLBO",
+		"OBHLOHHOLLOHHOLO",
+		"OBLLOHHOLLOHHOLO",
+		"OBLLLOOLLLLOOLBO",
+		"OBLLLLLLLLLLLLBO",
+		"OBLLLLOLLLOLLLBO",
+		"OBLLLLOOOOOLLLBO",
+		".OBBBBBBBBBBBBO.",
+		"..OBLLLLLLLLBO..",
+		"..OBLLLLLLLLBO..",
+		"...OBLLBLLBBO...",
+		"...OBBO.OBBO....",
+		"...OOO..OOO.....",
+	]
+	_draw_pattern(pattern, 8, 6, g, p)
+
+
+# ---- 九命猫：尖耳猫头 + 圆脸 + 大眼 ----
+func _draw_cat_head(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"OOO..........OOO",
+		"OBHO........OBHO",
+		"OBHHO......OBHHO",
+		"OBHHHO....OBHHHO",
+		"OBHHHHOOOOBHHHHO",
+		"OBHHHHHHHHHHHHBO",
+		"OBHLLLLLLLLLLLBO",
+		"OBHLLLLLLLLLLLBO",
+		".OBLOOLLLLLOOLBO",
+		"OBLLOHHOLLOHHOLBO",
+		"OBLLLOOLLLLOOLLBO",
+		"OBLLLLLLOLLLLLLBO",
+		"OBLLLLLOOOLLLLLBO",
+		"OBLLLLOLOLLLLLLBO",
+		".OBLLLLOLLLLLLBO.",
+		".OBBLLLLLLLLLBBO.",
+		"..OOBBBBBBBBBBOO.",
+		"....OOOOOOOOOO...",
+	]
+	_draw_pattern(pattern, 7, 7, g, p)
+
+
+# ---- 嗜血：饱满大血滴 ----
+func _draw_blood_drop(g: float, p: Dictionary) -> void:
+	var pattern := [
+		".......OO.......",
+		".......OBO......",
+		"......OBHO......",
+		"......OBHBO.....",
+		".....OBHHHBO....",
+		".....OBHHHBO....",
+		"....OBHHLLLBO...",
+		"....OBHLLLLBO...",
+		"...OBHLLLLLLBO..",
+		"...OBHLLLLLLBO..",
+		"..OBHLLLLLLLLBO.",
+		"..OBHLLLLLLLLBO.",
+		".OBHLLLLLLLLLLBO",
+		".OBHLLLLLLLLLLBO",
+		".OBLLLLLLLLLLLBO",
+		"..OBBLLLLLLLBBO.",
+		"...OBBBBBBBBBO..",
+		"....OOOOOOOOO...",
+	]
+	_draw_pattern(pattern, 8, 7, g, p)
+
+
+# ---- 血飞刀：斜向弯刃飞刀 ----
+func _draw_flying_dagger(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"OOO.............",
+		"OBBO............",
+		"OBHBO...........",
+		".OBHBO..........",
+		".OBHLBO.........",
+		"..OBHLBO........",
+		"..OBHLLBO.......",
+		"...OBHLLBO......",
+		"....OBHLLBO.....",
+		"....OBHHLLBO....",
+		".....OBHHLLBO...",
+		"......OBHHLLBO..",
+		".......OBHHLLBO.",
+		"........OBHHLBO.",
+		".........OBHLBO.",
+		"..........OBLBO.",
+		"...........OBBO.",
+		"...........OBO..",
+		"...........OO...",
+	]
+	_draw_pattern(pattern, 8, 7, g, p)
+
+
+# ---- 默认恶魔图案：五芒星（实心填充）----
+func _draw_pentagram(g: float, p: Dictionary) -> void:
+	var pattern := [
+		".........OO.........",
+		"........OBHO........",
+		"........OBHO........",
+		".......OBHHBO.......",
+		".......OBHHBO.......",
+		"OOOOOOOOBHLLBOOOOOOO",
+		"OBBBBBBBHLLLLBBBBBBO",
+		".OBHLLLLLLLLLLLLLBO.",
+		"..OBHLLLLLLLLLLLBO..",
+		"...OBHLLLLLLLLLBO...",
+		"....OBHLLLLLLLBO....",
+		".....OBHLLLLLBO.....",
+		"....OBHLLLLLLLBO....",
+		"....OBHLLBOBLLBO....",
+		"...OBHLLBO.OBLLBO...",
+		"..OBHLLBO...OBLLBO..",
+		".OBHLLBO.....OBLLBO.",
+		"OBBBBBO.......OBBBBO",
+		"OOOOO...........OOOO",
+	]
+	_draw_pattern(pattern, 6, 7, g, p)
+
+
+# ---- 圣光弹：饱满光柱 + 顶部光点 ----
+func _draw_light_pillar(g: float, p: Dictionary) -> void:
+	var pattern := [
+		".......OO.......",
+		".......OBO......",
+		"......OBHO......",
+		"......OBHBO.....",
+		"......OBHBO.....",
+		".....OBHHBO.....",
+		".....OBHHBO.....",
+		"....OBHHHBBO....",
+		"....OBHHLLBO....",
+		"...OBHHLLLBBO...",
+		"...OBHLLLLLBO...",
+		"..OBHHLLLLLBBO..",
+		"..OBHLLLLLLLBO..",
+		".OBHHLLLLLLLBBO.",
+		".OBHLLLLLLLLLBO.",
+		"OBHHLLLLLLLLLBBO",
+		"OBHLLLLLLLLLLLBO",
+		"OBLLLLLLLLLLLLBO",
+		".OBBBBBBBBBBBBO.",
+		"..OOOOOOOOOOOO..",
+	]
+	_draw_pattern(pattern, 8, 6, g, p)
+
+
+# ---- 圣盾：盾形 + 实心十字浮雕 ----
+func _draw_shield_cross(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"..OOOOOOOOOOOO..",
+		".OBBBBBBBBBBBBO.",
+		"OBHHHHHHHHHHHHBO",
+		"OBHLLLLLLLLLLHBO",
+		"OBHLLLOHHOLLLHBO",
+		"OBHLLLOHHOLLLHBO",
+		"OBHLLLOHHOLLLHBO",
+		"OBHLOOOHHOOOLHBO",
+		"OBHLOHHHHHHOLHBO",
+		"OBHLOOOHHOOOLHBO",
+		"OBHLLLOHHOLLLHBO",
+		"OBHLLLOHHOLLLHBO",
+		"OBHLLLLLLLLLLHBO",
+		".OBHLLLLLLLLLBBO",
+		".OBHHLLLLLLLBBO.",
+		"..OBHHLLLLLBBO..",
+		"...OBHHLLLBBO...",
+		"....OBHHLBBO....",
+		".....OBHBBO.....",
+		"......OBBO......",
+		".......OO.......",
+	]
+	_draw_pattern(pattern, 8, 5, g, p)
+
+
+# ---- 天使宝宝：圆头 + 双翼 + 头顶光环 ----
+func _draw_angel_baby(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"......OOOOOO......",
+		".....OBHHHHHBO....",
+		".....OBLLLLLBO....",
+		"......OOOOOO......",
+		"....OOOOOOOOOO....",
+		"...OBHHHHHHHHBO...",
+		"..OBHLLLLLLLLLBO..",
+		"..OBHLOHOLLOHOLBO.",
+		"..OBHLOHOLLOHOLBO.",
+		"..OBHLLLLLLLLLLBO.",
+		"..OBHLLLLOOLLLLBO.",
+		"..OBHLLLLLLLLLLBO.",
+		"...OBLLLLLLLLLBO..",
+		"....OBBBBBBBBBO...",
+		"OOO..OBHLLLLBO..OOO",
+		"OBHO.OBHLLLLBO.OBHO",
+		"OBHHBOBHLLLLBOBHHBO",
+		"OBHHHBOBLLLLBOBHHHBO",
+		".OBHHBO.OBBO.OBHHBO.",
+		"..OBHBO..OO..OBHBO..",
+		"...OBO........OBO...",
+	]
+	_draw_pattern(pattern, 7, 5, g, p)
+
+
+# ---- 命运之矛：菱形矛尖 + 中段宝石 + 长柄 ----
+func _draw_spear(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"......OO......",
+		"......OBO.....",
+		".....OBHBO....",
+		".....OBHBO....",
+		"....OBHHHBO...",
+		"....OBHHHBO...",
+		"...OBHHHLLBO..",
+		"...OBHHLLLBO..",
+		"....OBHLLBO...",
+		".....OBLBO....",
+		".....OBLBO....",
+		"....OOBLBOO...",
+		"...OBHHBLHHBO.",
+		"....OOBLBOO...",
+		".....OBLBO....",
+		".....OBLBO....",
+		".....OBLBO....",
+		".....OBLBO....",
+		".....OBLBO....",
+		".....OBLBO....",
+		"....OBHHHBO...",
+		".....OOOO.....",
+	]
+	_draw_pattern(pattern, 9, 5, g, p)
+
+
+# ---- 减速光环：实心同心圆 + 中心点 ----
+func _draw_aura_rings(g: float, p: Dictionary) -> void:
+	var pattern := [
+		".....OOOOOOOOO.....",
+		"...OOBBBBBBBBBOO...",
+		"..OBHHHHHHHHHHHBO..",
+		".OBHLLLLLLLLLLLHBO.",
+		"OBHLLOOOOOOOOOLLHBO",
+		"OBLLOBBBBBBBBOLLLBO",
+		"OBLOBHHHHHHHHBOLLBO",
+		"OBLOBHLLLLLLLHBOLBO",
+		"OBLOBHLOOOOOLHBOLBO",
+		"OBLOBHLOHHHOLHBOLBO",
+		"OBLOBHLOOOOOLHBOLBO",
+		"OBLOBHLLLLLLLHBOLBO",
+		"OBLOBHHHHHHHHBOLLBO",
+		"OBLLOBBBBBBBBOLLLBO",
+		"OBHLLOOOOOOOOOLLHBO",
+		".OBHLLLLLLLLLLLHBO.",
+		"..OBHHHHHHHHHHHBO..",
+		"...OOBBBBBBBBBOO...",
+		".....OOOOOOOOO.....",
+	]
+	_draw_pattern(pattern, 6, 6, g, p)
+
+
+# ---- 默认天使图案：实心光环（饱满圆环）----
+func _draw_halo(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"....OOOOOOOOOO....",
+		"..OOBBBBBBBBBBOO..",
+		".OBHHHHHHHHHHHHBO.",
+		"OBHLLLLLLLLLLLLHBO",
+		"OBHLLOOOOOOOOLLHBO",
+		"OBHLOBBBBBBBBOLHBO",
+		"OBHLOBBBBBBBBOLHBO",
+		"OBHLOOOOOOOOOLLHBO",
+		"OBHLLLLLLLLLLLLHBO",
+		".OBHHHHHHHHHHHHBO.",
+		"..OOBBBBBBBBBBOO..",
+		"....OOOOOOOOOO....",
+	]
+	_draw_pattern(pattern, 7, 10, g, p)
 
 
 # ============= 元素徽章：右下角 8×8 +1 px 描边 =============

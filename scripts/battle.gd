@@ -3,6 +3,7 @@ class_name BattleController
 
 const SummonAbilityManagerScript = preload("res://scripts/core/summon_ability_manager.gd")
 const SwordOrbitManagerScript = preload("res://scripts/core/sword_orbit_manager.gd")
+const AuraOrbitManagerScript = preload("res://scripts/core/aura_orbit_manager.gd")
 const ParticleManagerScript = preload("res://scripts/core/particle_manager.gd")
 const BloodStainManagerScript = preload("res://scripts/core/blood_stain_manager.gd")
 const GroundEffectManagerScript = preload("res://scripts/core/ground_effect_manager.gd")
@@ -13,12 +14,17 @@ const SakuraSystemScript = preload("res://scripts/systems/sakura_system.gd")
 const GrassSystemScript = preload("res://scripts/systems/grass_system.gd")
 const EnemyArrowScript = preload("res://scripts/entities/enemy_arrow.gd")
 const RewardWheelPopupScript = preload("res://scripts/ui/reward_wheel_popup.gd")
+const ThemedRewardPopupScript = preload("res://scripts/ui/themed_reward_popup.gd")
+const ForgeSettlementPopupScript = preload("res://scripts/ui/forge_settlement_popup.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
 const TreeSpawnerScript = preload("res://scripts/systems/tree_spawner.gd")
 const PortalSpawnerScript = preload("res://scripts/systems/portal_spawner.gd")
 const BuildHouseDirectorScript = preload("res://scripts/systems/build_house_director.gd")
+const AttrForgeDirectorScript = preload("res://scripts/systems/attr_forge_director.gd")
 const WoodDropScript = preload("res://scripts/entities/wood_drop.gd")
 const StageTransitionScript = preload("res://scripts/systems/stage_transition.gd")
+const PortalTraverseAnimatorScript = preload("res://scripts/systems/portal_traverse_animator.gd")
+const ForgePortalScript = preload("res://scripts/entities/forge_portal.gd")
 const BattleTreeScript = preload("res://scripts/entities/battle_tree.gd")
 const WaterOverlayScript = preload("res://scripts/systems/water_overlay.gd")
 
@@ -50,6 +56,7 @@ var buff_orbs: BuffOrbManager
 var abilities: AbilityManager
 var summons
 var swords
+var auras
 var damage_overlay: DamageNumbersOverlay
 var equipment_drop_fx: EquipmentDropFxOverlay
 var afterimages_overlay
@@ -63,14 +70,24 @@ var level_overlay
 var grass_field
 var sakura_field
 var reward_wheel_popup
+var themed_reward_popup
+var _pending_themed_next_index := -1
+var _pending_themed_theme := ""
 var _pending_reward_stage_index := -1
 var tree_spawner
 var portal_spawner
 var build_house
+var attr_forge
 var tree_container: Node2D
 var portal_container: Node2D
 var wood_drops_container: Node2D
 var build_house_container: Node2D
+var attr_forge_container: Node2D
+var _pending_attr_forge_advance := false
+var forge_settlement_popup
+var _pending_forge_buffs: Array = []
+var _pending_forge_rarity := ""
+var _pending_forge_totals: Dictionary = {}
 var _portal_paused_remaining := -1.0
 var _initial_camera_y := 640.0
 var _initial_camera_x := 360.0
@@ -83,6 +100,12 @@ var hit_fx_overlay: Node2D
 var under_monster_fx_overlay: Node2D
 var above_monster_fx_overlay: Node2D
 var stage_transition: StageTransition
+var portal_traverse: PortalTraverseAnimator
+# 当前活跃的传送门引用 — 抽奖 portal / 打造 portal 触发后保留对象，
+# 等 play_exit 完成回调里才 queue_free（中途要 stored_position 当落地点）。
+var _active_lottery_portal: Node = null
+var _active_forge_portal: Node = null
+var _pending_next_forge_portal: Node = null
 var _transition_damage_lock := false
 var _pending_next_terrain: TerrainBackground = null
 var _next_stage_root: Node2D = null
@@ -141,6 +164,11 @@ func _ready() -> void:
 	swords.name = "SwordOrbits"
 	add_child(swords)
 	swords.setup(self)
+	# 环绕玩家的视觉光环（光之守护 / 吸血鬼 / 九命猫）
+	auras = AuraOrbitManagerScript.new()
+	auras.name = "Auras"
+	add_child(auras)
+	auras.setup(self)
 	damage_overlay = DamageNumbersOverlay.new()
 	damage_overlay.name = "DamageNumbers"
 	damage_overlay.z_index = 50
@@ -188,6 +216,18 @@ func _ready() -> void:
 	$UI.add_child(reward_wheel_popup)
 	reward_wheel_popup.setup(self)
 	reward_wheel_popup.reward_finished.connect(_on_reward_wheel_finished)
+	themed_reward_popup = ThemedRewardPopupScript.new()
+	themed_reward_popup.name = "ThemedRewardPopup"
+	themed_reward_popup.z_index = 115
+	$UI.add_child(themed_reward_popup)
+	themed_reward_popup.setup(self)
+	themed_reward_popup.reward_resolved.connect(_on_themed_reward_resolved)
+	forge_settlement_popup = ForgeSettlementPopupScript.new()
+	forge_settlement_popup.name = "ForgeSettlementPopup"
+	forge_settlement_popup.z_index = 115
+	$UI.add_child(forge_settlement_popup)
+	forge_settlement_popup.setup(self)
+	forge_settlement_popup.continue_pressed.connect(_on_forge_settlement_continue)
 	tree_container = Node2D.new()
 	tree_container.name = "Trees"
 	tree_container.z_index = 0
@@ -205,6 +245,11 @@ func _ready() -> void:
 	build_house_container.z_index = 30
 	build_house_container.visible = false
 	add_child(build_house_container)
+	attr_forge_container = Node2D.new()
+	attr_forge_container.name = "AttrForge"
+	attr_forge_container.z_index = 30
+	attr_forge_container.visible = false
+	add_child(attr_forge_container)
 	tree_spawner = TreeSpawnerScript.new()
 	tree_spawner.name = "TreeSpawner"
 	add_child(tree_spawner)
@@ -214,6 +259,9 @@ func _ready() -> void:
 	build_house = BuildHouseDirectorScript.new()
 	build_house.name = "BuildHouseDirector"
 	build_house_container.add_child(build_house)
+	attr_forge = AttrForgeDirectorScript.new()
+	attr_forge.name = "AttrForgeDirector"
+	attr_forge_container.add_child(attr_forge)
 	virtual_joystick = VirtualJoystickScript.new()
 	virtual_joystick.name = "VirtualJoystick"
 	$UI.add_child(virtual_joystick)
@@ -247,6 +295,9 @@ func _ready() -> void:
 	stage_transition = StageTransitionScript.new()
 	stage_transition.name = "StageTransition"
 	add_child(stage_transition)
+	portal_traverse = PortalTraverseAnimatorScript.new()
+	portal_traverse.name = "PortalTraverseAnimator"
+	add_child(portal_traverse)
 	water_overlay = WaterOverlayScript.new()
 	water_overlay.name = "WaterOverlay"
 	add_child(water_overlay)
@@ -592,6 +643,187 @@ func _exit_build_house() -> void:
 	LobbyState.reset_wood()
 
 
+# === 属性打造关（attr_forge）===
+# 新流程（v3，传送门版）：
+#   1. _try_enter_reward_room 检测 attr_forge → 调 _begin_forge_stage()
+#   2. _begin_forge_stage：hud 提示 → 等 0.5s（让玩家看到自己站在门上）→ portal_traverse.play_enter
+#   3. 中点回调 _on_forge_enter_midpoint：state=ATTR_FORGE + attr_forge.begin + portal 隐藏
+#   4. 10 块落完 → on_attr_forge_phase_done：评品质 → attr_forge.reset → portal 显示 → play_exit
+#   5. 退出回调 _on_forge_exit_complete：portal 销毁 → 弹结算 popup
+#   6. 玩家点继续 → _on_forge_settlement_continue：apply buff + 头顶箭头 + 弹 3 选 1
+#   7. 选完升级卡 → _advance_after_attr_forge：await 1.6s 等箭头淡完 → 跳下一关
+#
+# 不再隐藏战斗实体（场景已是紫色专属场景）。_enter_attr_forge / _exit_attr_forge 只切 state。
+
+
+func _begin_forge_stage() -> void:
+	# REBASE 完成后立即被 _try_enter_reward_room 调用。
+	# 此刻玩家已落地正好在 ForgePortal 上 (_active_forge_portal.stored_position)。
+	state = GameState.STAGE_TRANSITION
+	hud.show_message("属性打造关", 1.0)
+	# 等 0.5s 让玩家感受"我落在了门上"的瞬间
+	await get_tree().create_timer(0.5).timeout
+	if _active_forge_portal == null or not is_instance_valid(_active_forge_portal):
+		# 容错：portal 丢失，直接走旧的 _enter_attr_forge 路径
+		push_warning("_begin_forge_stage: _active_forge_portal missing, fallback to direct enter")
+		_enter_attr_forge()
+		return
+	if portal_traverse == null:
+		# 容错：动画器缺失，直接进入
+		_enter_attr_forge()
+		return
+	portal_traverse.play_enter(self, _active_forge_portal.stored_position, Callable(self, "_on_forge_enter_midpoint"))
+
+
+func _on_forge_enter_midpoint() -> void:
+	# 黑色 phase_fade 中段（屏幕全黑）：此刻安全切场景。
+	_enter_attr_forge()
+	# 把门视觉藏起来（打造小游戏期间不显示门）
+	if _active_forge_portal and is_instance_valid(_active_forge_portal):
+		_active_forge_portal.visible = false
+
+
+func _enter_attr_forge() -> void:
+	# v3：场景已经是打造关专属场景（紫色地面 + 中心门 + 无树无草），
+	# 不再隐藏战斗实体（怪物在 attr_forge 关本来就 0 怪 + 没有 portal_spawner 输出）。
+	# 只切 state 并启动 attr_forge_director；摄像机由 attr_forge_director._update_camera 接管。
+	state = GameState.ATTR_FORGE
+	_clear_stage_transition_presentation(true)
+	attr_forge_container.visible = true
+	attr_forge.begin(self)
+
+
+func _exit_attr_forge() -> void:
+	# v3：不再恢复战斗实体 visible（它们本来就一直可见 — attr_forge 关怪物本就是 0）。
+	# attr_forge.reset() 会把相机平滑拉回 _initial_camera_y，让玩家从门长出时画面对齐。
+	attr_forge_container.visible = false
+	if attr_forge:
+		attr_forge.reset()
+	# 强制把相机拉回标准位（attr_forge_director 跟随塔顶时挪过相机）
+	if camera:
+		camera.global_position = Vector2(_initial_camera_x, _initial_camera_y)
+
+
+# 由 AttrForgeDirector 在 10 块落完 + 沉降稳定后回调（v3：经 portal_traverse.play_exit 退出）。
+# 流程：评品质 → 黑色 fade 覆盖相机回正 → 中点 _start_forge_exit_sequence → play_exit → 弹结算 popup
+func on_attr_forge_phase_done(surviving_buffs: Array) -> void:
+	state = GameState.ATTR_FORGE_DONE
+	var stacked := surviving_buffs.size()
+	var rarity := _rarity_for_stacked_count(stacked)
+	EventBus.forge_session_complete.emit(rarity, stacked)
+	# 暂存 — 等结算面板「继续」回调时再 commit + 弹升级
+	_pending_forge_buffs = surviving_buffs
+	_pending_forge_rarity = rarity
+	_pending_forge_totals = _aggregate_forge_buffs(surviving_buffs)
+	# 黑色 phase_fade 覆盖相机从塔顶回正的瞬间；中点跑场景切换 + play_exit
+	if level_overlay:
+		level_overlay.show_phase_fade("", "", Callable(self, "_start_forge_exit_sequence"), 0.18, 0.0, 0.18)
+	else:
+		_start_forge_exit_sequence()
+
+
+func _start_forge_exit_sequence() -> void:
+	# 黑色全屏遮罩期间：清打造小游戏 + 相机回正 + 重新显示门
+	_exit_attr_forge()
+	if _active_forge_portal and is_instance_valid(_active_forge_portal):
+		_active_forge_portal.visible = true
+	# 异常兜底：portal_traverse / popup 缺失时直接走旧的「直接弹结算」路径
+	if portal_traverse == null or _active_forge_portal == null or not is_instance_valid(_active_forge_portal):
+		if forge_settlement_popup:
+			forge_settlement_popup.show_for(_pending_forge_rarity, _pending_forge_buffs.size(), _pending_forge_totals)
+		else:
+			_on_forge_settlement_continue()
+		return
+	portal_traverse.play_exit(self, _active_forge_portal.stored_position, Callable(self, "_on_forge_exit_complete"))
+
+
+func _on_forge_exit_complete() -> void:
+	# play_exit 完成（玩家已落到门正下方）：销毁门，弹结算 popup
+	if _active_forge_portal and is_instance_valid(_active_forge_portal):
+		_active_forge_portal.queue_free()
+	_active_forge_portal = null
+	if forge_settlement_popup == null:
+		_on_forge_settlement_continue()
+		return
+	forge_settlement_popup.show_for(_pending_forge_rarity, _pending_forge_buffs.size(), _pending_forge_totals)
+
+
+# 把 surviving_buffs 按 name_cn 聚合成 {name_cn: total_delta} 字典（结算面板显示用）。
+func _aggregate_forge_buffs(buffs: Array) -> Dictionary:
+	var totals: Dictionary = {}
+	for b in buffs:
+		var n := str(b.get("name_cn", ""))
+		if n.is_empty():
+			continue
+		var d: float = float(b.get("delta", 0.0))
+		totals[n] = float(totals.get(n, 0.0)) + d
+	return totals
+
+
+# 结算面板「继续」回调：把所有暂存的 buff 一次性 apply 到 player，然后走原 3 选 1 流程。
+func _on_forge_settlement_continue() -> void:
+	if player != null:
+		for b in _pending_forge_buffs:
+			var idx: int = int(b.get("buff_idx", -1))
+			if idx >= 0:
+				player.apply_forge_buff(idx)
+		# 头顶绿色 ↑ 箭头：1.8s，玩家在选 3 选 1 升级卡时也能看到
+		if player.has_method("show_forge_buff_arrow"):
+			player.show_forge_buff_arrow(1.8)
+	var rarity: String = _pending_forge_rarity
+	# 清空暂存
+	_pending_forge_buffs = []
+	_pending_forge_rarity = ""
+	_pending_forge_totals = {}
+	# 弹 3 选 1
+	if upgrades == null or player == null or upgrade_popup == null:
+		_advance_after_attr_forge()
+		return
+	_pending_attr_forge_advance = true
+	state = GameState.LEVEL_UP
+	upgrades.generate_choices_with_rarity(player, rarity)
+	upgrade_popup.show_popup()
+	upgrade_popup.move_to_front()
+	if hud:
+		hud.show_message("属性提升！", 1.6)
+
+
+func _rarity_for_stacked_count(stacked: int) -> String:
+	if stacked <= 0:
+		return "white"
+	if stacked <= 3:
+		return "white"
+	if stacked <= 6:
+		return "blue"
+	if stacked <= 9:
+		return "purple"
+	return "orange"
+
+
+func _rarity_zh(rarity: String) -> String:
+	match rarity:
+		"white":
+			return "白"
+		"blue":
+			return "蓝"
+		"purple":
+			return "紫"
+		"orange":
+			return "橙"
+		_:
+			return rarity
+
+
+func _advance_after_attr_forge() -> void:
+	_pending_attr_forge_advance = false
+	EventBus.stage_cleared.emit(stage_index)
+	# 给头顶 ↑ 箭头留一小段尾巴时间（结算 popup → 选 3 选 1 升级卡期间箭头已经飘了好几秒，
+	# 这里 0.5s 足够剩余 alpha 收尾，再长玩家会觉得卡顿）。
+	await get_tree().create_timer(0.5).timeout
+	# 走标准 _advance_to_next_stage 流程（含主题关 popup / stage_transition）
+	_advance_to_next_stage()
+
+
 func _advance_after_build() -> void:
 	_exit_build_house()
 	EventBus.stage_cleared.emit(stage_index)
@@ -695,18 +927,58 @@ func on_tree_killed(tree_node: Node) -> void:
 
 
 func on_portal_entered(portal_node: Node) -> void:
+	# v3：玩家触碰抽奖传送门 → 小跳跃进入 + 黑色 phase_fade + 弹转盘 popup。
+	# portal 不立即销毁，保留 stored_position 供 play_exit 用（玩家落回门正下方原地）。
 	_portal_active_pause = true
 	if portal_spawner:
 		portal_spawner.stop()
-	if portal_node and portal_node.has_method("queue_free"):
-		portal_node.queue_free()
-	state = GameState.REWARD_ROOM
+	_active_lottery_portal = portal_node
+	state = GameState.STAGE_TRANSITION  # 屏蔽输入直到 play_enter 中点切到 REWARD_ROOM
 	_pending_reward_stage_index = -2  # sentinel: portal-driven
+	# 容错：portal_traverse 或 portal 缺失时退化为旧的"原地弹 popup"
+	if portal_traverse == null or portal_node == null:
+		state = GameState.REWARD_ROOM
+		if portal_node and portal_node.has_method("queue_free"):
+			portal_node.queue_free()
+		_active_lottery_portal = null
+		if reward_wheel_popup:
+			reward_wheel_popup.show_for_stage(stage_index)
+		return
+	var portal_pos: Vector2 = portal_node.global_position
+	# 抽奖 portal 暂存 stored_position 给 play_exit 用
+	if "stored_position" in portal_node:
+		portal_node.stored_position = portal_pos
+	portal_traverse.play_enter(self, portal_pos, Callable(self, "_on_lottery_enter_midpoint"))
+
+
+func _on_lottery_enter_midpoint() -> void:
+	# play_enter 中点（屏幕全黑）：state 切到 REWARD_ROOM + 弹转盘
+	state = GameState.REWARD_ROOM
 	if reward_wheel_popup:
 		reward_wheel_popup.show_for_stage(stage_index)
 
 
 func _resume_from_portal_reward() -> void:
+	# v3：转盘关闭后走 play_exit（玩家从门里跳出，落到门正下方原地），完成后才恢复 PLAYING。
+	if portal_traverse == null or _active_lottery_portal == null or not is_instance_valid(_active_lottery_portal):
+		# 兜底：动画器或 portal 缺失，直接恢复
+		state = GameState.PLAYING
+		_portal_active_pause = false
+		if _active_lottery_portal and is_instance_valid(_active_lottery_portal):
+			_active_lottery_portal.queue_free()
+		_active_lottery_portal = null
+		if portal_spawner:
+			portal_spawner.begin()
+		return
+	var portal_pos: Vector2 = _active_lottery_portal.stored_position
+	portal_traverse.play_exit(self, portal_pos, Callable(self, "_on_lottery_exit_complete"))
+
+
+func _on_lottery_exit_complete() -> void:
+	# play_exit 完成：销毁门，恢复 PLAYING + portal_spawner
+	if _active_lottery_portal and is_instance_valid(_active_lottery_portal):
+		_active_lottery_portal.queue_free()
+	_active_lottery_portal = null
 	state = GameState.PLAYING
 	_portal_active_pause = false
 	if portal_spawner:
@@ -779,7 +1051,12 @@ func get_stage_theme(idx: int) -> String:
 	if idx < 0 or idx >= GameConfig.stages.size():
 		return ""
 	var s := GameConfig.get_stage(idx)
-	if str(s.get("room_type", "")) == "reward":
+	var rt := str(s.get("room_type", ""))
+	if rt == "reward" or rt == "attr_forge":
+		return ""
+	# Boss 关优先：与主题关（每 4 关一次的 demon/angel）冲突时，boss 关胜出。
+	# 否则在练兵操场上还会画 demon/angel 的 sigil 装饰，视觉会乱。
+	if str(s.get("boss_id", "")) != "":
 		return ""
 	if (idx + 1) % 4 != 0:
 		return ""
@@ -932,7 +1209,7 @@ func resume_from_pause() -> void:
 func pause_game() -> void:
 	if _lobby_entry_intro_active:
 		return
-	if state in [GameState.MENU, GameState.WAIT_START, GameState.FAIL_DEATH, GameState.STAGE_CLEAR, GameState.COMPLETE, GameState.FAIL, GameState.STAGE_FAIL, GameState.LEVEL_UP, GameState.BUILD_HOUSE, GameState.BUILD_HOUSE_DONE, GameState.STAGE_TRANSITION]:
+	if state in [GameState.MENU, GameState.WAIT_START, GameState.FAIL_DEATH, GameState.STAGE_CLEAR, GameState.COMPLETE, GameState.FAIL, GameState.STAGE_FAIL, GameState.LEVEL_UP, GameState.BUILD_HOUSE, GameState.BUILD_HOUSE_DONE, GameState.ATTR_FORGE, GameState.ATTR_FORGE_DONE, GameState.STAGE_TRANSITION]:
 		return
 	if state == GameState.REWARD_ROOM:
 		return
@@ -981,6 +1258,9 @@ func _on_monster_killed(monster: Node) -> void:
 
 
 func _on_upgrade_picked(_index: int) -> void:
+	if _pending_attr_forge_advance:
+		_advance_after_attr_forge()
+		return
 	state = GameState.PLAYING
 	experience.try_trigger_upgrade(self)
 	_try_finish_stage_clear()
@@ -997,6 +1277,10 @@ func _needs_fx_redraw() -> bool:
 	if abilities and abilities.has_active_fx():
 		return true
 	if summons and summons.has_active_fx():
+		return true
+	if swords and swords.has_active_fx():
+		return true
+	if auras and auras.has_active_fx():
 		return true
 	if particles and particles.has_active_effects():
 		return true
@@ -1041,11 +1325,33 @@ func _advance_to_next_stage() -> void:
 			level_overlay.show_game_complete()
 		hud.hide_message()
 		return
+	# 主题关（demon / angel）专属奖励：在跳跃之前弹 popup，玩家选完才 stage_transition.play()
+	if _maybe_open_themed_reward(next_index):
+		return
 	if stage_transition:
 		stage_transition.play(self, next_index, _on_stage_transition_complete.bind(next_index))
 	else:
 		# Fallback：编排器异常时退化为旧的直接切关逻辑
 		_legacy_advance_to_next_stage()
+
+
+func _maybe_open_themed_reward(next_index: int) -> bool:
+	if themed_reward_popup == null or upgrades == null or player == null:
+		return false
+	var cleared_theme := get_stage_theme(stage_index)
+	if cleared_theme != "demon" and cleared_theme != "angel":
+		return false
+	var group_name := "恶魔" if cleared_theme == "demon" else "天使"
+	var pick: Dictionary = upgrades.roll_themed(group_name, player)
+	if pick.is_empty():
+		return false
+	_pending_themed_next_index = next_index
+	_pending_themed_theme = cleared_theme
+	# 关键：切到 STAGE_TRANSITION state，否则下一帧 spawner.all_dead() 会再次触发
+	# _try_finish_stage_clear → _advance_to_next_stage → re-roll 新卡（导致 popup 卡牌疯狂闪变）
+	state = GameState.STAGE_TRANSITION
+	themed_reward_popup.show_for_theme(cleared_theme, pick)
+	return true
 
 
 func _on_stage_transition_complete(next_index: int) -> void:
@@ -1055,6 +1361,28 @@ func _on_stage_transition_complete(next_index: int) -> void:
 	_apply_stage_meta(false)
 	state = GameState.PLAYING
 	EventBus.stage_started.emit(stage_index)
+
+
+func _on_themed_reward_resolved(accepted: bool, upgrade: Dictionary) -> void:
+	if accepted and player != null and not upgrade.is_empty():
+		player.apply_upgrade(upgrade)
+		if hud:
+			hud.show_message("获得：%s" % str(upgrade.get("name_cn", "")), 1.6)
+	var next_idx: int = _pending_themed_next_index
+	_pending_themed_next_index = -1
+	_pending_themed_theme = ""
+	if next_idx < 0:
+		return
+	# 玩家选完才播跳跃动画 → 落地后切关
+	if stage_transition:
+		stage_transition.play(self, next_idx, _on_stage_transition_complete.bind(next_idx))
+	else:
+		stage_index = next_idx
+		if _try_enter_reward_room(stage_index):
+			return
+		_apply_stage_meta(false)
+		state = GameState.PLAYING
+		EventBus.stage_started.emit(stage_index)
 
 
 func _legacy_advance_to_next_stage() -> void:
@@ -1088,7 +1416,13 @@ func _try_enter_reward_room(next_stage_index: int) -> bool:
 	var stage := GameConfig.get_stage(next_stage_index)
 	if stage.is_empty():
 		return false
-	if str(stage.get("room_type", "")) != "reward":
+	var rt := str(stage.get("room_type", ""))
+	if rt == "attr_forge":
+		stage_index = next_stage_index
+		# v3：不再直接进入打造小游戏，先走"小跳跃跳进门"动画
+		_begin_forge_stage()
+		return true
+	if rt != "reward":
 		return false
 	var room_choices: Array = stage.get("reward_rooms", [])
 	var room := "wheel"
@@ -1182,6 +1516,16 @@ func _process(delta: float) -> void:
 		GameState.BUILD_HOUSE_DONE:
 			if level_overlay:
 				level_overlay.update_overlay(delta)
+		GameState.ATTR_FORGE:
+			if attr_forge:
+				attr_forge.update(delta)
+			if particles:
+				particles.update_particles(delta)
+			if level_overlay:
+				level_overlay.update_overlay(delta)
+		GameState.ATTR_FORGE_DONE:
+			if level_overlay:
+				level_overlay.update_overlay(delta)
 		GameState.PAUSED:
 			pass
 		GameState.STAGE_CLEAR:
@@ -1206,6 +1550,11 @@ func _process(delta: float) -> void:
 		GameState.STAGE_TRANSITION:
 			_update_ambience(delta)
 			player.update_idle(delta, 1.0)
+			# 关键：portal_traverse 期间用 level_overlay.show_phase_fade 做黑色淡入淡出，
+			# overlay 必须每帧推进 — 否则 phase_fade 卡在 fade_in，midpoint 回调（弹 popup +
+			# 切 state）永远不触发，game 卡死。
+			if level_overlay:
+				level_overlay.update_overlay(delta)
 	_update_camera_shake(delta)
 
 
@@ -1238,6 +1587,9 @@ func _update_playing(scaled_delta: float, real_delta: float) -> void:
 	if swords:
 		var sword_delta := 0.0 if time_scale < 1.0 else real_delta
 		swords.update(sword_delta, player, get_ability_targets())
+	if auras:
+		var aura_delta := 0.0 if time_scale < 1.0 else real_delta
+		auras.update(aura_delta, player)
 	if particles:
 		particles.update_particles(real_delta)
 	if blood_stains:
@@ -1296,6 +1648,8 @@ func _clear_stage_transition_presentation(keep_companions: bool) -> void:
 		summons.reset(keep_companions)
 	if swords:
 		swords.reset()
+	if auras:
+		auras.reset()
 	if particles:
 		particles.clear()
 	if blood_stains:
@@ -1318,12 +1672,17 @@ func _prespawn_next_stage_world(next_index: int) -> void:
 	_pending_next_grass = null
 	_pending_next_tree_container = null
 	_pending_next_trees = []
+	_pending_next_forge_portal = null
 
 	var root := Node2D.new()
 	root.name = "NextStageRoot"
 	root.position = Vector2(0, -1280)
 	add_child(root)
 	_next_stage_root = root
+
+	# 检查下一关是否是打造关 — 是的话走差异化分支：紫色地面 / 不生草 / 不生树 / 中心生 ForgePortal
+	var next_stage_dict: Dictionary = GameConfig.get_stage(next_index)
+	var is_forge_stage := str(next_stage_dict.get("room_type", "")) == "attr_forge"
 
 	# 1) 地形
 	var new_terrain := TerrainBackground.new()
@@ -1349,22 +1708,34 @@ func _prespawn_next_stage_world(next_index: int) -> void:
 	new_grass.z_index = -4
 	root.add_child(new_grass)
 	var next_theme := get_stage_theme(next_index)
-	if next_theme.is_empty():
+	# 打造关：不生成草，让紫色地面干净
+	if next_theme.is_empty() and not is_forge_stage:
 		var play_bottom := PixelUiHelper.get_play_area_bottom(h)
 		var safe_zone := {"x": w * 0.5, "y": h * 0.58, "r": 60.0}
 		new_grass.init_field(w, h, play_bottom, safe_zone, new_terrain)
 	_pending_next_grass = new_grass
 
 	# 3) 树 —— 直接实例化（不经 tree_spawner），生成进 next_tree_container
+	# 打造关：不生成树（保留空容器供 REBASE 替换战斗关的旧树容器）
 	var new_tree_container := Node2D.new()
 	new_tree_container.name = "NextTrees"
 	new_tree_container.z_index = 0
 	root.add_child(new_tree_container)
 	_pending_next_tree_container = new_tree_container
-	if next_theme.is_empty():
+	if next_theme.is_empty() and not is_forge_stage:
 		_pending_next_trees = _spawn_prespawn_trees(new_tree_container, next_index, w, h)
 	else:
 		_pending_next_trees = []
+
+	# 4) 打造关：在场景中心实例化 ForgePortal（落地点位置 = 玩家落地点）
+	# 注意用 LOCAL position 而非 global_position（NextStageRoot 在 y=-1280，REBASE 后才到 0）。
+	if is_forge_stage:
+		var forge_portal: Node = ForgePortalScript.new()
+		forge_portal.name = "ForgePortal"
+		root.add_child(forge_portal)
+		var local_pos := Vector2(next_w * 0.5, next_h * 0.58)
+		forge_portal.setup(local_pos)
+		_pending_next_forge_portal = forge_portal
 
 
 func _spawn_prespawn_trees(container: Node2D, stage_idx: int, w: float, h: float) -> Array:
@@ -1434,9 +1805,20 @@ func _rebase_after_transition(next_index: int) -> void:
 	if tree_spawner:
 		# 让 tree_spawner 认领新树，避免它在 update_trees 中误判"全死"重新刷一波
 		tree_spawner.trees = _pending_next_trees.duplicate()
-		# 主题关（demon/angel）不再补刷树：active=false 让 update_trees 直接 early return
-		tree_spawner.active = get_stage_theme(next_index) == ""
+		# 主题关（demon/angel）/ 打造关不再补刷树：active=false 让 update_trees 直接 early return
+		var next_stage_dict: Dictionary = GameConfig.get_stage(next_index)
+		var is_forge_stage := str(next_stage_dict.get("room_type", "")) == "attr_forge"
+		tree_spawner.active = get_stage_theme(next_index) == "" and not is_forge_stage
 	_pending_next_trees = []
+	# 3.5) 打造关 ForgePortal：reparent 到 $Entities/Portals，赋值 _active_forge_portal
+	if _pending_next_forge_portal and is_instance_valid(_pending_next_forge_portal):
+		_pending_next_forge_portal.reparent(portal_container, false)
+		# REBASE 后世界坐标系已恢复标准（NextStageRoot y=-1280 被替换为 0），
+		# portal 的 local position 现在等于 global_position，sync 一下让 stored_position 对齐
+		if _pending_next_forge_portal.has_method("sync_stored_global"):
+			_pending_next_forge_portal.sync_stored_global()
+		_active_forge_portal = _pending_next_forge_portal
+		_pending_next_forge_portal = null
 	# 4) NextStageRoot 空了，干掉
 	if _next_stage_root and is_instance_valid(_next_stage_root):
 		_next_stage_root.queue_free()
@@ -1449,6 +1831,9 @@ func _rebase_after_transition(next_index: int) -> void:
 		player.global_position = Vector2(_initial_camera_x, view_h * 0.58)
 		player.home_position = player.global_position
 		player.scale = Vector2.ONE
+	# 5.5) 召唤物吸附到玩家身边 — 旧 c.pos 是 REBASE 前的世界坐标，不修就会从奇怪地方平滑跟过来
+	if summons and summons.has_method("snap_to_player"):
+		summons.snap_to_player(player)
 	# 6) 通知 water_overlay 拉新水格列表
 	if water_overlay:
 		water_overlay.refresh_from_terrain()
@@ -1532,6 +1917,8 @@ func _draw_above_monster_fx_overlay() -> void:
 		summons.draw_fx(above_monster_fx_overlay, false)
 	if swords:
 		swords.draw_fx(above_monster_fx_overlay, false)
+	if auras:
+		auras.draw_fx(above_monster_fx_overlay, false)
 
 
 func _pointer_flow_uses_early_input() -> bool:
@@ -1540,6 +1927,7 @@ func _pointer_flow_uses_early_input() -> bool:
 		GameState.STAGE_INTRO,
 		GameState.WAIT_START,
 		GameState.BUILD_HOUSE,
+		GameState.ATTR_FORGE,
 		GameState.FAIL,
 		GameState.COMPLETE,
 		GameState.STAGE_FAIL,
@@ -1631,6 +2019,10 @@ func _handle_pointer(screen_pos: Vector2, phase: String) -> void:
 	if state == GameState.BUILD_HOUSE:
 		if phase == "down" and build_house:
 			build_house.handle_drop_click()
+		return
+	if state == GameState.ATTR_FORGE:
+		if phase == "down" and attr_forge:
+			attr_forge.handle_drop_click()
 		return
 	if state == GameState.MENU:
 		if phase == "down":
