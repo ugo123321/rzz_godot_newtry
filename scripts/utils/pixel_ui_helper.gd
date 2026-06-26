@@ -42,6 +42,12 @@ static func apply_ui_font(control: Control) -> void:
 	if font == null:
 		return
 	control.add_theme_font_override("font", font)
+	if control is RichTextLabel:
+		control.add_theme_font_override("normal_font", font)
+		control.add_theme_font_override("bold_font", font)
+		control.add_theme_font_override("italic_font", font)
+		control.add_theme_font_override("bold_italic_font", font)
+		control.add_theme_font_override("mono_font", font)
 
 
 static func apply_ui_font_tree(root: Node) -> void:

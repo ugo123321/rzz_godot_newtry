@@ -78,7 +78,7 @@ func _build_pool(rarity: String, player: Node) -> Array:
 	for u in GameConfig.upgrades:
 		if not rarity.is_empty() and str(u.get("rarity", "")) != rarity:
 			continue
-		# 主题关专属（恶魔 / 天使）：pool_weight==0 永不出现在常规升级池
+		# pool_weight==0 = 不入常规池（强化球 / 恶魔 / 天使 / 手动剔除 6 张基础卡，详见 build_rewards_v6_compact.py FORCE_NOT_IN_POOL_*）
 		if float(u.get("pool_weight", 1.0)) <= 0.0:
 			continue
 		if not _is_upgrade_available(u, player):
@@ -111,9 +111,6 @@ func roll_themed(group_name: String, player: Node) -> Dictionary:
 func _is_upgrade_available(def: Dictionary, player: Node) -> bool:
 	var id := str(def.get("id", ""))
 	if id.is_empty():
-		return false
-	# 强化球系统已禁用，过滤掉该 group 的所有升级
-	if str(def.get("group", "")) == "强化球":
 		return false
 	if player == null:
 		return true

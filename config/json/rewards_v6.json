@@ -22,6 +22,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·H1 build 核心（膨胀基调下再次上调）",
+    "desc_cn_game": "攻击 +35%",
     "attrs": [
       {
         "id": 1,
@@ -53,6 +54,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·三属混合，泛用 build",
+    "desc_cn_game": "移速 +10%、攻速 +15%、最大生命 +15%",
     "attrs": [
       {
         "id": 3,
@@ -94,6 +96,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·重型流派 build（保留移速惩罚）",
+    "desc_cn_game": "攻击 +15%、最大生命 +10%、移速 -5%，体型 +10%",
     "attrs": [
       {
         "id": 1,
@@ -140,6 +143,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·机动 build",
+    "desc_cn_game": "攻速 +15%、移速 +10%",
     "attrs": [
       {
         "id": 2,
@@ -161,7 +165,7 @@
     "icon": "💪",
     "desc_cn": "攻速 +10%/级，气力回复 +10%/级",
     "max_level": 4,
-    "pool_weight": 100,
+    "pool_weight": 0,
     "special_rule": 0,
     "special_values": [],
     "special_values_per_lv": [],
@@ -176,6 +180,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·攻速+气力双修",
+    "desc_cn_game": "攻速 +10%，气力回复 +10%",
     "attrs": [
       {
         "id": 2,
@@ -212,6 +217,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·低血流派",
+    "desc_cn_game": "HP<50% 时攻击 +10%，攻速 +10%",
     "attrs": [
       {
         "id": 1,
@@ -252,6 +258,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·节奏型增伤",
+    "desc_cn_game": "击杀后3秒内攻击 +8%，最多叠加5次",
     "attrs": []
   },
   {
@@ -262,7 +269,7 @@
     "icon": "💪",
     "desc_cn": "幸运 +8%/级（蓝/紫/橙 出现率提升）",
     "max_level": 3,
-    "pool_weight": 95,
+    "pool_weight": 0,
     "special_rule": 0,
     "special_values": [],
     "special_values_per_lv": [],
@@ -277,6 +284,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·稀有度操控",
+    "desc_cn_game": "幸运 +8%",
     "attrs": [
       {
         "id": 9,
@@ -308,6 +316,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·画线频率",
+    "desc_cn_game": "气力回复 +15%，气力上限 +8%",
     "attrs": [
       {
         "id": 6,
@@ -354,6 +363,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·控场流",
+    "desc_cn_game": "附近怪易伤 +20%，光环每 0.3s 造成 0.4×ATK 伤害",
     "attrs": []
   },
   {
@@ -364,7 +374,7 @@
     "icon": "💪",
     "desc_cn": "幸运 +6%/级，闪避 +4%/级",
     "max_level": 5,
-    "pool_weight": 120,
+    "pool_weight": 0,
     "special_rule": 0,
     "special_values": [],
     "special_values_per_lv": [],
@@ -379,6 +389,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·基础幸运填充",
+    "desc_cn_game": "幸运 +6%，闪避 +4%",
     "attrs": [
       {
         "id": 9,
@@ -400,7 +411,7 @@
     "icon": "💪",
     "desc_cn": "受伤后 5s 内攻击 +15%/级",
     "max_level": 5,
-    "pool_weight": 120,
+    "pool_weight": 0,
     "special_rule": 1,
     "special_values": [],
     "special_values_per_lv": [],
@@ -415,6 +426,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·受击回应",
+    "desc_cn_game": "受伤后 5s 内攻击 +15%",
     "attrs": [
       {
         "id": 1,
@@ -451,6 +463,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·气力上限填充",
+    "desc_cn_game": "气力上限 +8%",
     "attrs": [
       {
         "id": 5,
@@ -467,7 +480,7 @@
     "icon": "💪",
     "desc_cn": "移速 +8%/级",
     "max_level": 5,
-    "pool_weight": 125,
+    "pool_weight": 0,
     "special_rule": 0,
     "special_values": [],
     "special_values_per_lv": [],
@@ -482,6 +495,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·基础移速",
+    "desc_cn_game": "移速 +8%",
     "attrs": [
       {
         "id": 3,
@@ -513,6 +527,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·气力恢复填充",
+    "desc_cn_game": "气力回复速度 +8%",
     "attrs": [
       {
         "id": 6,
@@ -529,7 +544,7 @@
     "icon": "💪",
     "desc_cn": "攻击 +8%/级",
     "max_level": 5,
-    "pool_weight": 130,
+    "pool_weight": 0,
     "special_rule": 0,
     "special_values": [],
     "special_values_per_lv": [],
@@ -544,6 +559,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·基础攻击填充",
+    "desc_cn_game": "攻击 +8%",
     "attrs": [
       {
         "id": 1,
@@ -575,6 +591,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·灵活流派 build",
+    "desc_cn_game": "移速 +10%、闪避 +10%、体型 -30%",
     "attrs": [
       {
         "id": 3,
@@ -622,6 +639,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·BOSS 针对",
+    "desc_cn_game": "对 BOSS 伤害 +15%，BOSS 战前完全恢复 HP",
     "attrs": []
   },
   {
@@ -651,6 +669,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·元素铺地",
+    "desc_cn_game": "走过留下火焰足迹",
     "attrs": [
       {
         "id": 41,
@@ -691,6 +710,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·关卡级救命",
+    "desc_cn_game": "每关获得 1 层圣盾，抵挡 1 次伤害",
     "attrs": []
   },
   {
@@ -716,6 +736,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·HP 主力",
+    "desc_cn_game": "最大生命 +15%",
     "attrs": [
       {
         "id": 4,
@@ -747,6 +768,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·低血增伤",
+    "desc_cn_game": "HP<50% 时攻击 +10%",
     "attrs": [
       {
         "id": 1,
@@ -781,6 +803,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·复活保底（一次性）",
+    "desc_cn_game": "死亡后以 50% 生命复活一次",
     "attrs": []
   },
   {
@@ -816,6 +839,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·低血再生",
+    "desc_cn_game": "HP<30% 时缓慢恢复至 30%",
     "attrs": []
   },
   {
@@ -841,6 +865,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·击杀回血",
+    "desc_cn_game": "击杀后小概率回复少量生命",
     "attrs": [
       {
         "id": 20,
@@ -872,6 +897,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·走停流派",
+    "desc_cn_game": "原地静止一会后获得减伤效果",
     "attrs": [
       {
         "id": 11,
@@ -905,6 +931,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·受击豁免",
+    "desc_cn_game": "最大生命 +10%，受伤后短时间无敌（CD 6s）",
     "attrs": [
       {
         "id": 4,
@@ -941,6 +968,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·HP 填充",
+    "desc_cn_game": "最大生命 +10%",
     "attrs": [
       {
         "id": 4,
@@ -972,6 +1000,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·击杀小回血",
+    "desc_cn_game": "击杀后小概率回复少量生命",
     "attrs": [
       {
         "id": 20,
@@ -1003,6 +1032,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·补血卡",
+    "desc_cn_game": "最大生命 +8%，获得时小幅恢复生命",
     "attrs": [
       {
         "id": 4,
@@ -1039,6 +1069,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·弹幕 build 核心",
+    "desc_cn_game": "子弹 +3，攻速 +15%",
     "attrs": [
       {
         "id": 12,
@@ -1077,6 +1108,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·远程狙击 build（膨胀路线大幅上调）",
+    "desc_cn_game": "子弹变为元气弹，对远距离敌人造成更高伤害",
     "attrs": []
   },
   {
@@ -1102,6 +1134,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·攻速换伤害（保留惩罚，DPS 正 EV）",
+    "desc_cn_game": "攻速 +30%，攻击 -10%",
     "attrs": [
       {
         "id": 2,
@@ -1140,6 +1173,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·追踪辅助（保留惩罚）",
+    "desc_cn_game": "子弹追踪，攻击 -5%",
     "attrs": [
       {
         "id": 1,
@@ -1181,6 +1215,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·AOE 辅助",
+    "desc_cn_game": "普攻小概率额外释放炸弹",
     "attrs": []
   },
   {
@@ -1214,6 +1249,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·爆发流",
+    "desc_cn_game": "命中分裂 3 颗小子弹",
     "attrs": []
   },
   {
@@ -1245,6 +1281,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·弹射 build",
+    "desc_cn_game": "子弹获得弹射效果",
     "attrs": []
   },
   {
@@ -1272,6 +1309,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·小爆发卡",
+    "desc_cn_game": "子弹打出后可返回",
     "attrs": []
   },
   {
@@ -1300,6 +1338,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·散射",
+    "desc_cn_game": "获得斜向子弹",
     "attrs": []
   },
   {
@@ -1325,6 +1364,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·基础多弹",
+    "desc_cn_game": "子弹 +1",
     "attrs": [
       {
         "id": 12,
@@ -1366,6 +1406,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·穿透辅助",
+    "desc_cn_game": "普攻小概率概率释放能量束",
     "attrs": []
   },
   {
@@ -1393,6 +1434,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·连击 build 核心（膨胀路线，去封顶）",
+    "desc_cn_game": "每次斩击产生的连击数 ×2",
     "attrs": []
   },
   {
@@ -1422,6 +1464,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·里程碑触发",
+    "desc_cn_game": "连击每 +8 段生成黑洞",
     "attrs": []
   },
   {
@@ -1451,6 +1494,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·火系法术",
+    "desc_cn_game": "连击每 +14 段释放豪火球",
     "attrs": []
   },
   {
@@ -1480,6 +1524,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·冰系法术",
+    "desc_cn_game": "连击每 +6 段释放水龙卷",
     "attrs": []
   },
   {
@@ -1513,6 +1558,7 @@
     "applies_thunder": 0,
     "applies_poison": 1,
     "notes": "蓝·毒系法术",
+    "desc_cn_game": "连击每 +8 段释放刀旋风",
     "attrs": []
   },
   {
@@ -1544,6 +1590,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·静态加伤",
+    "desc_cn_game": "划线前每静止 0.4s：下次斩击增加伤害",
     "attrs": []
   },
   {
@@ -1573,6 +1620,7 @@
     "applies_thunder": 1,
     "applies_poison": 0,
     "notes": "蓝·雷系法术",
+    "desc_cn_game": "连击每 +8 段释放闪电链",
     "attrs": []
   },
   {
@@ -1601,6 +1649,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·辅助小弹",
+    "desc_cn_game": "气力耗尽时释放手里剑",
     "attrs": [
       {
         "id": 12,
@@ -1634,6 +1683,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·暴击辅助",
+    "desc_cn_game": "连击每 +10：本次攻击暴击率 +10%",
     "attrs": [
       {
         "id": 7,
@@ -1667,6 +1717,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·轨迹 build 核心",
+    "desc_cn_game": "画线时两侧出现2条平行轨迹",
     "attrs": []
   },
   {
@@ -1699,6 +1750,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·火系轨迹",
+    "desc_cn_game": "画线轨迹处生成火墙，子弹穿过附火",
     "attrs": [
       {
         "id": 41,
@@ -1737,6 +1789,7 @@
     "applies_thunder": 1,
     "applies_poison": 0,
     "notes": "紫·雷系轨迹",
+    "desc_cn_game": "画线轨迹释放雷场",
     "attrs": [
       {
         "id": 41,
@@ -1775,6 +1828,7 @@
     "applies_thunder": 0,
     "applies_poison": 1,
     "notes": "紫·毒系轨迹",
+    "desc_cn_game": "画线轨迹释放毒雾",
     "attrs": [
       {
         "id": 41,
@@ -1813,6 +1867,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·冰系轨迹",
+    "desc_cn_game": "画线轨迹释放霜径",
     "attrs": [
       {
         "id": 41,
@@ -1850,6 +1905,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·控场推开",
+    "desc_cn_game": "气力耗尽时释放冲击波",
     "attrs": []
   },
   {
@@ -1881,6 +1937,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·区域爆炸",
+    "desc_cn_game": "气力耗尽且画线轨迹首次闭合时，闭合区间内释放爆炸",
     "attrs": []
   },
   {
@@ -1908,6 +1965,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·画线机制改变",
+    "desc_cn_game": "画线可穿过障碍物",
     "attrs": []
   },
   {
@@ -1937,6 +1995,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·命中面积",
+    "desc_cn_game": "轨迹宽度 +10%",
     "attrs": []
   },
   {
@@ -1966,6 +2025,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·斩击填充",
+    "desc_cn_game": "画线伤害 +8%",
     "attrs": []
   },
   {
@@ -1976,7 +2036,7 @@
     "icon": "🔮",
     "desc_cn": "每 8s 场上生成 1 颗随机强化球（每级 -2s）",
     "max_level": 3,
-    "pool_weight": 75,
+    "pool_weight": 0,
     "special_rule": 31,
     "special_values": [
       10,
@@ -1997,6 +2057,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·球流核心",
+    "desc_cn_game": "每 8s 场上生成 1 颗随机强化球（每级 -2s）",
     "attrs": []
   },
   {
@@ -2007,7 +2068,7 @@
     "icon": "🔮",
     "desc_cn": "拾取球时 30% 概率复制同类印记至下一波 +5%/级",
     "max_level": 3,
-    "pool_weight": 75,
+    "pool_weight": 0,
     "special_rule": 32,
     "special_values": [
       0.3,
@@ -2028,6 +2089,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·球叠加",
+    "desc_cn_game": "拾取球时 30% 概率复制同类印记至下一波 +5%",
     "attrs": []
   },
   {
@@ -2038,7 +2100,7 @@
     "icon": "🔮",
     "desc_cn": "每关开局场上球数量 +30%/级",
     "max_level": 4,
-    "pool_weight": 100,
+    "pool_weight": 0,
     "special_rule": 33,
     "special_values": [
       0.3
@@ -2057,6 +2119,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·球数量",
+    "desc_cn_game": "每关开局场上球数量 +30%",
     "attrs": []
   },
   {
@@ -2067,7 +2130,7 @@
     "icon": "🔮",
     "desc_cn": "拾取范围 +30%/级，划线时吸附半径内 30%/级 的球",
     "max_level": 4,
-    "pool_weight": 100,
+    "pool_weight": 0,
     "special_rule": 34,
     "special_values": [
       0.3,
@@ -2088,6 +2151,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·拾取辅助",
+    "desc_cn_game": "拾取范围 +30%，划线时吸附半径内 30% 的球",
     "attrs": []
   },
   {
@@ -2098,7 +2162,7 @@
     "icon": "🔮",
     "desc_cn": "拾取时在球位置爆炸 1.5×ATK (+0.3/级)",
     "max_level": 4,
-    "pool_weight": 95,
+    "pool_weight": 0,
     "special_rule": 35,
     "special_values": [
       1.5
@@ -2117,6 +2181,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·拾取爆炸",
+    "desc_cn_game": "拾取时在球位置爆炸 1.5×ATK (+0.3)",
     "attrs": []
   },
   {
@@ -2127,7 +2192,7 @@
     "icon": "🔮",
     "desc_cn": "拾取后本次画线攻击 +15%/级，持续 6s",
     "max_level": 4,
-    "pool_weight": 95,
+    "pool_weight": 0,
     "special_rule": 36,
     "special_values": [
       0.15
@@ -2146,6 +2211,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·画线增益",
+    "desc_cn_game": "拾取后本次画线攻击 +15%，持续 6s",
     "attrs": [
       {
         "id": 41,
@@ -2162,7 +2228,7 @@
     "icon": "🔮",
     "desc_cn": "火球入池，拾取造成 AOE 烧伤 1.0×ATK +0.2/级",
     "max_level": 3,
-    "pool_weight": 115,
+    "pool_weight": 0,
     "special_rule": 37,
     "special_values": [
       1.0,
@@ -2183,6 +2249,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·火系球",
+    "desc_cn_game": "火球入池，拾取造成 AOE 烧伤 1.0×ATK +0.2",
     "attrs": []
   },
   {
@@ -2193,7 +2260,7 @@
     "icon": "🔮",
     "desc_cn": "冰球入池，拾取造成 AOE 冰冻 2.0s +0.2s/级",
     "max_level": 3,
-    "pool_weight": 115,
+    "pool_weight": 0,
     "special_rule": 37,
     "special_values": [
       1.0,
@@ -2211,6 +2278,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·冰系球（修正原 R69 重复）",
+    "desc_cn_game": "冰球入池，拾取造成 AOE 冰冻 2.0s +0.2s",
     "attrs": []
   },
   {
@@ -2221,7 +2289,7 @@
     "icon": "🔮",
     "desc_cn": "毒球入池，拾取造成 AOE 剧毒 0.6×ATK/s 持续 3s",
     "max_level": 3,
-    "pool_weight": 115,
+    "pool_weight": 0,
     "special_rule": 37,
     "special_values": [
       1.0,
@@ -2239,6 +2307,7 @@
     "applies_thunder": 0,
     "applies_poison": 1,
     "notes": "白·毒系球",
+    "desc_cn_game": "毒球入池，拾取造成 AOE 剧毒 0.6×ATK/s 持续 3s",
     "attrs": []
   },
   {
@@ -2249,7 +2318,7 @@
     "icon": "🔮",
     "desc_cn": "雷球入池，拾取造成 AOE 雷电 1.5×ATK 雷链 +1 链/级",
     "max_level": 3,
-    "pool_weight": 115,
+    "pool_weight": 0,
     "special_rule": 37,
     "special_values": [
       1.0,
@@ -2267,6 +2336,7 @@
     "applies_thunder": 1,
     "applies_poison": 0,
     "notes": "白·雷系球",
+    "desc_cn_game": "雷球入池，拾取造成 AOE 雷电 1.5×ATK 雷链 +1 链",
     "attrs": []
   },
   {
@@ -2294,6 +2364,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·剑 build 核心",
+    "desc_cn_game": "所有剑数量 ×2",
     "attrs": []
   },
   {
@@ -2327,6 +2398,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·剑触发",
+    "desc_cn_game": "每把剑小概率释放旋风",
     "attrs": []
   },
   {
@@ -2359,6 +2431,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·防御剑",
+    "desc_cn_game": "2 把守护剑，阻挡远程子弹",
     "attrs": [
       {
         "id": 13,
@@ -2394,6 +2467,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·剑范围",
+    "desc_cn_game": "所有剑长度 +15%",
     "attrs": []
   },
   {
@@ -2423,6 +2497,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·剑频率",
+    "desc_cn_game": "所有剑转速 +15%",
     "attrs": []
   },
   {
@@ -2455,6 +2530,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·吸血剑",
+    "desc_cn_game": "2 把嗜血剑，命中概率恢复少量生命",
     "attrs": [
       {
         "id": 14,
@@ -2500,6 +2576,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·剑伤增益",
+    "desc_cn_game": "环绕剑伤害 +15%",
     "attrs": []
   },
   {
@@ -2532,6 +2609,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·火系剑",
+    "desc_cn_game": "火剑剑",
     "attrs": [
       {
         "id": 15,
@@ -2570,6 +2648,7 @@
     "applies_thunder": 1,
     "applies_poison": 0,
     "notes": "白·雷系剑",
+    "desc_cn_game": "雷霆剑",
     "attrs": [
       {
         "id": 16,
@@ -2608,6 +2687,7 @@
     "applies_thunder": 0,
     "applies_poison": 1,
     "notes": "白·毒系剑",
+    "desc_cn_game": "毒刺剑",
     "attrs": [
       {
         "id": 17,
@@ -2646,6 +2726,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·冰系剑",
+    "desc_cn_game": "寒霜剑",
     "attrs": [
       {
         "id": 18,
@@ -2680,6 +2761,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·召唤 build 核心",
+    "desc_cn_game": "获得精灵王，召唤物伤害 +50%、体型 +15%、攻速 +50%",
     "attrs": [
       {
         "id": 21,
@@ -2716,6 +2798,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·召唤增伤",
+    "desc_cn_game": "召唤物伤害 +12%，攻击间隔 -12%",
     "attrs": [
       {
         "id": 21,
@@ -2755,6 +2838,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·强力召唤",
+    "desc_cn_game": "召唤精灵王",
     "attrs": [
       {
         "id": 22,
@@ -2794,6 +2878,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·单体高伤",
+    "desc_cn_game": "召唤天神",
     "attrs": [
       {
         "id": 23,
@@ -2833,6 +2918,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·防御召唤",
+    "desc_cn_game": "召唤大猩猩",
     "attrs": [
       {
         "id": 24,
@@ -2869,6 +2955,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·召唤填充",
+    "desc_cn_game": "召唤物伤害 +10%",
     "attrs": [
       {
         "id": 21,
@@ -2908,6 +2995,7 @@
     "applies_thunder": 1,
     "applies_poison": 0,
     "notes": "白·雷系召唤",
+    "desc_cn_game": "召唤落雷",
     "attrs": [
       {
         "id": 25,
@@ -2947,6 +3035,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·冰系召唤",
+    "desc_cn_game": "召唤北极熊",
     "attrs": [
       {
         "id": 26,
@@ -2986,6 +3075,7 @@
     "applies_thunder": 0,
     "applies_poison": 1,
     "notes": "白·毒系召唤",
+    "desc_cn_game": "召唤毒蛇",
     "attrs": [
       {
         "id": 27,
@@ -3025,6 +3115,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·火系召唤",
+    "desc_cn_game": "召唤火焰精灵",
     "attrs": [
       {
         "id": 28,
@@ -3056,6 +3147,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·火系强化",
+    "desc_cn_game": "火伤 +30%，燃烧频率 +15%",
     "attrs": [
       {
         "id": 29,
@@ -3092,6 +3184,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·雷系强化",
+    "desc_cn_game": "雷伤 +30%，闪电链目标 +1",
     "attrs": [
       {
         "id": 31,
@@ -3128,6 +3221,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·毒系强化",
+    "desc_cn_game": "毒伤 +30%，8% 概率触发毒爆 +8%",
     "attrs": [
       {
         "id": 32,
@@ -3164,6 +3258,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·冰系强化",
+    "desc_cn_game": "冰伤 +30%，8% 概率触发冰冻 +8%",
     "attrs": [
       {
         "id": 30,
@@ -3200,6 +3295,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·火系附伤",
+    "desc_cn_game": "子弹附火",
     "attrs": []
   },
   {
@@ -3225,6 +3321,7 @@
     "applies_thunder": 1,
     "applies_poison": 0,
     "notes": "蓝·雷系附伤",
+    "desc_cn_game": "子弹附雷",
     "attrs": []
   },
   {
@@ -3250,6 +3347,7 @@
     "applies_thunder": 0,
     "applies_poison": 1,
     "notes": "蓝·毒系附伤",
+    "desc_cn_game": "子弹附毒",
     "attrs": []
   },
   {
@@ -3275,6 +3373,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·冰系附伤",
+    "desc_cn_game": "子弹附冰",
     "attrs": []
   },
   {
@@ -3303,6 +3402,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
+    "desc_cn_game": "气力耗尽时释放死神镰刀",
     "attrs": [
       {
         "id": 4,
@@ -3338,6 +3438,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
+    "desc_cn_game": "偶尔释放硫磺火",
     "attrs": [
       {
         "id": 4,
@@ -3387,6 +3488,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
+    "desc_cn_game": "召唤恶魔宝宝",
     "attrs": [
       {
         "id": 43,
@@ -3426,6 +3528,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
+    "desc_cn_game": "获得九条命",
     "attrs": [
       {
         "id": 4,
@@ -3457,6 +3560,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
+    "desc_cn_game": "击杀时小概率概率恢复少量生命",
     "attrs": [
       {
         "id": 4,
@@ -3496,6 +3600,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
+    "desc_cn_game": "子弹改为血飞刀",
     "attrs": [
       {
         "id": 4,
@@ -3542,6 +3647,7 @@
     "applies_thunder": 1,
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
+    "desc_cn_game": "普攻小概率释放光柱",
     "attrs": []
   },
   {
@@ -3567,6 +3673,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
+    "desc_cn_game": "受到伤害减半",
     "attrs": [
       {
         "id": 11,
@@ -3606,6 +3713,7 @@
     "applies_thunder": 1,
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
+    "desc_cn_game": "召唤天使宝宝",
     "attrs": [
       {
         "id": 44,
@@ -3644,6 +3752,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
+    "desc_cn_game": "命运之矛",
     "attrs": [
       {
         "id": 45,
@@ -3678,6 +3787,7 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
+    "desc_cn_game": "获得减速立场",
     "attrs": []
   }
 ]

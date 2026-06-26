@@ -715,6 +715,15 @@ PER_ID_DESC_OVERRIDE: dict[str, str] = {
 }
 
 
+# ========== 强制不入常规升级池（pool_weight 覆写为 0）==========
+# 详见 CLAUDE.md 十一、单一开关约定。
+# 注意：这里只放"工具级硬规则" — 整组永远不入常规池的卡。
+# 个别 basic 卡（神速 / 四叶草 / 运气 / 负伤战士 / 移动加速 / 战士之息）的
+# pool_weight=0 由 compact.xlsx 自己控制，不要在这里硬编码 — 一旦 build_rewards 重跑
+# 会覆盖 compact 的策划手编值。
+FORCE_NOT_IN_POOL_GROUP_CODES: set[int] = {6, 10, 11}  # 6=强化球, 10=恶魔, 11=天使
+
+
 # ========== Sheet1 schema ==========
 
 SHEET1_HEADERS: list[tuple[str, str]] = [
@@ -763,6 +772,8 @@ SHEET1_HEADERS: list[tuple[str, str]] = [
     ("附加中毒", "applies_poison"),
     # 备注 (35)
     ("备注", "notes"),
+    # 游戏内简化展示文案 (36, 玩家面向；策划手编，generator 留空)
+    ("游戏内展示用描述", "desc_cn_game"),
 ]
 
 
@@ -847,7 +858,10 @@ def build_row(raw: dict) -> dict:
     final_desc = re.sub(r"[，,]\s*([。.!?！？]|$)", r"\1", final_desc).strip().rstrip(",，")
     row["desc_cn"] = final_desc
     row["max_level"] = int(raw.get("max_level", 1))
-    row["pool_weight"] = int(raw.get("pool_weight", 100))
+    raw_weight = int(raw.get("pool_weight", 100))
+    if row["group"] in FORCE_NOT_IN_POOL_GROUP_CODES:
+        raw_weight = 0
+    row["pool_weight"] = raw_weight
     # 专属规则 type_id（0 = 无）+ 数组 JSON 字符串
     sr_type, sr_arr = SPECIAL_RULES.get(rid, (0, []))
     row["special_rule"] = sr_type

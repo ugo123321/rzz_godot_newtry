@@ -1216,12 +1216,14 @@ func _rebuild_upgrades() -> void:
 #
 # 注：v6 表 card_path='element' 仅表示走 ELEM 层增伤，不代表 emitter 作用域。
 # 真实作用域按卡 id 前缀映射：
-#   elem_*_bullet, basic_flame_walk → "bullet"
+#   elem_*_bullet → "bullet"
 #   sword_*  → "sword"
 #   trail_*  → "trail"
 #   orb_*    → "trail"（球体生成场域 / 命中走轨迹通道；待 Phase 3 special_rule 细化）
 #   summon_* → "summon"
 #   combo_*  → "combo"（含 fireball/water_tornado/blade_storm/thunder）
+#   basic_flame_walk 不在此映射 — 它的 applies_fire 由 sr=5 dispatcher 直接在
+#   _flame_walk_tick 里施加（脚下 fire 场域），不应附在普攻子弹上。
 func _rebuild_current_applies() -> void:
 	current_applies = {}
 	for id in upgrade_stacks.keys():
@@ -1256,8 +1258,6 @@ func _infer_emitter_category(card_id: String, card_path: String) -> String:
 	if card_path == "combo":
 		return "combo"
 	if card_id.begins_with("elem_") and card_id.ends_with("_bullet"):
-		return "bullet"
-	if card_id == "basic_flame_walk":
 		return "bullet"
 	if card_id.begins_with("sword_"):
 		return "sword"

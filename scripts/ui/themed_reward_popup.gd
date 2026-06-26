@@ -9,6 +9,7 @@ class_name ThemedRewardPopup
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const PixelCardIconT = preload("res://scripts/ui/pixel_card_icon.gd")
+const DescFormatT = preload("res://scripts/utils/desc_format.gd")
 
 const PANEL_MARGIN := 36.0
 const PANEL_MIN_SIZE := Vector2(360.0, 540.0)
@@ -31,7 +32,7 @@ var _panel: PanelContainer
 var _vbox: VBoxContainer
 var _title_label: Label
 var _name_label: Label
-var _desc_label: Label
+var _desc_label: RichTextLabel
 var _icon_widget: Control
 var _accept_btn: Button
 var _decline_btn: Button
@@ -93,11 +94,17 @@ func _build_ui() -> void:
 	_name_label.add_theme_font_size_override("font_size", 28)
 	card_box.add_child(_name_label)
 
-	_desc_label = Label.new()
-	_desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_desc_label = RichTextLabel.new()
+	_desc_label.bbcode_enabled = true
+	_desc_label.fit_content = true
+	_desc_label.scroll_active = false
 	_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	PixelUi.apply_ui_font(_desc_label)
-	_desc_label.add_theme_font_size_override("font_size", 20)
+	_desc_label.add_theme_font_size_override("normal_font_size", 20)
+	_desc_label.add_theme_font_size_override("bold_font_size", 20)
+	_desc_label.add_theme_font_size_override("italic_font_size", 20)
+	_desc_label.add_theme_font_size_override("bold_italic_font_size", 20)
+	_desc_label.add_theme_font_size_override("mono_font_size", 20)
 	_desc_label.custom_minimum_size = Vector2(PANEL_MIN_SIZE.x - 60.0, 0)
 	card_box.add_child(_desc_label)
 
@@ -264,7 +271,10 @@ func _apply_theme_palette() -> void:
 
 func _apply_upgrade_content() -> void:
 	_name_label.text = str(_upgrade.get("name_cn", ""))
-	_desc_label.text = str(_upgrade.get("desc_cn", ""))
+	var raw_desc := str(_upgrade.get("desc_cn_game", ""))
+	if raw_desc.is_empty():
+		raw_desc = str(_upgrade.get("desc_cn", ""))
+	DescFormatT.apply_to_rich_text(_desc_label, raw_desc, 20, true)
 	# 重建 icon widget
 	for child in _icon_widget.get_children():
 		child.queue_free()

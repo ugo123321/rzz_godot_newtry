@@ -371,23 +371,22 @@ static func _aura_tick(player: Node, b: Dictionary) -> void:
 			m.take_damage_info(info, player.global_position)
 
 
-# sr=5 flame walk：脚下圆形判定
+# sr=5 flame walk：玩家走过的脚下生成 fire 场域瓦片（视觉沿路径 + 持续燃烧 tick）
+# 复用 trail_fire_wall 的 v6_trail_field 通道：每 spawn_tick 秒在玩家当前位置放一片，
+# 每片自带 duration 秒寿命 + 每 0.5s 一次的伤害 tick，过路的怪自动被烧。
 static func _flame_walk_tick(player: Node, b: Dictionary) -> void:
 	var atk_mult: float = _sv(b, 0, 0.15)
-	var radius_px: float = 36.0  # 脚下小圆
+	var duration: float = _sv(b, 2, 2.0)
 	var battle = player.get_tree().get_first_node_in_group("battle") if player.is_inside_tree() else null
-	if battle == null or battle.spawner == null:
+	if battle == null:
 		return
-	for m in battle.spawner.get_active_monsters():
-		if not is_instance_valid(m) or not bool(m.get("alive")) or bool(m.get("dying")):
-			continue
-		if player.global_position.distance_to(m.global_position) > radius_px:
-			continue
-		var info = player.make_ability_damage("trail_flame_walk", atk_mult, "trail", "fire", false, true)
-		# 基本上 applies_fire 会自动给 burn
-		info.applies_fire = true
-		if m.has_method("take_damage_info"):
-			m.take_damage_info(info, player.global_position)
+	var abilities_node = battle.abilities
+	if abilities_node == null or not abilities_node.has_method("spawn_v6_trail_field"):
+		return
+	abilities_node.spawn_v6_trail_field(
+		player, [player.global_position], "fire",
+		atk_mult, 0.5, 0.0, 0.0, 0.0, duration, false, "basic_flame_walk"
+	)
 
 
 static func _is_player_stationary(player: Node) -> bool:

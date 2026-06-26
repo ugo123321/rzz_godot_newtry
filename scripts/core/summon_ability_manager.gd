@@ -136,7 +136,7 @@ func _play_width() -> float:
 
 
 func _summon_deal_damage(m, damage: int, _color: Color, from_pos: Vector2, source: String = "summon_hit", element: String = "") -> void:
-	if m == null or not is_instance_valid(m) or not bool(m.get("alive", false)):
+	if m == null or not is_instance_valid(m) or _target_dead(m):
 		return
 	var info: DamageInfo = null
 	if battle and battle.player and battle.player.has_method("make_damage"):
@@ -319,13 +319,28 @@ func _v6_nearest_in_range(c: Dictionary, monsters: Array):
 	var best_d2 := best_d * best_d
 	var origin: Vector2 = c.pos
 	for m in monsters:
-		if not is_instance_valid(m) or not bool(m.get("alive", false)) or bool(m.get("dying", false)):
+		if not is_instance_valid(m) or _target_dead(m) or _target_dying(m):
 			continue
 		var d2: float = origin.distance_squared_to(m.global_position)
 		if d2 <= best_d2:
 			best_d2 = d2
 			best = m
 	return best
+
+
+# 安全访问 alive/dying：Godot 4 的 Node.get(prop) 只接受 1 个参数，缺字段时返回 null。
+# 用 `in` 检查属性是否存在，避免 `bool(null)` 抛 "Nonexistent 'bool' constructor"。
+# Boss 类（LancerBoss / CentipedeBoss）现在已经补了 alive/dying 字段，但保留这层防御兜底。
+static func _target_dead(m) -> bool:
+	if "alive" in m:
+		return not bool(m.alive)
+	return false
+
+
+static func _target_dying(m) -> bool:
+	if "dying" in m:
+		return bool(m.dying)
+	return false
 
 
 func _v6_apply_taunt(c: Dictionary, monsters: Array, duration: float) -> void:
@@ -431,7 +446,7 @@ func _v6_projectile_hit_check(p: Dictionary):
 	if battle == null or battle.spawner == null:
 		return null
 	for m in battle.spawner.get_active_monsters():
-		if not is_instance_valid(m) or not bool(m.get("alive", false)) or bool(m.get("dying", false)):
+		if not is_instance_valid(m) or _target_dead(m) or _target_dying(m):
 			continue
 		var hit_r: float = 13.0
 		if m.has_method("get_hitbox_radius"):
@@ -450,7 +465,7 @@ func _v6_apply_aoe_hit(center: Vector2, radius: float, damage: int, player: Batt
 	if battle == null or battle.spawner == null:
 		return
 	for m in battle.spawner.get_active_monsters():
-		if not is_instance_valid(m) or not bool(m.get("alive", false)) or bool(m.get("dying", false)):
+		if not is_instance_valid(m) or _target_dead(m) or _target_dying(m):
 			continue
 		var hit_r: float = 13.0
 		if m.has_method("get_hitbox_radius"):
@@ -509,7 +524,7 @@ func _v6_apply_laser_pierce(p: Dictionary, player: BattlePlayer) -> void:
 	var max_dist: float = 2000.0
 	var end_pt: Vector2 = origin + dir * max_dist
 	for m in battle.spawner.get_active_monsters():
-		if not is_instance_valid(m) or not bool(m.get("alive", false)) or bool(m.get("dying", false)):
+		if not is_instance_valid(m) or _target_dead(m) or _target_dying(m):
 			continue
 		var hit_r: float = 13.0
 		if m.has_method("get_hitbox_radius"):

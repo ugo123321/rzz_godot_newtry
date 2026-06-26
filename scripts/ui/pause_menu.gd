@@ -3,6 +3,8 @@ class_name PauseMenu
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 
+const PixelCardIconT = preload("res://scripts/ui/pixel_card_icon.gd")
+
 enum View { PAUSE, DEBUG, DEBUG_UPGRADES }
 
 var battle
@@ -21,55 +23,78 @@ func setup(battle_node) -> void:
 	battle = battle_node
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build_ui()
 
 
 func _build_ui() -> void:
 	var overlay := ColorRect.new()
 	overlay.name = "Overlay"
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0, 0, 0, 0.62)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0, 0, 0, 0.72)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)
 
-	var stack := MarginContainer.new()
-	stack.set_anchors_preset(Control.PRESET_FULL_RECT)
-	stack.add_theme_constant_override("margin_left", 16)
-	stack.add_theme_constant_override("margin_right", 16)
-	stack.add_theme_constant_override("margin_top", 16)
-	stack.add_theme_constant_override("margin_bottom", 16)
-	add_child(stack)
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.name = "Panel"
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.08, 0.09, 0.13, 0.96)
+	panel_style.border_color = Color(0.78, 0.65, 0.34, 1.0)
+	panel_style.set_border_width_all(3)
+	panel_style.set_corner_radius_all(10)
+	panel_style.content_margin_left = 28
+	panel_style.content_margin_right = 28
+	panel_style.content_margin_top = 24
+	panel_style.content_margin_bottom = 24
+	panel.add_theme_stylebox_override("panel", panel_style)
+	panel.custom_minimum_size = _panel_min_size()
+	center.add_child(panel)
+
+	var menu_theme := Theme.new()
+	menu_theme.default_font_size = 22
+	panel.theme = menu_theme
 
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 10)
-	stack.add_child(root)
+	root.name = "Root"
+	root.add_theme_constant_override("separation", 14)
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_child(root)
 
 	var title := Label.new()
 	title.name = "Title"
 	title.text = "暂停"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 36)
 	root.add_child(title)
 
 	var pause_box := VBoxContainer.new()
 	pause_box.name = "PauseBox"
-	pause_box.add_theme_constant_override("separation", 8)
+	pause_box.add_theme_constant_override("separation", 12)
 	root.add_child(pause_box)
 
 	var resume_btn := Button.new()
 	resume_btn.text = "继续游戏"
+	resume_btn.custom_minimum_size = Vector2(0, 60)
 	resume_btn.pressed.connect(_on_resume_pressed)
 	pause_box.add_child(resume_btn)
 
 	var debug_btn := Button.new()
 	debug_btn.text = "调试"
+	debug_btn.custom_minimum_size = Vector2(0, 60)
 	debug_btn.pressed.connect(_open_debug)
 	pause_box.add_child(debug_btn)
 
 	var hint := Label.new()
 	hint.text = "按 Esc 也可继续"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_font_size_override("font_size", 16)
 	hint.modulate = Color(0.8, 0.8, 0.8)
 	pause_box.add_child(hint)
 
@@ -206,8 +231,22 @@ func _build_ui() -> void:
 	PixelUi.apply_ui_font_tree(self)
 
 
+func _panel_min_size() -> Vector2:
+	var vp := get_viewport_rect().size if is_inside_tree() else Vector2(720, 1280)
+	var w := clampf(vp.x * 0.78, 320.0, 640.0)
+	var h := clampf(vp.y * 0.62, 480.0, 980.0)
+	return Vector2(w, h)
+
+
+func _refresh_panel_size() -> void:
+	var panel := get_node_or_null("Center/Panel") as PanelContainer
+	if panel:
+		panel.custom_minimum_size = _panel_min_size()
+
+
 func open_menu() -> void:
 	view = View.PAUSE
+	_refresh_panel_size()
 	_sync_debug_labels()
 	_update_view()
 	visible = true
@@ -249,10 +288,7 @@ func _close_debug_upgrades() -> void:
 
 
 func _update_view() -> void:
-	var root := get_child(1) as MarginContainer
-	if root == null:
-		return
-	var vbox := root.get_child(0) as VBoxContainer
+	var vbox := get_node_or_null("Center/Panel/Root") as VBoxContainer
 	if vbox == null:
 		return
 	var pause_box := vbox.get_node_or_null("PauseBox")
@@ -304,9 +340,11 @@ func _rebuild_upgrade_rows() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
 
-		var icon := Label.new()
-		icon.text = str(u.get("icon", ""))
-		icon.custom_minimum_size = Vector2(24, 0)
+		var icon := PixelCardIconT.new()
+		icon.upgrade = u
+		icon.icon_size = 28.0
+		icon.custom_minimum_size = Vector2(28, 28)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(icon)
 
 		var name_box := VBoxContainer.new()
@@ -344,6 +382,8 @@ func _rebuild_upgrade_rows() -> void:
 		row.add_child(plus)
 
 		_upgrades_list.add_child(row)
+
+	PixelUi.apply_ui_font_tree(_upgrades_list)
 
 
 func _adjust_debug_upgrade(id: String, delta: int) -> void:

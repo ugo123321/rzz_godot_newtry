@@ -20,7 +20,8 @@ Phase 1 runtime loader (GameConfig) consumes this JSON. Schema:
         ...
       ],
       "applies_fire": 0, "applies_ice": 0, "applies_thunder": 0, "applies_poison": 0,
-      "notes": "..."
+      "notes": "...",
+      "desc_cn_game": "..."        # 游戏内简化展示文案（玩家面向；空则回落 desc_cn）
     }
 
 Run after build_rewards_v6_compact.py whenever xlsx changes.
@@ -110,6 +111,7 @@ def convert():
             "applies_thunder": int(r[31] or 0),
             "applies_poison": int(r[32] or 0),
             "notes": str(r[33] or ""),
+            "desc_cn_game": str(r[34] or "") if len(r) > 34 else "",
         }
         attrs = []
         for slot in range(4):

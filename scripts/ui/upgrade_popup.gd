@@ -4,6 +4,7 @@ class_name UpgradePopup
 const ICON_SIZE := 48
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const PixelCardIconT = preload("res://scripts/ui/pixel_card_icon.gd")
+const DescFormatT = preload("res://scripts/utils/desc_format.gd")
 
 signal upgrade_picked(index: int)
 
@@ -209,18 +210,26 @@ func _rebuild_cards() -> void:
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vbox.add_child(name_label)
 
-		var desc_label := Label.new()
-		var desc_text := str(upgrade.get("desc_cn", ""))
-		if _is_element_applier(upgrade):
-			desc_text += "\n（元素附加效果将在下一版本生效）"
-		desc_label.text = desc_text
-		if stack > 0:
-			desc_label.text += "\nLv.%d" % (stack + 1)
-		desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var desc_label := RichTextLabel.new()
+		desc_label.bbcode_enabled = true
+		desc_label.fit_content = true
+		desc_label.scroll_active = false
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_apply_label_font(desc_label, desc_font)
+		var raw_desc := str(upgrade.get("desc_cn_game", ""))
+		if raw_desc.is_empty():
+			raw_desc = str(upgrade.get("desc_cn", ""))
+		if stack > 0:
+			raw_desc += "\nLv.%d" % (stack + 1)
+		DescFormatT.apply_to_rich_text(desc_label, raw_desc, desc_font, true)
+		PixelUi.apply_ui_font(desc_label)
+		desc_label.add_theme_font_size_override("normal_font_size", desc_font)
+		desc_label.add_theme_font_size_override("bold_font_size", desc_font)
+		desc_label.add_theme_font_size_override("italic_font_size", desc_font)
+		desc_label.add_theme_font_size_override("bold_italic_font_size", desc_font)
+		desc_label.add_theme_font_size_override("mono_font_size", desc_font)
 		desc_label.modulate = Color(0.82, 0.82, 0.82)
 		desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		vbox.add_child(desc_label)
 
 		var card_rarity := str(upgrade.get("rarity", "blue"))
@@ -279,10 +288,3 @@ func _pick(index: int) -> void:
 func _ease_out(t: float) -> float:
 	return 1.0 - (1.0 - t) * (1.0 - t)
 
-
-# v6 schema：当卡的 applies_<elem> 任一为 1 时，提示玩家元素效果暂未生效（Phase 2 接通）
-func _is_element_applier(upgrade: Dictionary) -> bool:
-	return int(upgrade.get("applies_fire", 0)) != 0 \
-		or int(upgrade.get("applies_ice", 0)) != 0 \
-		or int(upgrade.get("applies_thunder", 0)) != 0 \
-		or int(upgrade.get("applies_poison", 0)) != 0

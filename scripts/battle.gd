@@ -130,6 +130,12 @@ const LOBBY_INTRO_GAP := 0.25
 var shake_mag := 0.0
 var shake_dur := 0.0
 var shake_timer := 0.0
+# iOS Safari 一次触摸会同时派发 touchstart + 合成的 mousedown / mouseup，
+# 导致 attr_forge 一次点击落两个方块。touch 事件进来时记一个时间窗口，
+# 期间所有 InputEventMouseButton / InputEventMouseMotion 直接丢弃。
+# 桌面只有 mouse 没 touch，永远不会进窗口，因此完全不受影响。
+const _TOUCH_SWALLOW_WINDOW_MS := 500
+var _touch_swallow_until_ms := 0
 var _fail_death_player_parent: Node = null
 var virtual_joystick: VirtualJoystickScript
 
@@ -1967,6 +1973,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _dispatch_pointer_event(event: InputEvent, mark_handled: bool) -> void:
+	# iOS Safari 双事件去重：触摸进来时开 500ms 窗口，期间丢弃浏览器合成的鼠标事件
+	var now_ms := Time.get_ticks_msec()
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		_touch_swallow_until_ms = now_ms + _TOUCH_SWALLOW_WINDOW_MS
+	elif event is InputEventMouseButton or event is InputEventMouseMotion:
+		if now_ms < _touch_swallow_until_ms:
+			return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_handle_pointer(event.position, "down")
 		if mark_handled:

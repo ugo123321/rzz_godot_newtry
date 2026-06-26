@@ -119,3 +119,69 @@
 
 **圣盾去重**：原 `sv_holy_guard`（神圣守护，sr=6，每关 1 层挡致死护盾）效果与策划版圣盾完全一致 → 直接复用，仅在源表 `ys构思_v6.xlsx` 把它的 `name_cn`/`group`/`pool_weight` 改成 圣盾 / 天使 / 0，不新建第二张同效果卡。
 
+## 十一、`pool_weight = 0` 是"不入常规升级池"的**唯一开关**
+
+「这张卡参不参加 `upgrade_manager._build_pool()` 的常规随机？」只看 `pool_weight`：
+
+- `pool_weight == 0` → 不入池
+- `pool_weight > 0` → 入池，且作为权重参与加权随机
+
+**禁止**在 `upgrade_manager.gd` 里按 group 名 / id 前缀写硬编码黑名单（之前 "强化球" 用过这种方式，已删）。
+
+### 配置源是 `rewards_v6_compact.xlsx`，不是 `ys构思_v6.xlsx`
+
+历史流程是：
+```
+ys构思_v6.xlsx  ──build_rewards_v6_compact.py──▶  rewards_v6_compact.xlsx  ──export_*.py──▶  rewards_v6.json
+```
+**`ys构思_v6.xlsx` 只是历史源，已停用**。游戏运行时实际读 `config/json/rewards_v6.json`，json 从 `config/excel/rewards_v6_compact.xlsx` 直接 export 生成。
+
+日常改奖励数值/desc/pool_weight：
+1. **直接编辑 `config/excel/rewards_v6_compact.xlsx`**
+2. 跑 `python tools/export_rewards_v6_compact_json.py` 重生 json
+3. **不要跑 `build_rewards_v6_compact.py`** — 它会从 `ys构思_v6.xlsx` 重生 compact，覆盖你的策划手编值
+
+`build_rewards_v6_compact.py` 仅在需要从 ys 构思源表完整重建 compact 时使用（罕见，且需要先把策划手编值同步回 ys 构思 / 工具的 `PER_ID_*` 字典）。
+
+### 工具级硬规则（在 build_rewards 里强制 pool_weight=0）
+
+只有"整组卡永远不入常规池"的规则放在生成器里。当前只剩两组：
+
+- group code 6（强化球 orb_*）—— 系统暂未启用
+- group code 10、11（恶魔 / 天使主题关）—— 只走主题专属弹窗
+
+见 `tools/build_rewards_v6_compact.py:FORCE_NOT_IN_POOL_GROUP_CODES`。
+
+个别基础卡（神速 / 四叶草 / 运气 / 负伤战士 / 移动加速 / 战士之息）的 `pool_weight=0` 由 compact.xlsx 自身控制 — **不在生成器里硬编码**，避免重跑 build_rewards 时覆盖策划改动。
+
+## 十二、玩家面向描述以 `desc_cn_game` 为准，箭头由 `desc_format.gd` 自动渲染
+
+compact.xlsx 末尾的 `desc_cn_game` 列（AI 列，索引 `r[34]`，中文 header "游戏内展示用描述"）是**玩家在升级 / 主题关弹窗里看到的简化文案**，目的是降低阅读压力。
+
+**读取规则**：
+- 程序优先读 `desc_cn_game`；为空则回落到 `desc_cn`
+- 两个来源都经过 `scripts/utils/desc_format.gd`（`DescFormat.apply_to_rich_text()`）：
+  - 正则匹配 `[+-]\d+(\.\d+)?%`（**必须带正负号**，裸百分比如 `50%` 是阈值 / 概率，原样保留）
+  - 用 RichTextLabel `add_text` / `add_image` 直接 push，不走 BBCode 解析
+  - `+` → 绿 `#5fd96c` ▲ 像素箭头；`-` → 红 `#ef5b5b` ▼ 像素箭头
+  - 箭头是运行时用 `Image.set_pixel` 手绘 9×11 瘦实心三角 + 柄、算法外圈加 1px 纯黑描边，缓存为 `ImageTexture`
+  - 多个箭头并排时拼到同一张 Image（每个 +1px 间隙），`texture_filter = NEAREST` 保持像素 sharp
+  - 显示尺寸 = `base_font_size × 1.4`，嵌入文字基线
+  - 档位（按绝对值）：`|n|≤10` → 1 个；`10<|n|≤25` → 2 个；`>25` → 3 个
+  - 非百分号数字（`3s` / `×2` / `+1/级`）原样保留
+- 两个 popup 的描述 Label 已改成 `RichTextLabel`，居中由 `push_paragraph(HORIZONTAL_ALIGNMENT_CENTER)` 处理
+
+**职责分工**：
+- `desc_cn`（F 列）保持"策划手册版"语义 — 咱俩沟通 / plan / commit / 第四条 `PER_ID_DESC_OVERRIDE` 都仍以这一列为准
+- `desc_cn_game`（AI 列）只影响玩家视觉，**不影响功能 / 不影响 sr 判定**
+
+**显示路径**：
+- `scripts/ui/upgrade_popup.gd` 升级 3 选 1
+- `scripts/ui/themed_reward_popup.gd` 主题关弹窗
+- 暂停菜单调试列表不显示 desc，不受影响
+
+**风险**：跑 `build_rewards_v6_compact.py` 会清空整列 `desc_cn_game`（同 `pool_weight` 一样，属于生成器视为"策划手编值"而留空的字段）。日常仍按第十一条 — 直接改 compact.xlsx + 跑 export，**不要跑 build_rewards**。
+
+
+主题关专属弹窗（`get_themed_pool` 按 group 抽）**不看** `pool_weight`，所以主题卡 `pool_weight=0` 不影响主题关本身正常出。
+
