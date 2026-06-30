@@ -66,13 +66,13 @@
   },
   {
     "key": "stage_count_mul",
-    "value": 1.666667,
-    "description": "怪物数量乘数 [RECORD-ONLY 2.5x: orig 0.666667]"
+    "value": 0.666667,
+    "description": "怪物数量乘数"
   },
   {
     "key": "shield_count_mul",
-    "value": 0.833333,
-    "description": "盾牌怪数量乘数 [RECORD-ONLY 2.5x: orig 0.333333]"
+    "value": 0.333333,
+    "description": "盾牌怪数量乘数"
   },
   {
     "key": "exp_base_to_level",
