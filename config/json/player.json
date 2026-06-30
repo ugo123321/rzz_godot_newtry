@@ -66,8 +66,8 @@
   },
   {
     "key": "ki_regen_speed",
-    "value": 120,
-    "description": "气力回复速度(点/秒) [RECORD-ONLY 2x: orig 60]"
+    "value": 60,
+    "description": "气力回复速度(点/秒)"
   },
   {
     "key": "combo_damage_bonus",
