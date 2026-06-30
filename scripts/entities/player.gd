@@ -65,7 +65,7 @@ var draw_session_snapshot = null
 var collected_orb_buffs: Array = []
 var ki_at_draw_start := 0.0
 
-var bullet_count := 0  # [RECORD-ONLY: orig 1]
+var bullet_count := 1
 var attack_speed_mult := 1.0
 var ki_regen_mult := 1.0
 var slash_damage_mult := 1.0
@@ -318,7 +318,7 @@ func _load_base_stats() -> void:
 		crit_rate += float(equip.get("crit_rate", 0.0))
 		hp = max_hp
 	size_scale = 1.0
-	bullet_count = 0  # [RECORD-ONLY: orig 1]
+	bullet_count = 1
 
 
 func _apply_sprite_scale() -> void:
@@ -1063,7 +1063,7 @@ func _rebuild_upgrades() -> void:
 	basic_attack_speed = maxf(0.01, float(GameConfig.get_player_value("basic_attack_speed", 2.0)))
 	ki_regen_speed = maxf(0.0, float(GameConfig.get_player_value("ki_regen_speed", 135.0)))
 	size_scale = 1.0
-	bullet_count = 0  # [RECORD-ONLY: orig 1]
+	bullet_count = 1
 	attack_speed_mult = 1.0
 	ki_regen_mult = 1.0
 	slash_damage_mult = 1.0

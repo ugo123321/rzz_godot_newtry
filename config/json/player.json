@@ -1,8 +1,8 @@
 [
   {
     "key": "base_attack",
-    "value": 104,
-    "description": "基础攻击力 [RECORD-ONLY 2x: orig 52]"
+    "value": 52,
+    "description": "基础攻击力"
   },
   {
     "key": "base_hp",
@@ -11,8 +11,8 @@
   },
   {
     "key": "base_ki",
-    "value": 468,
-    "description": "基础气力上限 [RECORD-ONLY 2x: orig 234]"
+    "value": 234,
+    "description": "基础气力上限"
   },
   {
     "key": "base_crit_rate",

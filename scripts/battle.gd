@@ -1148,33 +1148,9 @@ func enter_bullet_time() -> void:
 	time_scale = float(GameConfig.get_tuning("bullet_time_scale", 0.14))
 	dim_overlay.visible = true
 	dim_overlay.color = Color(0, 0, 0, float(GameConfig.get_tuning("bullet_time_dim_alpha", 0.42)))
-	_record_zoom_in()
-
-
-# [RECORD-ONLY] 画线时相机轻拉近 + 平移到主角附近
-var _record_cam_tween: Tween = null
-func _record_zoom_in() -> void:
-	if camera == null or player == null:
-		return
-	if _record_cam_tween:
-		_record_cam_tween.kill()
-	_record_cam_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_record_cam_tween.tween_property(camera, "zoom", Vector2.ONE * 1.15, 0.25)
-	var target := (player.global_position + Vector2(_initial_camera_x, _initial_camera_y)) * 0.5
-	_record_cam_tween.parallel().tween_property(camera, "position", target, 0.25)
-
-func _record_zoom_out() -> void:
-	if camera == null:
-		return
-	if _record_cam_tween:
-		_record_cam_tween.kill()
-	_record_cam_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_record_cam_tween.tween_property(camera, "zoom", Vector2.ONE, 0.2)
-	_record_cam_tween.parallel().tween_property(camera, "position", Vector2(_initial_camera_x, _initial_camera_y), 0.2)
 
 
 func exit_bullet_time(cancelled: bool) -> void:
-	_record_zoom_out()
 	if cancelled:
 		resume_battle_time()
 		if buff_orbs:

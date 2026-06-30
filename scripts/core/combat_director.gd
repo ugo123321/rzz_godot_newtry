@@ -276,7 +276,7 @@ func _apply_hit(player: BattlePlayer, hit: Dictionary) -> void:
 		if is_crit:
 			battle.shake_camera(6.0 + mini(float(combo_count) * 0.15, 4.0), 0.14)
 		else:
-			battle.shake_camera(2.0, 0.06)  # [RECORD-ONLY: orig 3.0/0.08, 加强画线每击的密集反馈]
+			battle.shake_camera(3.0, 0.08)
 		AudioManager.play_hit(is_crit)
 	player.trigger_combo_abilities(int(combo_count), monster.global_position)
 
