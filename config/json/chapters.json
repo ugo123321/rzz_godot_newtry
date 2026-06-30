@@ -4,6 +4,8 @@
     "chapter_name": "第一章",
     "stages_per_chapter": 20,
     "chapter_target_height_m": 0,
-    "description": "20 关单章"
+    "description": "20 关单章",
+    "chapter_name_en": "Chapter 1",
+    "description_en": "20 stages"
   }
 ]

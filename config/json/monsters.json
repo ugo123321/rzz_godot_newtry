@@ -28,7 +28,8 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "name_en": "Normal"
   },
   {
     "kind_id": "ARCHER",
@@ -59,7 +60,8 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "name_en": "Archer"
   },
   {
     "kind_id": "ELITE",
@@ -94,7 +96,8 @@
     "elem_resist_fire": 0.2,
     "elem_resist_ice": 0.2,
     "elem_resist_thunder": 0.2,
-    "elem_resist_poison": 0.2
+    "elem_resist_poison": 0.2,
+    "name_en": "Elite"
   },
   {
     "kind_id": "FIRE_MAGE",
@@ -127,7 +130,8 @@
     "bounce_count": 1,
     "sprite_tint_hex": "",
     "elem_resist_fire": 0.6,
-    "vuln_ice": 0.3
+    "vuln_ice": 0.3,
+    "name_en": "Fire Mage"
   },
   {
     "kind_id": "SHIELD",
@@ -160,7 +164,8 @@
     "bounce_count": 1,
     "sprite_tint_hex": "",
     "elem_resist_fire": 0.3,
-    "vuln_thunder": 0.2
+    "vuln_thunder": 0.2,
+    "name_en": "Shielder"
   },
   {
     "kind_id": "CROSS_SHOOTER",
@@ -191,7 +196,8 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "name_en": "Cross Shooter"
   },
   {
     "kind_id": "BERSERKER",
@@ -224,7 +230,8 @@
     "bounce_count": 1,
     "sprite_tint_hex": "",
     "vuln_fire": 0.4,
-    "vuln_thunder": 0.2
+    "vuln_thunder": 0.2,
+    "name_en": "Berserker"
   },
   {
     "kind_id": "SHOTGUN",
@@ -255,7 +262,8 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "name_en": "Shotgunner"
   },
   {
     "kind_id": "SPLITTER",
@@ -286,7 +294,8 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": ""
+    "sprite_tint_hex": "",
+    "name_en": "Splitter"
   },
   {
     "kind_id": "BOUNCE_SLIME",
@@ -317,6 +326,7 @@
     "spread_count": 5,
     "spread_angle_deg": 50,
     "bounce_count": 1,
-    "sprite_tint_hex": "#ff6868"
+    "sprite_tint_hex": "#ff6868",
+    "name_en": "Bounce Slime"
   }
 ]

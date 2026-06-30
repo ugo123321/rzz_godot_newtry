@@ -86,7 +86,7 @@ func _build_ui() -> void:
 	_vbox.add_child(btn_row)
 
 	_continue_btn = Button.new()
-	_continue_btn.text = "继续"
+	_continue_btn.text = LanguageManager.tr_ui("UI_FORGE_CONTINUE")
 	_continue_btn.custom_minimum_size = Vector2(160, 52)
 	PixelUi.apply_ui_font(_continue_btn)
 	_continue_btn.add_theme_font_size_override("font_size", 26)
@@ -185,13 +185,13 @@ func _rarity_color(rarity: String) -> Color:
 func _rarity_zh(rarity: String) -> String:
 	match rarity:
 		"white":
-			return "白"
+			return LanguageManager.tr_ui("UI_FORGE_RARITY_WHITE")
 		"blue":
-			return "蓝"
+			return LanguageManager.tr_ui("UI_FORGE_RARITY_BLUE")
 		"purple":
-			return "紫"
+			return LanguageManager.tr_ui("UI_FORGE_RARITY_PURPLE")
 		"orange":
-			return "橙"
+			return LanguageManager.tr_ui("UI_FORGE_RARITY_ORANGE")
 		_:
 			return rarity
 
@@ -238,8 +238,8 @@ func _apply_palette() -> void:
 
 
 func _apply_content() -> void:
-	_title_label.text = "打造完成"
-	_subtitle_label.text = "成功堆叠 %d / 10 块   ·   奖励品质：%s" % [_stacked, _rarity_zh(_rarity)]
+	_title_label.text = LanguageManager.tr_ui("UI_FORGE_TITLE")
+	_subtitle_label.text = LanguageManager.tr_ui("UI_FORGE_SUBTITLE_FMT") % [_stacked, _rarity_zh(_rarity)]
 	# 清空旧 attr list
 	for child in _attr_list.get_children():
 		child.queue_free()
@@ -256,7 +256,7 @@ func _apply_content() -> void:
 		any_added = true
 	if not any_added:
 		var empty_label := Label.new()
-		empty_label.text = "（未获得加成）"
+		empty_label.text = LanguageManager.tr_ui("UI_FORGE_NO_BUFF")
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		PixelUi.apply_ui_font(empty_label)
 		empty_label.add_theme_font_size_override("font_size", 20)
@@ -268,7 +268,9 @@ func _make_attr_row(name_cn: String, total_delta: float) -> Control:
 	var row := Label.new()
 	var sign_str := "+" if total_delta >= 0.0 else ""
 	var pct := int(round(total_delta * 100.0))
-	row.text = "%s   %s%d%%" % [name_cn, sign_str, pct]
+	# name_cn 是中文 ID（贯穿 forge 数据流），UI 显示时翻译；缺 key 时回落原 name_cn
+	var localized_name := LanguageManager.tr_ui("FORGE_ATTR_" + name_cn, name_cn)
+	row.text = "%s   %s%d%%" % [localized_name, sign_str, pct]
 	row.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	PixelUi.apply_ui_font(row)
 	row.add_theme_font_size_override("font_size", 22)

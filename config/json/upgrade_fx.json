@@ -10,7 +10,8 @@
     "shimmer": 0,
     "pulse": 0,
     "spark_count": 0,
-    "rays": 0
+    "rays": 0,
+    "name_en": "Common"
   },
   {
     "rarity": "blue",
@@ -23,7 +24,8 @@
     "shimmer": 1,
     "pulse": 0,
     "spark_count": 6,
-    "rays": 0
+    "rays": 0,
+    "name_en": "Rare"
   },
   {
     "rarity": "purple",
@@ -36,7 +38,8 @@
     "shimmer": 1,
     "pulse": 1,
     "spark_count": 12,
-    "rays": 0
+    "rays": 0,
+    "name_en": "Epic"
   },
   {
     "rarity": "orange",
@@ -49,6 +52,7 @@
     "shimmer": 1,
     "pulse": 1,
     "spark_count": 22,
-    "rays": 1
+    "rays": 1,
+    "name_en": "Legendary"
   }
 ]

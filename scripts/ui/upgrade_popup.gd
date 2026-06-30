@@ -166,8 +166,9 @@ func _rebuild_cards() -> void:
 	for child in cards.get_children():
 		child.queue_free()
 
-	title_label.text = "升级！选择一个强化"
-	rarity_label.text = str(_fx.get("name_cn", "普通"))
+	title_label.text = LanguageManager.tr_ui("UI_UPGRADE_TITLE")
+	var rarity_key := "UI_RARITY_" + str(_fx.get("rarity", "white")).to_upper()
+	rarity_label.text = LanguageManager.tr_ui(rarity_key, str(_fx.get("name_cn", "")))
 	rarity_label.modulate = Color(str(_fx.get("color_hex", "#ffffff")))
 
 	var choice_count := upgrade_manager.choices.size()
@@ -203,7 +204,7 @@ func _rebuild_cards() -> void:
 			stack = battle.player.get_upgrade_level(str(upgrade.get("id", "")))
 
 		var name_label := Label.new()
-		name_label.text = str(upgrade.get("name_cn", ""))
+		name_label.text = LanguageManager.localize(upgrade, "name")
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_label_font(name_label, name_font)
@@ -215,9 +216,9 @@ func _rebuild_cards() -> void:
 		desc_label.fit_content = true
 		desc_label.scroll_active = false
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		var raw_desc := str(upgrade.get("desc_cn_game", ""))
+		var raw_desc := LanguageManager.localize_field(upgrade, "desc_cn_game_en", "desc_cn_game")
 		if raw_desc.is_empty():
-			raw_desc = str(upgrade.get("desc_cn", ""))
+			raw_desc = LanguageManager.localize(upgrade, "desc")
 		if stack > 0:
 			raw_desc += "\nLv.%d" % (stack + 1)
 		DescFormatT.apply_to_rich_text(desc_label, raw_desc, desc_font, true)

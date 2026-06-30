@@ -22,6 +22,7 @@ GameConfig="*res://scripts/autoload/game_config.gd"
 EventBus="*res://scripts/autoload/event_bus.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
 LobbyState="*res://scripts/autoload/lobby_state.gd"
+LanguageManager="*res://scripts/autoload/language_manager.gd"
 MCPRuntimeProbe="*res://addons/godot_mcp/runtime/mcp_runtime_probe.gd"
 
 [display]
@@ -43,7 +44,6 @@ theme/default_font="res://assets/ui/Fonts/NotoSansSC-Regular.otf"
 
 [input_devices]
 
-pointing/emulate_mouse_from_touch=false
 pointing/emulate_touch_from_mouse=true
 
 [physics]

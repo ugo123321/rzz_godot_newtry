@@ -294,17 +294,17 @@ func _apply_orb(type_name: String) -> void:
 	match type_name:
 		"attack":
 			player.turn_buff_attack_mult *= 1.3
-			notice = "攻击+30%"
+			notice = LanguageManager.tr_ui("UI_BUFF_NOTICE_ATTACK")
 		"ki":
 			var bonus: float = round(player.ki_max * 0.30)
 			player.ki = minf(player.ki_max, player.ki + bonus)
-			notice = "气力+30%"
+			notice = LanguageManager.tr_ui("UI_BUFF_NOTICE_KI")
 		"combo":
 			player.turn_buff_combo_mult *= 2.0
-			notice = "连击×2"
+			notice = LanguageManager.tr_ui("UI_BUFF_NOTICE_COMBO")
 		"ice":
 			player.ice_ready = true
-			notice = "冰冻球"
+			notice = LanguageManager.tr_ui("UI_BUFF_NOTICE_ICE")
 		_:
 			return
 	if battle:

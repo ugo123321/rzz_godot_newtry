@@ -3,6 +3,7 @@ extends Control
 class_name EquipmentPanelView
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
+const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 const SYNTHESIS_PANEL_SCENE := preload("res://scenes/ui/synthesis_panel.tscn")
 
 const SLOT_ORDER := [
@@ -78,14 +79,32 @@ func _ready() -> void:
 		return
 	_setup_scene_ui()
 	_connect_signals()
+	_apply_static_texts()
 	_refresh_all()
 	set_process(true)
+
+
+func _on_language_changed(_lang: String) -> void:
+	_apply_static_texts()
+	_refresh_all()
+
+
+func _apply_static_texts() -> void:
+	if _inventory_empty_label != null:
+		_inventory_empty_label.text = LanguageManager.tr_ui("UI_EQUIP_NO_ITEMS")
+	if _btn_equip != null:
+		_btn_equip.text = LanguageManager.tr_ui("UI_EQUIP_WEAR")
+	if _btn_unequip != null:
+		_btn_unequip.text = LanguageManager.tr_ui("UI_EQUIP_UNEQUIP")
+	if _btn_upgrade != null:
+		_btn_upgrade.text = LanguageManager.tr_ui("UI_EQUIP_UPGRADE_BTN")
 
 
 func _connect_signals() -> void:
 	if EventBus:
 		EventBus.equipment_changed.connect(_on_equipment_changed)
 		EventBus.gold_changed.connect(_on_gold_changed)
+		EventBus.language_changed.connect(_on_language_changed)
 
 
 func _setup_scene_ui() -> void:
@@ -101,6 +120,20 @@ func _setup_scene_ui() -> void:
 
 	PixelUi.apply_ui_font_tree(self)
 	_apply_pixel_filter_tree(self)
+	_style_detail_buttons()  # 必须在 _apply_pixel_filter_tree 之后，否则 LINEAR filter 被覆盖回 NEAREST
+
+
+# 详情弹窗里的"装备 / 卸下 / 强化"3 个按钮：从默认 Godot 样式升级到 9-slice
+func _style_detail_buttons() -> void:
+	if _btn_equip != null:
+		UiStyle.apply_primary_button(_btn_equip, Color("#4dd07a"), 10)  # 绿：装备
+		_btn_equip.add_theme_color_override("font_color", Color(0.06, 0.10, 0.06))
+	if _btn_unequip != null:
+		UiStyle.apply_primary_button(_btn_unequip, Color(0.55, 0.60, 0.78), 10)  # 蓝灰：卸下
+		_btn_unequip.add_theme_color_override("font_color", Color(0.96, 0.96, 0.98))
+	if _btn_upgrade != null:
+		UiStyle.apply_primary_button(_btn_upgrade, Color("#efb840"), 10)  # 金：强化
+		_btn_upgrade.add_theme_color_override("font_color", Color(0.18, 0.10, 0.04))
 
 
 func _bind_slot_buttons() -> void:
@@ -343,7 +376,7 @@ func _open_item_detail(uid: int) -> void:
 	var quality_color := LobbyState.get_quality_color(quality)
 	_detail_name_label.text = LobbyState.get_item_name(item)
 	_detail_name_label.self_modulate = quality_color
-	_detail_level_label.text = "等级 Lv.%d   部位: %s" % [
+	_detail_level_label.text = LanguageManager.tr_ui("UI_EQUIP_LEVEL_PART_FMT") % [
 		int(item.get("level", 1)),
 		LobbyState.get_slot_display_name(str(item.get("slot", ""))),
 	]
@@ -366,11 +399,11 @@ func _open_item_detail(uid: int) -> void:
 	_btn_upgrade.visible = equipped
 	if equipped:
 		var cost := LobbyState.get_upgrade_cost(item)
-		_btn_upgrade.text = "升级（%d 金币）" % cost
+		_btn_upgrade.text = LanguageManager.tr_ui("UI_EQUIP_UPGRADE_COST_FMT") % cost
 		_btn_upgrade.disabled = int(LobbyState.gold) < cost
-		_detail_tip_label.text = "升级仅提升白色技能数值，并提升战力。"
+		_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_TIP_UPGRADE")
 	else:
-		_detail_tip_label.text = "可穿戴到对应部位。"
+		_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_TIP_WEAR")
 	_detail_popup.popup_centered()
 
 
@@ -399,7 +432,7 @@ func _on_detail_upgrade() -> void:
 		return
 	var upgraded := LobbyState.upgrade_item(_current_detail_uid)
 	if upgraded.is_empty():
-		_detail_tip_label.text = "金币不足，无法升级。"
+		_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_TIP_NO_GOLD")
 		return
 	_open_item_detail(_current_detail_uid)
 
@@ -421,14 +454,14 @@ func _build_active_effect_lines() -> PackedStringArray:
 				str(entry.get("text", "")),
 			])
 	if lines.is_empty():
-		lines.append("（暂无，穿戴稀有及以上装备可激活）")
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_NO_FX_PLACEHOLDER"))
 	return lines
 
 
 func _show_attr_popup() -> void:
 	var attrs := LobbyState.get_player_preview_attributes()
 	var effect_lines := _build_active_effect_lines()
-	_details_label.text = "攻击力: %d（装备加成 %+d）\n最大生命: %d（装备加成 %+d）\n暴击率: %.1f%%（装备加成 %+0.1f%%）\n战斗力: %d\n\n当前装备特效：\n%s\n\n说明：战斗力会随装备等级与品质提升。装备品质越高，解锁并叠加更多技能。" % [
+	_details_label.text = LanguageManager.tr_ui("UI_EQUIP_DETAILS_FMT") % [
 		int(round(float(attrs.get("attack", 0.0)))),
 		int(round(float(attrs.get("equip_attack", 0.0)))),
 		int(attrs.get("hp", 0)),

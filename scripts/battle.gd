@@ -10,6 +10,7 @@ const GroundEffectManagerScript = preload("res://scripts/core/ground_effect_mana
 const LevelOverlayScript = preload("res://scripts/ui/level_overlay.gd")
 const CombatAfterimagesScript = preload("res://scripts/ui/combat_afterimages.gd")
 const EquipmentDropFxScript = preload("res://scripts/ui/equipment_drop_fx.gd")
+const SoulOrbManagerScript = preload("res://scripts/effects/soul_orb_manager.gd")
 const SakuraSystemScript = preload("res://scripts/systems/sakura_system.gd")
 const GrassSystemScript = preload("res://scripts/systems/grass_system.gd")
 const EnemyArrowScript = preload("res://scripts/entities/enemy_arrow.gd")
@@ -59,6 +60,7 @@ var swords
 var auras
 var damage_overlay: DamageNumbersOverlay
 var equipment_drop_fx: EquipmentDropFxOverlay
+var soul_orb_manager: SoulOrbManager
 var afterimages_overlay
 var terrain: TerrainBackground
 var pause_menu: PauseMenu
@@ -183,6 +185,11 @@ func _ready() -> void:
 	equipment_drop_fx = EquipmentDropFxScript.new()
 	equipment_drop_fx.name = "EquipmentDropFx"
 	add_child(equipment_drop_fx)
+
+	soul_orb_manager = SoulOrbManagerScript.new()
+	soul_orb_manager.name = "SoulOrbManager"
+	add_child(soul_orb_manager)
+	soul_orb_manager.setup(self)
 	afterimages_overlay = CombatAfterimagesScript.new()
 	afterimages_overlay.name = "CombatAfterimages"
 	afterimages_overlay.z_index = 46
@@ -358,10 +365,12 @@ func start_game() -> void:
 		blood_stains.clear()
 	if equipment_drop_fx:
 		equipment_drop_fx.clear()
+	if soul_orb_manager:
+		soul_orb_manager.clear()
 	_clear_projectiles()
 	state = GameState.MENU
-	hud.show_message("点击屏幕开始", 999.0)
-	intro_label.text = "忍者斩"
+	hud.show_message(LanguageManager.tr_ui("UI_BATTLE_TAP_START"), 999.0)
+	intro_label.text = LanguageManager.tr_ui("UI_BATTLE_INTRO")
 
 
 func _enter_wait_start() -> void:
@@ -382,6 +391,8 @@ func _enter_wait_start() -> void:
 		blood_stains.clear()
 	if equipment_drop_fx:
 		equipment_drop_fx.clear()
+	if soul_orb_manager:
+		soul_orb_manager.clear()
 	if tree_spawner:
 		if get_stage_theme(stage_index) == "":
 			tree_spawner.begin(self)
@@ -426,6 +437,8 @@ func _begin_from_lobby() -> void:
 		blood_stains.clear()
 	if equipment_drop_fx:
 		equipment_drop_fx.clear()
+	if soul_orb_manager:
+		soul_orb_manager.clear()
 	_clear_projectiles()
 	intro_label.visible = false
 	hud.hide_message()
@@ -436,7 +449,7 @@ func _begin_from_lobby() -> void:
 func _start_lobby_battle_intro() -> void:
 	_lobby_entry_intro_active = true
 	state = GameState.STAGE_INTRO
-	intro_label.text = "战斗开始"
+	intro_label.text = LanguageManager.tr_ui("UI_BATTLE_BATTLE_START")
 	intro_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	intro_label.visible = true
 	PixelUi.apply_ui_font(intro_label)
@@ -589,8 +602,8 @@ func on_build_house_phase_done(height_m: float, blocks: Array) -> void:
 	# Advance to next stage in chapter (carry tower over)
 	if level_overlay:
 		level_overlay.show_phase_fade(
-			"进入下一关",
-			"已建 %.1fm / %dm" % [height_m, int(chapter_target)],
+			LanguageManager.tr_ui("UI_BATTLE_NEXT_STAGE"),
+			LanguageManager.tr_ui("UI_BATTLE_BUILT_FMT") % [height_m, int(chapter_target)],
 			Callable(self, "_advance_after_build"),
 			0.55, 0.6, 0.55
 		)
@@ -599,8 +612,8 @@ func on_build_house_phase_done(height_m: float, blocks: Array) -> void:
 func _announce_chapter_complete(chapter_id: int, height_m: float, target_m: float) -> void:
 	if level_overlay:
 		level_overlay.show_phase_fade(
-			"第%d章 完成！" % chapter_id,
-			"塔高 %.1fm / 目标 %dm" % [height_m, int(target_m)],
+			LanguageManager.tr_ui("UI_BATTLE_CHAPTER_CLEARED_FMT") % chapter_id,
+			LanguageManager.tr_ui("UI_BATTLE_TOWER_FMT") % [height_m, int(target_m)],
 			Callable(self, "_back_to_menu_after_chapter"),
 			0.8, 1.5, 0.8
 		)
@@ -609,8 +622,8 @@ func _announce_chapter_complete(chapter_id: int, height_m: float, target_m: floa
 func _announce_chapter_fail(chapter_id: int, height_m: float, target_m: float) -> void:
 	if level_overlay:
 		level_overlay.show_phase_fade(
-			"第%d章 未达成" % chapter_id,
-			"塔高 %.1fm / 目标 %dm" % [height_m, int(target_m)],
+			LanguageManager.tr_ui("UI_BATTLE_CHAPTER_FAILED_FMT") % chapter_id,
+			LanguageManager.tr_ui("UI_BATTLE_TOWER_FMT") % [height_m, int(target_m)],
 			Callable(self, "_back_to_menu_after_chapter"),
 			0.8, 1.5, 0.8
 		)
@@ -666,7 +679,7 @@ func _begin_forge_stage() -> void:
 	# REBASE 完成后立即被 _try_enter_reward_room 调用。
 	# 此刻玩家已落地正好在 ForgePortal 上 (_active_forge_portal.stored_position)。
 	state = GameState.STAGE_TRANSITION
-	hud.show_message("属性打造关", 1.0)
+	hud.show_message(LanguageManager.tr_ui("UI_BATTLE_FORGE_INTRO"), 1.0)
 	# 等 0.5s 让玩家感受"我落在了门上"的瞬间
 	await get_tree().create_timer(0.5).timeout
 	if _active_forge_portal == null or not is_instance_valid(_active_forge_portal):
@@ -791,7 +804,7 @@ func _on_forge_settlement_continue() -> void:
 	upgrade_popup.show_popup()
 	upgrade_popup.move_to_front()
 	if hud:
-		hud.show_message("属性提升！", 1.6)
+		hud.show_message(LanguageManager.tr_ui("UI_BATTLE_ATTR_UP"), 1.6)
 
 
 func _rarity_for_stacked_count(stacked: int) -> String:
@@ -1002,7 +1015,7 @@ func apply_debug_settings(target_level: int, target_stage: int) -> void:
 	if _try_enter_reward_room(stage_index):
 		intro_label.visible = false
 		hud.hide_message()
-		hud.show_message("调试跳关已应用", 1.5)
+		hud.show_message(LanguageManager.tr_ui("UI_BATTLE_DEBUG_APPLIED"), 1.5)
 		return
 	spawner.spawn_stage(stage_index, self)
 	if terrain:
@@ -1015,7 +1028,7 @@ func apply_debug_settings(target_level: int, target_stage: int) -> void:
 	state = GameState.PLAYING
 	intro_label.visible = false
 	hud.hide_message()
-	hud.show_message("调试跳关已应用", 1.5)
+	hud.show_message(LanguageManager.tr_ui("UI_BATTLE_DEBUG_APPLIED"), 1.5)
 
 
 # 调试入口：直接跳到指定关卡的盖房子阶段（绕过 PLAYING / portal 等流程）。
@@ -1050,7 +1063,7 @@ func _apply_stage_meta(_spawn_buff_orbs: bool) -> void:
 	# Buff orbs 系统已禁用：恒 reset，不再 spawn
 	if buff_orbs:
 		buff_orbs.reset()
-	hud.set_stage_text(str(stage.get("display_name", "第%d关" % (stage_index + 1))))
+	hud.set_stage_text(LanguageManager.localize_field(stage, "display_name_en", "display_name"))
 
 
 func get_stage_theme(idx: int) -> String:
@@ -1209,7 +1222,7 @@ func resume_from_pause() -> void:
 	state = GameState.PLAYING
 	if pause_menu:
 		pause_menu.close_menu()
-	hud.show_message("继续战斗", 1.0)
+	hud.show_message(LanguageManager.tr_ui("UI_BATTLE_CONTINUE"), 1.0)
 
 
 func pause_game() -> void:
@@ -1255,7 +1268,12 @@ func _on_monster_killed(monster: Node) -> void:
 		)
 	if player and player.ice_ready:
 		combat.try_ice_burst(player, monster.global_position)
-	experience.on_monster_killed(monster)
+	# 经验改走灵魂球延迟：orb 飞到经验条才 add_exp（兜底：reward<=0 直接走原路径）
+	var exp_reward := experience.get_kill_reward(monster)
+	if exp_reward > 0 and soul_orb_manager != null:
+		soul_orb_manager.spawn(monster.global_position, exp_reward)
+	else:
+		experience.on_monster_killed(monster)
 	if player:
 		player.on_enemy_killed(monster.global_position)
 	var dropped := LobbyState.try_drop_random_equipment()
@@ -1373,7 +1391,7 @@ func _on_themed_reward_resolved(accepted: bool, upgrade: Dictionary) -> void:
 	if accepted and player != null and not upgrade.is_empty():
 		player.apply_upgrade(upgrade)
 		if hud:
-			hud.show_message("获得：%s" % str(upgrade.get("name_cn", "")), 1.6)
+			hud.show_message(LanguageManager.tr_ui("UI_BATTLE_PICKED_FMT") % LanguageManager.localize(upgrade, "name"), 1.6)
 	var next_idx: int = _pending_themed_next_index
 	_pending_themed_next_index = -1
 	_pending_themed_theme = ""
@@ -1448,21 +1466,21 @@ func _enter_reward_room_wheel() -> void:
 	_apply_stage_meta(false)
 	if reward_wheel_popup:
 		reward_wheel_popup.show_for_stage(_pending_reward_stage_index)
-	hud.show_message("奖励关：转盘房", 1.8)
+	hud.show_message(LanguageManager.tr_ui("UI_BATTLE_WHEEL_INTRO"), 1.8)
 
 
 func _on_reward_wheel_finished(reward_text: String) -> void:
 	if _pending_reward_stage_index == -2:
 		# Portal-driven reward inside the battle
 		if not reward_text.is_empty():
-			hud.show_message("获得奖励：%s" % reward_text, 1.6)
+			hud.show_message(LanguageManager.tr_ui("UI_BATTLE_REWARD_GOT_FMT") % reward_text, 1.6)
 		_pending_reward_stage_index = -1
 		_resume_from_portal_reward()
 		return
 	if _pending_reward_stage_index < 0:
 		return
 	if not reward_text.is_empty():
-		hud.show_message("获得奖励：%s" % reward_text, 1.6)
+		hud.show_message(LanguageManager.tr_ui("UI_BATTLE_REWARD_GOT_FMT") % reward_text, 1.6)
 	var next_index: int = _pending_reward_stage_index + 1
 	_pending_reward_stage_index = -1
 	if next_index >= GameConfig.stages.size():
@@ -1662,6 +1680,8 @@ func _clear_stage_transition_presentation(keep_companions: bool) -> void:
 		blood_stains.clear()
 	if equipment_drop_fx:
 		equipment_drop_fx.clear()
+	if soul_orb_manager:
+		soul_orb_manager.clear()
 	_clear_projectiles()
 	if ground_effects:
 		ground_effects.reset()

@@ -9,7 +9,8 @@ const PAUSE_BTN_MARGIN := 12.0
 const PAUSE_BTN_TOP := 6.0
 const PAUSE_BTN_PRESSED_SCALE := 0.88
 
-var _stage_text := "第1关"
+var _stage_text := ""
+var _stage_index := 0
 var _exp_level := 1
 var _exp_value := 0
 var _exp_to_next := 100
@@ -51,6 +52,8 @@ func _ready() -> void:
 	EventBus.tower_height_changed.connect(_on_tower_height_changed)
 	EventBus.player_damaged.connect(_on_player_damaged)
 	EventBus.player_healed.connect(_on_player_healed)
+	EventBus.stage_started.connect(_on_stage_started)
+	EventBus.language_changed.connect(_on_language_changed)
 	_load_coin_icon()
 	_sync_gold_from_lobby()
 	_sync_wood_from_lobby()
@@ -195,6 +198,27 @@ func bind_player(_player: BattlePlayer) -> void:
 
 func set_stage_text(text: String) -> void:
 	_stage_text = text
+
+
+func _on_stage_started(stage_index: int) -> void:
+	_stage_index = stage_index
+	_refresh_stage_text_from_index()
+	queue_redraw()
+
+
+func _on_language_changed(_lang: String) -> void:
+	# 重新格式化 _stage_text；其它 draw 出来的中文靠 queue_redraw 重绘
+	_refresh_stage_text_from_index()
+	queue_redraw()
+
+
+func _refresh_stage_text_from_index() -> void:
+	var stages: Array = GameConfig.stages
+	if _stage_index >= 0 and _stage_index < stages.size():
+		var stage: Dictionary = stages[_stage_index]
+		_stage_text = LanguageManager.localize_field(stage, "display_name_en", "display_name")
+	else:
+		_stage_text = LanguageManager.tr_ui("UI_HUD_STAGE_FMT") % (_stage_index + 1)
 	queue_redraw()
 
 
@@ -384,7 +408,7 @@ func _draw_countdown(viewport_size: Vector2) -> void:
 
 
 func _draw_build_house_hud(viewport_size: Vector2) -> void:
-	var txt := "高度 %.1f / %dm" % [_build_height_m, int(_build_target_m)]
+	var txt := LanguageManager.tr_ui("UI_HUD_BUILD_HEIGHT_FMT") % [_build_height_m, int(_build_target_m)]
 	PixelUi.draw_pixel_text(
 		self,
 		txt,
@@ -404,7 +428,7 @@ func _draw_click_to_start(viewport_size: Vector2) -> void:
 	col.a = alpha
 	PixelUi.draw_pixel_text(
 		self,
-		"点击屏幕开始游戏",
+		LanguageManager.tr_ui("UI_HUD_CLICK_TO_START"),
 		Vector2(viewport_size.x * 0.5, viewport_size.y * 0.55),
 		PixelUi.snap_pixel_font_size(int(round(_scaled(22.0)))),
 		col,
@@ -432,8 +456,8 @@ func _on_wood_changed(total_wood: int) -> void:
 
 
 func _on_player_damaged(_amount: int, remaining: int) -> void:
-	show_message("受到攻击！剩余 %d HP" % remaining, 0.8)
+	show_message(LanguageManager.tr_ui("UI_HUD_DAMAGE_TAKEN_FMT") % remaining, 0.8)
 
 
 func _on_player_healed(amount: int, remaining: int) -> void:
-	show_message("回复 %d HP（%d）" % [amount, remaining], 0.8)
+	show_message(LanguageManager.tr_ui("UI_HUD_HEAL_FMT") % [amount, remaining], 0.8)

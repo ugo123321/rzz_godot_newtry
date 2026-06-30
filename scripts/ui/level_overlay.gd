@@ -247,7 +247,7 @@ func _draw_stage_intro(cx: float, w: float, h: float) -> void:
 		"slide_out":
 			var t := 1.0 - clampf(float(intro.get("timer", 0.0)) / float(intro.get("slide_out_dur", 0.38)), 0.0, 1.0)
 			text_x = lerpf(cx, w + off_screen, t * t)
-	var text := "第%d关" % int(intro.get("level_num", 1))
+	var text := LanguageManager.tr_ui("UI_LEVEL_INTRO_FMT") % int(intro.get("level_num", 1))
 	_draw_pixel_text(text, Vector2(text_x, label_y), 26, Color.BLACK)
 	var boss_name := str(intro.get("boss_name", ""))
 	if not boss_name.is_empty():
@@ -258,7 +258,7 @@ func _draw_clear_flash(cx: float, cy: float) -> void:
 	if clear_flash.is_empty():
 		return
 	var alpha := clampf(float(clear_flash.get("timer", 0.0)) / float(clear_flash.get("duration", 1.0)), 0.0, 1.0)
-	_draw_pixel_text("关卡通过", Vector2(cx, cy), 30, Color("#ffd8a0"), alpha)
+	_draw_pixel_text(LanguageManager.tr_ui("UI_LEVEL_PASSED"), Vector2(cx, cy), 30, Color("#ffd8a0"), alpha)
 
 
 func _draw_fail_overlay(w: float, h: float) -> void:
@@ -267,14 +267,14 @@ func _draw_fail_overlay(w: float, h: float) -> void:
 		return
 	draw_rect(Rect2(Vector2.ZERO, Vector2(w, h)), Color(0, 0, 0, 0.72 * overlay_a))
 	var msg_a := clampf(overlay_a / 0.65, 0.0, 1.0)
-	_draw_pixel_text("体力耗尽", Vector2(w * 0.5, h * 0.42), 26, Color("#ff9c84"), msg_a)
-	_draw_pixel_text("请选择操作", Vector2(w * 0.5, h * 0.42 + 38.0), 16, Color("#f4e8da"), msg_a)
+	_draw_pixel_text(LanguageManager.tr_ui("UI_LEVEL_OUT_OF_KI"), Vector2(w * 0.5, h * 0.42), 26, Color("#ff9c84"), msg_a)
+	_draw_pixel_text(LanguageManager.tr_ui("UI_LEVEL_CHOOSE_ACTION"), Vector2(w * 0.5, h * 0.42 + 38.0), 16, Color("#f4e8da"), msg_a)
 
 
 func _draw_complete(w: float, h: float) -> void:
 	draw_rect(Rect2(Vector2.ZERO, Vector2(w, h)), Color(0, 0, 0, 0.72))
-	_draw_pixel_text("你完成了全部关卡", Vector2(w * 0.5, h * 0.44), 26, Color("#ffd8a0"))
-	_draw_pixel_text("点击屏幕重新开始", Vector2(w * 0.5, h * 0.58), 16, Color("#f4e8da"))
+	_draw_pixel_text(LanguageManager.tr_ui("UI_LEVEL_ALL_CLEARED"), Vector2(w * 0.5, h * 0.44), 26, Color("#ffd8a0"))
+	_draw_pixel_text(LanguageManager.tr_ui("UI_LEVEL_TAP_RESTART"), Vector2(w * 0.5, h * 0.58), 16, Color("#f4e8da"))
 
 
 func _draw_pixel_text(text: String, pos: Vector2, font_size: int, color: Color, alpha: float = 1.0) -> void:
@@ -303,13 +303,13 @@ func _build_fail_action_buttons() -> void:
 	add_child(_fail_actions_box)
 
 	_fail_retry_button = Button.new()
-	_fail_retry_button.text = "重来"
+	_fail_retry_button.text = LanguageManager.tr_ui("UI_LEVEL_RETRY")
 	_fail_retry_button.custom_minimum_size = Vector2(170, 54)
 	_fail_retry_button.pressed.connect(_on_fail_retry_pressed)
 	_fail_actions_box.add_child(_fail_retry_button)
 
 	_fail_back_button = Button.new()
-	_fail_back_button.text = "回到主界面"
+	_fail_back_button.text = LanguageManager.tr_ui("UI_LEVEL_BACK_HOME")
 	_fail_back_button.custom_minimum_size = Vector2(170, 54)
 	_fail_back_button.pressed.connect(_on_fail_back_pressed)
 	_fail_actions_box.add_child(_fail_back_button)

@@ -141,7 +141,43 @@ func _ready() -> void:
 	_setup_start_button()
 	_setup_top_bar()
 	_connect_top_bar_signals()
+	_apply_static_texts()
+	if not EventBus.language_changed.is_connected(_on_language_changed):
+		EventBus.language_changed.connect(_on_language_changed)
 	_refresh_chapter_display()
+
+
+func _on_language_changed(_lang: String) -> void:
+	_apply_static_texts()
+	_refresh_chapter_display()
+
+
+func _apply_static_texts() -> void:
+	# 底部 5 个 tab label：抽奖 / 装备 / Battle / 副本 / 图鉴
+	const TAB_KEYS := ["UI_MAIN_DRAW", "UI_MAIN_EQUIPMENT", "", "UI_MAIN_DUNGEONS", "UI_MAIN_GALLERY"]
+	for i in _tab_labels.size():
+		if i >= TAB_KEYS.size():
+			continue
+		var key: String = TAB_KEYS[i]
+		if key == "":
+			continue  # Stage tab 保留英文 "Battle"
+		if _tab_labels[i] != null:
+			_tab_labels[i].text = LanguageManager.tr_ui(key)
+	# StartButton 内的 Label（"开始"）
+	if _start_button != null:
+		var label := _start_button.get_node_or_null("Label") as Label
+		if label != null:
+			label.text = LanguageManager.tr_ui("UI_MAIN_START")
+	# 占位面板（抽奖/副本/成就 — "敬请期待"）
+	var gacha_ph := get_node_or_null("Content/GachaPanel/Placeholder") as Label
+	if gacha_ph != null:
+		gacha_ph.text = LanguageManager.tr_ui("UI_MAIN_GACHA_PLACEHOLDER")
+	var dungeon_ph := get_node_or_null("Content/DungeonPanel/Placeholder") as Label
+	if dungeon_ph != null:
+		dungeon_ph.text = LanguageManager.tr_ui("UI_MAIN_DUNGEON_PLACEHOLDER")
+	var achieve_ph := get_node_or_null("Content/AchievementPanel/Placeholder") as Label
+	if achieve_ph != null:
+		achieve_ph.text = LanguageManager.tr_ui("UI_MAIN_ACHIEVE_PLACEHOLDER")
 
 
 func _process(delta: float) -> void:
@@ -440,13 +476,16 @@ func _on_chapter_next() -> void:
 
 func _refresh_chapter_display() -> void:
 	if GameConfig.chapters.is_empty():
-		_chapter_label.text = "暂无章节"
+		_chapter_label.text = LanguageManager.tr_ui("UI_MAIN_NO_CHAPTER")
 		_chapter_desc.text = ""
 		return
 	_chapter_list_index = clampi(_chapter_list_index, 0, GameConfig.chapters.size() - 1)
 	var chapter: Dictionary = GameConfig.chapters[_chapter_list_index]
-	_chapter_label.text = str(chapter.get("chapter_name", "章节"))
-	_chapter_desc.text = str(chapter.get("description", ""))
+	var name_text := LanguageManager.localize_field(chapter, "chapter_name_en", "chapter_name")
+	if name_text.is_empty():
+		name_text = LanguageManager.tr_ui("UI_MAIN_DEFAULT_CHAPTER")
+	_chapter_label.text = name_text
+	_chapter_desc.text = LanguageManager.localize_field(chapter, "description_en", "description")
 
 
 func _get_selected_chapter_id() -> int:

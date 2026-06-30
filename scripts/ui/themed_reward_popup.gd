@@ -10,6 +10,7 @@ class_name ThemedRewardPopup
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const PixelCardIconT = preload("res://scripts/ui/pixel_card_icon.gd")
 const DescFormatT = preload("res://scripts/utils/desc_format.gd")
+const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 
 const PANEL_MARGIN := 36.0
 const PANEL_MIN_SIZE := Vector2(360.0, 540.0)
@@ -115,7 +116,7 @@ func _build_ui() -> void:
 	_vbox.add_child(btn_row)
 
 	_accept_btn = Button.new()
-	_accept_btn.text = "接受"
+	_accept_btn.text = LanguageManager.tr_ui("UI_THEMED_ACCEPT")
 	_accept_btn.custom_minimum_size = Vector2(120, 48)
 	PixelUi.apply_ui_font(_accept_btn)
 	_accept_btn.add_theme_font_size_override("font_size", 24)
@@ -123,7 +124,7 @@ func _build_ui() -> void:
 	btn_row.add_child(_accept_btn)
 
 	_decline_btn = Button.new()
-	_decline_btn.text = "放弃"
+	_decline_btn.text = LanguageManager.tr_ui("UI_THEMED_DECLINE")
 	_decline_btn.custom_minimum_size = Vector2(120, 48)
 	PixelUi.apply_ui_font(_decline_btn)
 	_decline_btn.add_theme_font_size_override("font_size", 24)
@@ -213,67 +214,48 @@ func _on_root_resized() -> void:
 
 
 func _apply_theme_palette() -> void:
-	var bg: Color
+	var panel_tint: Color
 	var accent: Color
 	var title_text: String
 	if _theme == "demon":
-		bg = Color(0.18, 0.04, 0.05, 0.97)
+		panel_tint = Color(0.55, 0.15, 0.18, 1.0)   # 血红面板色（叠到白色 9s 贴图上）
 		accent = Color(0.92, 0.18, 0.15, 1.0)
-		title_text = "恶魔的契约"
+		title_text = LanguageManager.tr_ui("UI_THEMED_DEMON_TITLE")
 		_overlay.color = Color(0.15, 0.0, 0.0, 0.7)
 	else:
-		bg = Color(0.96, 0.92, 0.72, 0.97)
+		panel_tint = Color(0.96, 0.88, 0.55, 1.0)   # 圣金面板色
 		accent = Color(0.78, 0.62, 0.18, 1.0)
-		title_text = "天使的祝福"
+		title_text = LanguageManager.tr_ui("UI_THEMED_ANGEL_TITLE")
 		_overlay.color = Color(0.6, 0.55, 0.25, 0.45)
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = bg
-	panel_style.border_color = accent
-	panel_style.set_border_width_all(4)
-	panel_style.set_corner_radius_all(10)
-	panel_style.shadow_color = Color(accent, 0.65)
-	panel_style.shadow_size = 18
-	panel_style.set_content_margin_all(20.0)
-	_panel.add_theme_stylebox_override("panel", panel_style)
+
+	# 主面板：9-slice panel_dialog_9s + 主题染色
+	var panel_style := UiStyle.make_dialog_stylebox(panel_tint, 20)
+	if panel_style != null:
+		_panel.add_theme_stylebox_override("panel", panel_style)
+		_panel.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 	_title_label.text = title_text
 	_title_label.modulate = accent
 	_name_label.modulate = accent
 	if _theme == "demon":
-		_desc_label.modulate = Color(1.0, 0.85, 0.8)
+		_desc_label.modulate = Color(1.0, 0.92, 0.88)
 	else:
 		_desc_label.modulate = Color(0.32, 0.22, 0.05)
 
-	# Accept 按钮主题：恶魔血红、天使圣金
-	var accept_style := StyleBoxFlat.new()
-	accept_style.bg_color = accent
-	accept_style.set_corner_radius_all(6)
-	accept_style.shadow_color = Color(accent, 0.5)
-	accept_style.shadow_size = 6
-	accept_style.set_content_margin_all(10.0)
-	_accept_btn.add_theme_stylebox_override("normal", accept_style)
-	_accept_btn.add_theme_stylebox_override("hover", accept_style)
-	_accept_btn.add_theme_stylebox_override("pressed", accept_style)
-	_accept_btn.modulate = Color(1, 1, 1)
-	_accept_btn.add_theme_color_override("font_color", Color(0.05, 0.04, 0.04))
+	# Accept / Decline 按钮：9-slice btn_primary_9s + 主题色
+	UiStyle.apply_primary_button(_accept_btn, accent, 10)
+	_accept_btn.add_theme_color_override("font_color", Color(1, 1, 1) if _theme == "demon" else Color(0.05, 0.04, 0.04))
 
-	var decline_style := StyleBoxFlat.new()
-	decline_style.bg_color = Color(0.15, 0.15, 0.2, 0.85)
-	decline_style.border_color = Color(0.5, 0.5, 0.55)
-	decline_style.set_border_width_all(2)
-	decline_style.set_corner_radius_all(6)
-	decline_style.set_content_margin_all(10.0)
-	_decline_btn.add_theme_stylebox_override("normal", decline_style)
-	_decline_btn.add_theme_stylebox_override("hover", decline_style)
-	_decline_btn.add_theme_stylebox_override("pressed", decline_style)
+	# 放弃按钮用低饱和灰，跟主题不抢戏
+	UiStyle.apply_primary_button(_decline_btn, Color(0.42, 0.42, 0.48), 10)
 	_decline_btn.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
 
 
 func _apply_upgrade_content() -> void:
-	_name_label.text = str(_upgrade.get("name_cn", ""))
-	var raw_desc := str(_upgrade.get("desc_cn_game", ""))
+	_name_label.text = LanguageManager.localize(_upgrade, "name")
+	var raw_desc := LanguageManager.localize_field(_upgrade, "desc_cn_game_en", "desc_cn_game")
 	if raw_desc.is_empty():
-		raw_desc = str(_upgrade.get("desc_cn", ""))
+		raw_desc = LanguageManager.localize(_upgrade, "desc")
 	DescFormatT.apply_to_rich_text(_desc_label, raw_desc, 20, true)
 	# 重建 icon widget
 	for child in _icon_widget.get_children():

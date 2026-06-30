@@ -1,0 +1,359 @@
+# UI 素材规范 v1.1
+
+> 给策划 / 美术看的 Photoshop 出图工作流。**每张图的完整放置路径都写在表格里**，照着 PS 出图，按路径丢文件，程序端接入。
+
+**v1.1 改动**（2026-06-29）
+
+- 每张素材的清单表加 **"放置路径"** 列，写明完整 `assets/ui/...` 路径，不再让你猜目录
+- 第一批用户已交付 5 张图，整理后情况见 § 11 现状
+- 新增 `assets/ui/icons/system/` 子目录用于系统操作图标（暂停 / 关闭 / 设置 / 返回），与 `status/` 区分（status 后续做 buff/debuff）
+- HUD 顶栏 `panel_topbar_9s.png` **取消**（用户决定不要背景条，HUD 顶部用透明 + 文字漂浮）
+- 把"bar_ 类前缀放 `panels/`"明确写进规范（之前没说，导致用户合理猜测但需要确认）
+
+---
+
+## § 1. 总览
+
+| 项目 | 取值 |
+| --- | --- |
+| 基准画布 | **720 × 1280**（竖屏） |
+| 倍图体系 | 本期只出 **@1x**（设计稿原尺寸）。@2x、@3x 后续视高分屏需求再补 |
+| 视觉风格 | **高清现代 UI** — 圆角 4-8px、柔和阴影、抗锯齿全开 |
+| 颜色策略 | **白色 / 灰度模板出图 → 运行时代码 `modulate` 染色**。一张图复用 N 套配色 |
+| 文件格式 | PNG-24，透明背景 |
+| 色彩模式 | RGB，8 位/通道 |
+| DPI | 72 |
+
+---
+
+## § 2. 目录结构
+
+```
+assets/ui/
+├── panels/              ← 9-slice 面板背景（tooltip / 弹窗 / HUD 底纹 / 血条边框 / 血条填充）
+├── buttons/             ← 9-slice 按钮模板
+├── icons/               ← UI 图标（注意：根目录是 assets/ui/icons/，不是 assets/icons/）
+│   ├── equipment/       ← 装备图标
+│   ├── currency/        ← 货币（金币、宝石、矿石）
+│   ├── upgrades/        ← 升级卡奖励图标
+│   ├── themed/          ← 主题关专属（恶魔 6 + 天使 6）
+│   ├── system/          ← 系统操作（暂停、关闭、设置、返回、菜单）
+│   └── status/          ← buff / debuff 状态图标（本期预留，先不出图）
+├── decorations/         ← 不拉伸的装饰元素（花纹、勋章、星星）
+├── backgrounds/         ← 全屏背景图（720×1280 起跳）
+└── Fonts/               ← 现有字体，保持原样
+```
+
+**目录归属判断**（避免再放错）：
+
+| 文件前缀 | 必须放在 | 例 |
+| --- | --- | --- |
+| `panel_` | `assets/ui/panels/` | `panel_dialog_9s.png` |
+| `btn_` | `assets/ui/buttons/` | `btn_primary_9s.png` |
+| `bar_` | `assets/ui/panels/` ⚠️ 不是 `bars/` | `bar_frame_9s.png` |
+| `icon_eq_*` | `assets/ui/icons/equipment/` | `icon_eq_sword.png` |
+| `icon_cur_*` | `assets/ui/icons/currency/` | `icon_cur_gold.png` |
+| `icon_up_*` | `assets/ui/icons/upgrades/` | `icon_up_godspeed.png` |
+| `icon_th_*` | `assets/ui/icons/themed/` | `icon_th_demon_baby.png` |
+| 系统图标（无类别前缀，只有 `icon_pause` / `icon_close` / `icon_settings` / `icon_back` / `icon_menu`） | `assets/ui/icons/system/` | `icon_pause.png` |
+| `deco_` | `assets/ui/decorations/` | `deco_star_gold.png` |
+| `bg_` | `assets/ui/backgrounds/` | `bg_main_menu.png` |
+
+**现有 `battle/`、`bottom/`、`equipment/`、`equipment_synthesis/` 目录暂时保留**，旧图后续由我做迁移替换。
+
+---
+
+## § 3. 命名规范
+
+### 强制规则
+
+1. **全小写 + snake_case**
+2. **禁止**空格、括号、中文、UUID
+3. **必须有前缀**（见 § 2 目录归属判断表）
+4. **9-slice 标识**：能被拉伸的图，文件名末尾加 `_9s`
+
+### 状态后缀
+
+**优先用 modulate 染色实现状态**。只有图形本身有变化（不是颜色变化）才出多张：
+
+| 后缀 | 何时用 |
+| --- | --- |
+| `_normal` | 默认态（一般可省略） |
+| `_hover` | 鼠标悬停 — 通常用 modulate 实现，不出图 |
+| `_pressed` | 按下 — 通常用 modulate 实现，不出图 |
+| `_disabled` | 不可点击 — 通常用 modulate 实现，不出图 |
+
+---
+
+## § 4. 五类素材清单（核心交付物）
+
+> ⚠️ 表格里"完整路径"列就是 PNG 应该放的位置 — 复制路径丢文件即可。
+
+### 4.1 提示板（tooltip）
+
+3 档统一风格的 tooltip 背景：
+
+| 档位 | 用途 | 设计尺寸 | 9-slice 切片 | 完整路径 |
+| --- | --- | --- | --- | --- |
+| **mini** | hover 1-2 行短提示 | 80 × 32 | 8/8/8/8 | `assets/ui/panels/panel_tooltip_mini_9s.png` |
+| **标准** | 升级卡 hover / 装备简介 | 200 × 100 | 12/12/12/12 | `assets/ui/panels/panel_tooltip_std_9s.png` ✅ 已交付 |
+| **详情** | 装备详情 / 技能完整说明 | 320 × 200 | 16/16/16/16 | `assets/ui/panels/panel_tooltip_detail_9s.png` |
+
+**附**（可选）：
+
+| 文件 | 尺寸 | 完整路径 |
+| --- | --- | --- |
+| 小尾巴箭头 | 16 × 8 | `assets/ui/panels/panel_tooltip_arrow.png` |
+
+### 4.2 弹窗面板
+
+升级 3 选 1 / 主题关 / 转盘 / 通用对话框**共用 1 张** 9-slice：
+
+| 文件 | 设计尺寸 | 9-slice 切片 | 完整路径 |
+| --- | --- | --- | --- |
+| 通用弹窗背景 | 240 × 160 | 24/24/24/24 | `assets/ui/panels/panel_dialog_9s.png` ✅ 已交付 |
+| 弹窗标题栏（可选） | 240 × 40 | 24/24/0/24 | `assets/ui/panels/panel_dialog_header_9s.png` |
+
+主题色（红 / 金 / 蓝）靠运行时 `modulate` 染色，**不出多张**。
+
+### 4.3 按钮
+
+| 类别 | 形状 | 设计尺寸 | 9-slice 切片 | 完整路径 |
+| --- | --- | --- | --- | --- |
+| 主按钮 | 圆角矩形 | 160 × 48 | 16/16/16/16 | `assets/ui/buttons/btn_primary_9s.png` ✅ 已交付 |
+| 次按钮 | 圆角矩形（细边） | 160 × 48 | 16/16/16/16 | `assets/ui/buttons/btn_secondary_9s.png` |
+| 圆按钮 | 圆形 | 48 × 48 | — 固定尺寸 | `assets/ui/buttons/btn_round.png` |
+| 标签按钮 | 上半圆角 | 104 × 143 | 24/24/0/24 | `assets/ui/buttons/btn_tab_9s.png` |
+
+**每张图只出白色版本** —— 状态变化（normal/hover/pressed/disabled）+ 颜色主题（金/红/黄/蓝/绿）全靠代码 modulate。详见 § 6。
+
+### 4.4 图标（统一 64 × 64 设计像素）
+
+| 类别 | 数量 | 文件名样例 | 完整路径目录 |
+| --- | --- | --- | --- |
+| 装备 | ~12 | `icon_eq_sword.png` / `icon_eq_armor.png` / `icon_eq_helmet.png` / `icon_eq_boots.png` / `icon_eq_ring.png` / `icon_eq_amulet.png` ... | `assets/ui/icons/equipment/` |
+| 货币 | 3 | `icon_cur_gold.png` / `icon_cur_gem.png` / `icon_cur_stone.png` | `assets/ui/icons/currency/` |
+| 升级卡 | 现有 10 张保留，扩展到 50 | `icon_up_barrage_king.png` / `icon_up_godspeed.png` ... | `assets/ui/icons/upgrades/` |
+| 主题关 | 12 | `icon_th_demon_baby.png` × 6（恶魔）<br>`icon_th_angel_baby.png` × 6（天使） | `assets/ui/icons/themed/` |
+| 系统操作 | 4-6 | `icon_pause.png` / `icon_close.png` / `icon_settings.png` / `icon_back.png` / `icon_menu.png` | `assets/ui/icons/system/` ✅ 已交付 4 张 |
+| 状态 | — 本期不出 | — | `assets/ui/icons/status/`（占位） |
+
+**主题关 12 张文件名**对应 `tools/build_rewards_v6_compact.py` 的 `PER_ID_DESC_OVERRIDE` 字典 key（恶魔 / 天使专属 reward id）。
+
+**风格**：全部背景透明、主体居中、四周留 4px 安全边、抗锯齿全开、不写文字。
+
+### 4.5 HUD / 血条 / 系统装饰
+
+⚠️ **顶栏背景条已取消**（用户决定 HUD 顶部用透明 + 文字漂浮，不要 panel_topbar）。
+
+| 类别 | 文件 | 尺寸 | 9-slice 切片 | 完整路径 |
+| --- | --- | --- | --- | --- |
+| 血条边框 | `bar_frame_9s.png` | 200 × 24 | 8/8/8/8 | `assets/ui/panels/bar_frame_9s.png` ✅ 已交付 |
+| 血条填充 | `bar_fill_9s.png` | 200 × 16 | 8/8/8/8 | `assets/ui/panels/bar_fill_9s.png` ✅ 已交付 |
+| 暂停 | `icon_pause.png` | 32 × 32 | — | `assets/ui/icons/system/icon_pause.png` ✅ 已交付 |
+| 设置 | `icon_settings.png` | 32 × 32 | — | `assets/ui/icons/system/icon_settings.png` ✅ 已交付 |
+| 关闭 | `icon_close.png` | 32 × 32 | — | `assets/ui/icons/system/icon_close.png` ✅ 已交付 |
+| 返回 | `icon_back.png` | 32 × 32 | — | `assets/ui/icons/system/icon_back.png` ✅ 已交付 |
+
+**血条只出 1 张白色 fill**，hp / mp / exp 全部代码 modulate 上色（红 / 蓝 / 绿）。
+
+---
+
+## § 5. Photoshop 出图技术规范
+
+### 5.1 新建文档
+
+- 文件 → 新建
+- 宽度 / 高度：照清单上的"设计尺寸"填（如按钮 160 × 48）
+- 分辨率：**72 像素/英寸**
+- 颜色模式：**RGB 颜色，8 位**
+- 背景内容：**透明**（重要！不要选白色）
+
+### 5.2 导出
+
+- 文件 → 导出 → 导出为 PNG
+- **PNG-24**（不要选 PNG-8）
+- ✓ 透明度
+- 文件大小：100%（不缩放）
+- 颜色空间：转换为 sRGB
+
+### 5.3 9-slice 切片线标注
+
+> 9-slice：4 个角不拉伸（保持锐利），上下边水平拉伸，左右边垂直拉伸，中心区域 2 维拉伸。
+
+1. 打开 PSD，`Ctrl+R` 显示标尺
+2. 从顶/左标尺拖出 4 条参考线，分别在距离上/右/下/左边缘 [切片值] 像素处
+3. 检查所有圆角、描边、装饰图案都在 4 个角的安全区里
+4. 导出 PNG（参考线不会烘进图片）
+5. 把切片数值告诉我（或我按本文档默认值配），我会写到 `.import` 文件的 `patch_margin_*`
+
+**举例**：`btn_primary_9s.png` 160×48，切片 16/16/16/16
+
+```
++----+----------------+----+
+| TL |   T (拉伸)     | TR |    ← 上 16px
++----+----------------+----+
+| L  |   C (双向拉伸) | R  |    ← 中间 16px
++----+----------------+----+
+| BL |   B (拉伸)     | BR |    ← 下 16px
++----+----------------+----+
+ 16px        128px      16px
+```
+
+### 5.4 6 条硬规则
+
+1. **不要把背景图层锁定**（图层面板里双击解锁），否则导出会带白底
+2. **不要用图层样式的"投影 / 内阴影"撑出画布边界** — 9-slice 拉伸会拉花阴影，所有效果必须在切片线内完成
+3. **抗锯齿全开** — 文字"平滑"、形状"对齐到像素网格 + 消除锯齿"
+4. **不要在 9-slice 图里写中央文字** — 中央会被拉伸糊掉，文字在 Godot 端用 Label 叠
+5. **导出文件名严格按 § 2 + § 4** —— 路径错了 / 文件名错了会导致接入失败
+6. **白底测试 + 黑底测试** — 导出后分别放白底、黑底上看，确认无白边 / 黑边
+
+### 5.5 给代码染色用的图，怎么画
+
+- 主色画**纯白**（`#FFFFFF`）
+- 阴影 / 暗部画**纯黑半透**（`#000000` + alpha）
+- 高光画**纯白**或**纯黑**
+- **不要带任何颜色** —— 颜色全靠 modulate 加
+
+---
+
+## § 6. 颜色染色 vs 多张贴图判断
+
+**优先用 modulate 染色，不要为颜色变化出多张图。**
+
+| 场景 | 出几张 |
+| --- | --- |
+| 同一按钮 5 种主题色 | 1 张白色 9-slice |
+| 同一血条红/蓝/绿 | 1 张白色 fill |
+| 圆按钮 vs 矩形按钮 | 必须 2 张（形状不同） |
+| 装备 sword vs shield | 必须 2 张（内容不同） |
+| 主题关恶魔 vs 天使配色 | 1 张 `panel_dialog_9s` |
+| 按钮 normal/hover/pressed/disabled | 1 张 |
+
+**一句话判断**：「除了颜色和亮度，**还有别的不同**吗？」无 → 1 张 + modulate；有 → 出多张。
+
+按钮状态染色（代码端，参考）：
+
+```gdscript
+normal:   Color(1.0, 1.0, 1.0, 1.0)
+hover:    Color(1.2, 1.2, 1.2, 1.0)    # 提亮 20%
+pressed:  Color(0.7, 0.7, 0.7, 1.0)    # 压暗 30%
+disabled: Color(0.5, 0.5, 0.5, 0.6)    # 灰化 + 半透
+
+# 主题色（5 套）
+gold:   Color(1.00, 0.78, 0.30, 1.0)   # 金 — 开始按钮
+red:    Color(0.92, 0.18, 0.15, 1.0)   # 红 — 恶魔主题
+yellow: Color(0.98, 0.85, 0.30, 1.0)   # 黄 — 天使主题
+blue:   Color(0.30, 0.60, 1.00, 1.0)   # 蓝 — 默认
+green:  Color(0.30, 0.85, 0.40, 1.0)   # 绿 — 确认
+```
+
+---
+
+## § 7. Godot 端配置（仅参考，我接入）
+
+| 项目 | 设置 | 原因 |
+| --- | --- | --- |
+| 新 UI PNG 的 `.import` filter | `true`（LINEAR） | 高清现代风需要平滑缩放 |
+| 现有像素 icon（`assets/icons/upgrades/`） | 临时 `false`（NEAREST） | 旧像素图兜底 |
+| `process/fix_alpha_border` | `true`（默认） | 防 alpha 边白线 |
+| `mipmaps/generate` | `false` | UI 不需要 |
+| `NinePatchRect.patch_margin_*` | 按 § 4 切片数值 | 9-slice 配置 |
+
+---
+
+## § 8. 你的工作流
+
+1. PS 里按 § 5 出图
+2. 文件名严格按 § 2 + § 4 起名
+3. **复制 § 4 表格里的"完整路径"，把 PNG 丢到对应目录**
+4. 跑自查清单：
+
+   - [ ] 文件名全小写 + snake_case + 正确前缀
+   - [ ] 9-slice 图带 `_9s` 后缀
+   - [ ] 透明背景（不是白底）
+   - [ ] 抗锯齿开启
+   - [ ] 圆角 / 阴影都在 9-slice 切片内
+   - [ ] 染色用的图是纯白 / 灰阶（无杂色）
+   - [ ] **放在正确的目录**（对照 § 2 目录归属判断表）
+
+5. 给我 ping：「这批 X 张图做完了，在 `assets/ui/xxx/` 下」
+6. 我接入到 `.tscn` / `.gd` + 配 `.import`，启动 Godot 验证
+
+---
+
+## § 9. 分批优先级（每张图都带完整路径）
+
+### 第 1 批 — 验证全链路（3 张）✅ 已交付
+
+1. `assets/ui/panels/panel_dialog_9s.png` 240×160 — 升级 / 主题关弹窗背景
+2. `assets/ui/buttons/btn_primary_9s.png` 160×48 — 接受 / 开始按钮
+3. `assets/ui/panels/panel_tooltip_std_9s.png` 200×100 — 标准 tooltip
+
+### 第 2 批 — HUD 系统 ✅ 已交付（顶栏取消）
+
+4. `assets/ui/panels/bar_frame_9s.png` 200×24 — 血条 / 经验条边框
+5. `assets/ui/panels/bar_fill_9s.png` 200×16 — 通用填充（红 / 蓝 / 绿代码染）
+6. `assets/ui/icons/system/icon_pause.png` 32×32
+7. `assets/ui/icons/system/icon_settings.png` 32×32
+8. `assets/ui/icons/system/icon_close.png` 32×32
+9. `assets/ui/icons/system/icon_back.png` 32×32
+10. ~~`panel_topbar_9s.png`~~ — **取消**，HUD 顶部用透明 + 文字漂浮
+
+### 第 3 批 — 图标库批量补全
+
+11. `assets/ui/icons/equipment/` 12 张 — `icon_eq_sword.png` / `icon_eq_armor.png` / `icon_eq_helmet.png` / `icon_eq_boots.png` / `icon_eq_ring.png` / `icon_eq_amulet.png` ... 全部 64×64
+12. `assets/ui/icons/themed/` 12 张 — 主题关恶魔 / 天使专属
+13. `assets/ui/icons/upgrades/` 扩展到 50 — 每张奖励卡专属
+
+### 第 4 批 — 剩余 polish
+
+14. 其余 tooltip 档（mini / 详情）— `assets/ui/panels/panel_tooltip_mini_9s.png` + `panel_tooltip_detail_9s.png`
+15. 次按钮 / 圆按钮 / 标签按钮 — `assets/ui/buttons/btn_secondary_9s.png` / `btn_round.png` / `btn_tab_9s.png`
+16. 货币图标 — `assets/ui/icons/currency/icon_cur_gold.png` / `icon_cur_gem.png` / `icon_cur_stone.png`
+17. 装饰元素 — `assets/ui/decorations/deco_*.png`
+18. 全屏背景 — `assets/ui/backgrounds/bg_*.png`
+
+---
+
+## § 10. 常见坑提醒
+
+| 坑 | 后果 | 怎么避 |
+| --- | --- | --- |
+| PS 文件分辨率 300 | 出图变 4 倍大、内存爆炸 | 新建文档时改 72 |
+| 背景图层未解锁 | 导出带白底 | 双击图层 → 确定 |
+| 圆角矩形画在画布边缘 | 9-slice 拉伸时圆角被拉花 | 圆角必须在 4 个角切片安全区内 |
+| 用"颜色叠加"图层样式 | 导出后改不了颜色 | 直接画纯白，颜色靠代码 |
+| 文件名带空格 / 中文 / 大写 | Godot 在某些平台读不到 | 全小写 + snake_case |
+| PNG 导出选 PNG-8 | 透明度只有 1bit、边缘锯齿 | 用 PNG-24 |
+| **放错目录** | 程序端找不到 → 不会显示 | 对照 § 4 "完整路径"列 |
+
+---
+
+## § 11. 当前进度
+
+**已交付（截至 v1.1）**：
+
+```
+assets/ui/
+├── panels/
+│   ├── panel_dialog_9s.png         ✅
+│   ├── panel_tooltip_std_9s.png    ✅
+│   ├── bar_frame_9s.png            ✅
+│   └── bar_fill_9s.png             ✅
+├── buttons/
+│   └── btn_primary_9s.png          ✅
+└── icons/system/
+    ├── icon_pause.png              ✅
+    ├── icon_settings.png           ✅
+    ├── icon_close.png              ✅
+    └── icon_back.png               ✅
+```
+
+**下一步**：建议你 ping 我，我把这 9 张图接入到 `.tscn` / `.gd`（配 `.import` 的 filter / 把 StyleBoxFlat 改成 NinePatchRect、blood bar / 升级弹窗 / 主菜单按钮换贴图、暂停 HUD 接 icon_pause），启动 Godot 实机看效果，再决定第 3 批要不要画。
+
+---
+
+**版本**：v1.1（2026-06-29）
+**约定基准**：720×1280 竖屏 / 高清现代风 / 9-slice 单图 / 3 档 tooltip / 系统图标走 `icons/system/`

@@ -2,6 +2,7 @@ extends Control
 class_name RewardWheelPopup
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
+const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 
 const SLOT_COUNT := 6
 const SLOT_ANGLE := TAU / float(SLOT_COUNT)
@@ -59,11 +60,11 @@ func show_for_stage(stage_index: int) -> void:
 	_selected_index = -1
 	_result_timer = 0.0
 	_spinning = false
-	_tip_label.text = "点击抽奖按钮，随机获得一个奖励"
-	_title_label.text = "第%d关 奖励关 · 转盘房" % (stage_index + 1)
+	_tip_label.text = LanguageManager.tr_ui("UI_WHEEL_TIP_INIT")
+	_title_label.text = LanguageManager.tr_ui("UI_WHEEL_TITLE_FMT") % (stage_index + 1)
 	_wheel.rotation = 0.0
 	_spin_btn.disabled = false
-	_spin_btn.text = "抽 奖"
+	_spin_btn.text = LanguageManager.tr_ui("UI_WHEEL_SPIN")
 	_sync_root_size()
 	_relayout_panel()
 	call_deferred("_layout_wheel_area")
@@ -80,32 +81,32 @@ func _build_entries() -> void:
 	_entries = [
 		{
 			"id": "exp30_a",
-			"display": "30%经验",
+			"display_key": "UI_WHEEL_DISPLAY_EXP_30",
 			"icon": "res://assets/icons/reward_wheel/icon_reward_exp30.svg",
 		},
 		{
 			"id": "exp60",
-			"display": "60%经验",
+			"display_key": "UI_WHEEL_DISPLAY_EXP_60",
 			"icon": "res://assets/icons/reward_wheel/icon_reward_exp60.svg",
 		},
 		{
 			"id": "exp30_b",
-			"display": "30%经验",
+			"display_key": "UI_WHEEL_DISPLAY_EXP_30",
 			"icon": "res://assets/icons/reward_wheel/icon_reward_exp30_b.svg",
 		},
 		{
 			"id": "legendary",
-			"display": "传奇奖励",
+			"display_key": "UI_WHEEL_DISPLAY_LEGENDARY",
 			"icon": "res://assets/icons/reward_wheel/icon_reward_legendary.svg",
 		},
 		{
 			"id": "heal100",
-			"display": "恢复100%血量",
+			"display_key": "UI_WHEEL_DISPLAY_HEAL_100",
 			"icon": "res://assets/icons/reward_wheel/icon_reward_heal100.svg",
 		},
 		{
 			"id": "heal30",
-			"display": "恢复30%血量",
+			"display_key": "UI_WHEEL_DISPLAY_HEAL_30",
 			"icon": "res://assets/icons/reward_wheel/icon_reward_heal30.svg",
 		},
 	]
@@ -124,11 +125,17 @@ func _build_ui() -> void:
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_panel)
 
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#2c2330")
-	panel_style.border_color = Color("#d8c080")
-	panel_style.set_border_width_all(3)
-	_panel.add_theme_stylebox_override("panel", panel_style)
+	var panel_style := UiStyle.make_dialog_stylebox(Color(0.42, 0.34, 0.48, 1.0), 4)
+	if panel_style != null:
+		_panel.add_theme_stylebox_override("panel", panel_style)
+		_panel.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	else:
+		# 贴图缺失兜底：保留原 StyleBoxFlat
+		var fb := StyleBoxFlat.new()
+		fb.bg_color = Color("#2c2330")
+		fb.border_color = Color("#d8c080")
+		fb.set_border_width_all(3)
+		_panel.add_theme_stylebox_override("panel", fb)
 
 	var panel_margin := MarginContainer.new()
 	panel_margin.add_theme_constant_override("margin_left", 18)
@@ -145,7 +152,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_label.text = "奖励关 · 转盘房"
+	_title_label.text = LanguageManager.tr_ui("UI_WHEEL_TITLE_SHORT")
 	_title_label.add_theme_font_size_override("font_size", BASE_TITLE_FONT)
 	root.add_child(_title_label)
 
@@ -182,9 +189,11 @@ func _build_ui() -> void:
 	root.add_child(_tip_label)
 
 	_spin_btn = Button.new()
-	_spin_btn.text = "抽 奖"
+	_spin_btn.text = LanguageManager.tr_ui("UI_WHEEL_SPIN")
 	_spin_btn.custom_minimum_size = Vector2(0, BASE_SPIN_BTN_HEIGHT)
 	_spin_btn.add_theme_font_size_override("font_size", BASE_SPIN_BTN_FONT)
+	UiStyle.apply_primary_button(_spin_btn, Color("#efb840"), 8)  # 金色主按钮
+	_spin_btn.add_theme_color_override("font_color", Color(0.18, 0.10, 0.04))
 	_spin_btn.pressed.connect(_on_spin_pressed)
 	root.add_child(_spin_btn)
 
@@ -216,7 +225,7 @@ func _build_slots() -> void:
 
 		var text := Label.new()
 		text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		text.text = str(_entries[i].get("display", ""))
+		text.text = LanguageManager.tr_ui(str(_entries[i].get("display_key", "")))
 		text.add_theme_font_size_override("font_size", BASE_SLOT_FONT)
 		slot.add_child(text)
 
@@ -379,8 +388,8 @@ func _on_spin_pressed() -> void:
 		return
 	_spinning = true
 	_spin_btn.disabled = true
-	_spin_btn.text = "抽奖中..."
-	_tip_label.text = "转盘旋转中..."
+	_spin_btn.text = LanguageManager.tr_ui("UI_WHEEL_SPINNING_BTN")
+	_tip_label.text = LanguageManager.tr_ui("UI_WHEEL_SPINNING_TIP")
 	_selected_index = randi() % _entries.size()
 
 	var desired_mod := -float(_selected_index) * SLOT_ANGLE
@@ -402,11 +411,11 @@ func _on_spin_finished() -> void:
 
 func _apply_reward() -> void:
 	if _selected_index < 0 or _selected_index >= _entries.size():
-		_finish_with_reward("无奖励")
+		_finish_with_reward(LanguageManager.tr_ui("UI_WHEEL_NO_REWARD"))
 		return
 	var entry := _entries[_selected_index]
 	var reward_id := str(entry.get("id", ""))
-	var reward_text := str(entry.get("display", ""))
+	var reward_text := LanguageManager.tr_ui(str(entry.get("display_key", "")))
 
 	match reward_id:
 		"exp30_a", "exp30_b":
@@ -437,7 +446,7 @@ func _grant_exp_ratio(ratio: float) -> void:
 
 
 func _finish_with_reward(reward_text: String) -> void:
-	_tip_label.text = "获得奖励：%s" % reward_text
+	_tip_label.text = LanguageManager.tr_ui("UI_WHEEL_REWARD_GOT_FMT") % reward_text
 	_result_timer = RESULT_HOLD_TIME
 
 
@@ -449,6 +458,6 @@ func _process(delta: float) -> void:
 		if _result_timer <= 0.0:
 			var text := ""
 			if _selected_index >= 0 and _selected_index < _entries.size():
-				text = str(_entries[_selected_index].get("display", ""))
+				text = LanguageManager.tr_ui(str(_entries[_selected_index].get("display_key", "")))
 			visible = false
 			reward_finished.emit(text)

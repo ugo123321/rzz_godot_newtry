@@ -249,14 +249,14 @@ static func get_buff_orb_sprite(type_name: String) -> Array:
 static func get_buff_orb_short_label(type_name: String) -> String:
 	match type_name:
 		"attack":
-			return "攻击"
+			return LanguageManager.tr_ui("UI_BUFF_LABEL_ATTACK")
 		"ki":
-			return "气力"
+			return LanguageManager.tr_ui("UI_BUFF_LABEL_KI")
 		"combo":
-			return "连击"
+			return LanguageManager.tr_ui("UI_BUFF_LABEL_COMBO")
 		"ice":
-			return "冰冻"
-	return "强化"
+			return LanguageManager.tr_ui("UI_BUFF_LABEL_ICE")
+	return LanguageManager.tr_ui("UI_BUFF_LABEL_DEFAULT")
 
 
 static func buff_frame_color(type_name: String) -> Color:
@@ -600,7 +600,7 @@ static func draw_combo_banner(
 	main_color.a = alpha
 	var sub_color: Color = colors["sub"]
 	sub_color.a = alpha
-	var main_text := "连击×%d" % combo
+	var main_text := LanguageManager.tr_ui("UI_COMBO_LABEL_FMT") % combo
 	var sub_text := "+%d%%" % player.get_combo_bonus_percent()
 	if combo >= 5:
 		var glow_size := snap_pixel_font_size(int(round(float(main_size) * 1.1)))

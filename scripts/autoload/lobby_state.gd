@@ -162,23 +162,24 @@ func ensure_chapter_tower(chapter_id: int) -> void:
 func get_slot_display_name(slot: String) -> String:
 	match slot:
 		SLOT_WEAPON:
-			return "武器"
+			return LanguageManager.tr_ui("UI_SLOT_WEAPON")
 		SLOT_HELMET:
-			return "头盔"
+			return LanguageManager.tr_ui("UI_SLOT_HELMET")
 		SLOT_NECKLACE:
-			return "项链"
+			return LanguageManager.tr_ui("UI_SLOT_NECKLACE")
 		SLOT_RING:
-			return "戒指"
+			return LanguageManager.tr_ui("UI_SLOT_RING")
 		SLOT_ARMOR:
-			return "衣服"
+			return LanguageManager.tr_ui("UI_SLOT_ARMOR")
 		SLOT_SHOES:
-			return "鞋"
-	return "未知"
+			return LanguageManager.tr_ui("UI_SLOT_SHOES")
+	return LanguageManager.tr_ui("UI_SLOT_UNKNOWN")
 
 
 func get_quality_name(quality: int) -> String:
-	var idx := clampi(quality, 0, QUALITY_NAMES.size() - 1)
-	return QUALITY_NAMES[idx]
+	const KEYS := ["UI_QUALITY_COMMON", "UI_QUALITY_RARE", "UI_QUALITY_EPIC", "UI_QUALITY_LEGENDARY"]
+	var idx := clampi(quality, 0, KEYS.size() - 1)
+	return LanguageManager.tr_ui(KEYS[idx])
 
 
 func get_quality_color(quality: int) -> Color:
@@ -271,8 +272,12 @@ func get_item_by_uid(uid: int) -> Dictionary:
 
 
 func get_item_name(item: Dictionary) -> String:
-	var def := get_item_def(str(item.get("def_id", "")))
-	return str(def.get("name", "未知装备"))
+	var def_id := str(item.get("def_id", ""))
+	# 优先按 def_id 查 i18n（key 形如 UI_EQUIP_NAME_short_dagger）；缺时回落 def 内的中文 name
+	var key := "UI_EQUIP_NAME_" + def_id
+	var def := get_item_def(def_id)
+	var fallback := str(def.get("name", LanguageManager.tr_ui("UI_EQUIP_UNKNOWN_NAME")))
+	return LanguageManager.tr_ui(key, fallback)
 
 
 func get_item_icon_path(item: Dictionary) -> String:
@@ -428,36 +433,36 @@ func _skill_text_for_quality(item: Dictionary, tier: int) -> String:
 			match tier:
 				QUALITY_COMMON:
 					var value := 10 + (level - 1) * 2
-					return "攻击力 +%d（每级 +2）" % value
+					return LanguageManager.tr_ui("UI_EQUIP_FX_short_dagger_C_FMT") % value
 				QUALITY_RARE:
-					return "命中敌人 50%% 概率造成额外伤害（攻击力的 20%%）"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_short_dagger_R")
 				QUALITY_EPIC:
-					return "攻击力 +30"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_short_dagger_E")
 				QUALITY_LEGENDARY:
-					return "攻击力 +50"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_short_dagger_L")
 		"cloth_armor":
 			match tier:
 				QUALITY_COMMON:
 					var hp_value := 10 + (level - 1) * 2
-					return "最大生命 +%d（每级 +2）" % hp_value
+					return LanguageManager.tr_ui("UI_EQUIP_FX_cloth_armor_C_FMT") % hp_value
 				QUALITY_RARE:
-					return "最大生命 +20"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_cloth_armor_R")
 				QUALITY_EPIC:
-					return "最大生命 +30"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_cloth_armor_E")
 				QUALITY_LEGENDARY:
-					return "最大生命 +40"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_cloth_armor_L")
 		"wood_shoes":
 			match tier:
 				QUALITY_COMMON:
 					var crit_value := 5 + (level - 1)
-					return "暴击率 +%d%%（每级 +1%%）" % crit_value
+					return LanguageManager.tr_ui("UI_EQUIP_FX_wood_shoes_C_FMT") % crit_value
 				QUALITY_RARE:
-					return "暴击率 +5%%"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_wood_shoes_R")
 				QUALITY_EPIC:
-					return "暴击率 +5%%"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_wood_shoes_E")
 				QUALITY_LEGENDARY:
-					return "暴击率 +5%%"
-	return "未定义技能"
+					return LanguageManager.tr_ui("UI_EQUIP_FX_wood_shoes_L")
+	return LanguageManager.tr_ui("UI_EQUIP_UNDEFINED_SKILL")
 
 
 func get_item_stat_bonus(item: Dictionary) -> Dictionary:

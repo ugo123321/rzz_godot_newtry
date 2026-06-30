@@ -50,10 +50,26 @@ func _ready() -> void:
 
 	if EventBus:
 		EventBus.equipment_changed.connect(_on_equipment_changed)
+		EventBus.language_changed.connect(_on_language_changed)
 
+	_apply_static_texts()
 	_reset_state()
 	_refresh_synthesis_view()
 	set_process(true)
+
+
+func _on_language_changed(_lang: String) -> void:
+	_apply_static_texts()
+	_refresh_synthesis_view()
+
+
+func _apply_static_texts() -> void:
+	var title := get_node_or_null("HeaderBoard/Title") as Label
+	if title != null:
+		title.text = LanguageManager.tr_ui("UI_SYNTH_TITLE")
+	if _toast != null:
+		# Toast 默认文本回到"合成成功"占位，实际使用时仍由 _show_synth_toast 覆盖
+		_toast.text = LanguageManager.tr_ui("UI_SYNTH_SUCCESS")
 
 
 func _exit_tree() -> void:
@@ -241,7 +257,7 @@ func _on_synth_compose_pressed() -> void:
 		_refresh_synthesis_view()
 		return
 	_reset_state()
-	_show_synth_toast("合成成功！获得 %s Lv.%d" % [
+	_show_synth_toast(LanguageManager.tr_ui("UI_SYNTH_TOAST_FMT") % [
 		LobbyState.get_item_name(result),
 		int(result.get("level", 1)),
 	])

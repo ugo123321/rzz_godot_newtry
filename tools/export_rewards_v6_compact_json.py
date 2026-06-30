@@ -112,6 +112,9 @@ def convert():
             "applies_poison": int(r[32] or 0),
             "notes": str(r[33] or ""),
             "desc_cn_game": str(r[34] or "") if len(r) > 34 else "",
+            "name_en": str(r[35] or "") if len(r) > 35 else "",
+            "desc_en": str(r[36] or "") if len(r) > 36 else "",
+            "desc_cn_game_en": str(r[37] or "") if len(r) > 37 else "",
         }
         attrs = []
         for slot in range(4):

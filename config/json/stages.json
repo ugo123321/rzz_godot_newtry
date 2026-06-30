@@ -15,7 +15,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 1"
   },
   {
     "stage_index": 1,
@@ -33,7 +34,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 2"
   },
   {
     "stage_index": 2,
@@ -51,7 +53,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 3"
   },
   {
     "stage_index": 3,
@@ -69,7 +72,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 4"
   },
   {
     "stage_index": 4,
@@ -87,7 +91,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 5"
   },
   {
     "stage_index": 5,
@@ -104,7 +109,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 6"
   },
   {
     "stage_index": 6,
@@ -121,7 +127,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 7"
   },
   {
     "stage_index": 7,
@@ -138,7 +145,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 8"
   },
   {
     "stage_index": 8,
@@ -155,7 +163,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 9"
   },
   {
     "stage_index": 9,
@@ -173,7 +182,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 10"
   },
   {
     "stage_index": 10,
@@ -190,7 +200,8 @@
     "shotgun": 0,
     "cross_shooter": 2,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 11"
   },
   {
     "stage_index": 11,
@@ -207,7 +218,8 @@
     "shotgun": 0,
     "cross_shooter": 3,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 12"
   },
   {
     "stage_index": 12,
@@ -224,7 +236,8 @@
     "shotgun": 0,
     "cross_shooter": 3,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 13"
   },
   {
     "stage_index": 13,
@@ -241,7 +254,8 @@
     "shotgun": 0,
     "cross_shooter": 3,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 14"
   },
   {
     "stage_index": 14,
@@ -249,7 +263,9 @@
     "stage_in_chapter": 15,
     "display_name": "第15关",
     "room_type": "reward",
-    "reward_rooms": ["wheel"],
+    "reward_rooms": [
+      "wheel"
+    ],
     "normal": 0,
     "elite": 0,
     "shield": 0,
@@ -260,7 +276,8 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 15"
   },
   {
     "stage_index": 15,
@@ -277,7 +294,8 @@
     "shotgun": 2,
     "cross_shooter": 4,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 16"
   },
   {
     "stage_index": 16,
@@ -294,7 +312,8 @@
     "shotgun": 3,
     "cross_shooter": 4,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 17"
   },
   {
     "stage_index": 17,
@@ -311,7 +330,8 @@
     "shotgun": 3,
     "cross_shooter": 4,
     "bounce_slime": 0,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 18"
   },
   {
     "stage_index": 18,
@@ -328,7 +348,8 @@
     "shotgun": 3,
     "cross_shooter": 4,
     "bounce_slime": 2,
-    "boss_id": ""
+    "boss_id": "",
+    "display_name_en": "Stage 19"
   },
   {
     "stage_index": 19,
@@ -345,6 +366,7 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": "lancer_knight"
+    "boss_id": "lancer_knight",
+    "display_name_en": "Stage 20"
   }
 ]

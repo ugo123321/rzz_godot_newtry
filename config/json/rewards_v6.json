@@ -23,6 +23,9 @@
     "applies_poison": 0,
     "notes": "橙·H1 build 核心（膨胀基调下再次上调）",
     "desc_cn_game": "攻击 +35%",
+    "name_en": "Warrior's Soul",
+    "desc_en": "Attack +35%",
+    "desc_cn_game_en": "Attack +35%",
     "attrs": [
       {
         "id": 1,
@@ -55,6 +58,9 @@
     "applies_poison": 0,
     "notes": "橙·三属混合，泛用 build",
     "desc_cn_game": "移速 +10%、攻速 +15%、最大生命 +15%",
+    "name_en": "Triforce",
+    "desc_en": "Move +10%, Atk Speed +15%, Max HP +15%",
+    "desc_cn_game_en": "Move +10%, Atk Speed +15%, Max HP +15%",
     "attrs": [
       {
         "id": 3,
@@ -97,6 +103,9 @@
     "applies_poison": 0,
     "notes": "紫·重型流派 build（保留移速惩罚）",
     "desc_cn_game": "攻击 +15%、最大生命 +10%、移速 -5%，体型 +10%",
+    "name_en": "Giant's Might",
+    "desc_en": "Attack +15%/lv, Max HP +10%/lv, Move -5%/lv, Size +10%/lv",
+    "desc_cn_game_en": "Atk +15%, Max HP +10%, Move -5%, Size +10%",
     "attrs": [
       {
         "id": 1,
@@ -144,6 +153,9 @@
     "applies_poison": 0,
     "notes": "紫·机动 build",
     "desc_cn_game": "攻速 +15%、移速 +10%",
+    "name_en": "Swift Soul",
+    "desc_en": "Move +15%/lv, Atk Speed +10%/lv",
+    "desc_cn_game_en": "Move +15%, Atk Speed +10%",
     "attrs": [
       {
         "id": 2,
@@ -181,6 +193,9 @@
     "applies_poison": 0,
     "notes": "蓝·攻速+气力双修",
     "desc_cn_game": "攻速 +10%，气力回复 +10%",
+    "name_en": "Godspeed",
+    "desc_en": "Move +10%/lv, Ki Regen +10%/lv",
+    "desc_cn_game_en": "Move +10%, Ki Regen +10%",
     "attrs": [
       {
         "id": 2,
@@ -218,6 +233,9 @@
     "applies_poison": 0,
     "notes": "蓝·低血流派",
     "desc_cn_game": "HP<50% 时攻击 +10%，攻速 +10%",
+    "name_en": "Berserker",
+    "desc_en": "Below 50% HP: Atk +10%/lv, Atk Speed +10%",
+    "desc_cn_game_en": "Below 50% HP: Atk +10%, Atk Speed +10%",
     "attrs": [
       {
         "id": 1,
@@ -259,6 +277,9 @@
     "applies_poison": 0,
     "notes": "蓝·节奏型增伤",
     "desc_cn_game": "击杀后3秒内攻击 +8%，最多叠加5次",
+    "name_en": "Demon Hunter",
+    "desc_en": "On kill: Atk +8%/stack (max 5), lasts 3s",
+    "desc_cn_game_en": "On kill: Atk +8% for 3s (max 5 stacks)",
     "attrs": []
   },
   {
@@ -285,6 +306,9 @@
     "applies_poison": 0,
     "notes": "蓝·稀有度操控",
     "desc_cn_game": "幸运 +8%",
+    "name_en": "Four-Leaf Clover",
+    "desc_en": "Luck +8%/lv (boosts crit, dodge, item find)",
+    "desc_cn_game_en": "Luck +8%",
     "attrs": [
       {
         "id": 9,
@@ -317,6 +341,9 @@
     "applies_poison": 0,
     "notes": "蓝·画线频率",
     "desc_cn_game": "气力回复 +15%，气力上限 +8%",
+    "name_en": "Ki Spring",
+    "desc_en": "Ki Regen +15%/lv, Max Ki +8%/lv",
+    "desc_cn_game_en": "Ki Regen +15%, Max Ki +8%",
     "attrs": [
       {
         "id": 6,
@@ -364,6 +391,9 @@
     "applies_poison": 0,
     "notes": "蓝·控场流",
     "desc_cn_game": "附近怪易伤 +20%，光环每 0.3s 造成 0.4×ATK 伤害",
+    "name_en": "Weakness Aura",
+    "desc_en": "Damage Dealt +20%/lv. Aura deals 0.4×ATK every 0.3s",
+    "desc_cn_game_en": "Damage Dealt +20%. Aura deals 0.4×ATK every 0.3s",
     "attrs": []
   },
   {
@@ -390,6 +420,9 @@
     "applies_poison": 0,
     "notes": "白·基础幸运填充",
     "desc_cn_game": "幸运 +6%，闪避 +4%",
+    "name_en": "Lucky",
+    "desc_en": "Crit +6%/lv, Crit Damage +4%/lv",
+    "desc_cn_game_en": "Crit +6%, Crit Damage +4%",
     "attrs": [
       {
         "id": 9,
@@ -427,6 +460,9 @@
     "applies_poison": 0,
     "notes": "白·受击回应",
     "desc_cn_game": "受伤后 5s 内攻击 +15%",
+    "name_en": "Wounded Warrior",
+    "desc_en": "After taking damage, Atk +15% for 5s",
+    "desc_cn_game_en": "After taking damage, Atk +15% for 5s",
     "attrs": [
       {
         "id": 1,
@@ -464,6 +500,9 @@
     "applies_poison": 0,
     "notes": "白·气力上限填充",
     "desc_cn_game": "气力上限 +8%",
+    "name_en": "Ki+",
+    "desc_en": "Max Ki +8%/lv",
+    "desc_cn_game_en": "Max Ki +8%",
     "attrs": [
       {
         "id": 5,
@@ -496,6 +535,9 @@
     "applies_poison": 0,
     "notes": "白·基础移速",
     "desc_cn_game": "移速 +8%",
+    "name_en": "Movement Up",
+    "desc_en": "Move Speed +8%/lv",
+    "desc_cn_game_en": "Move +8%",
     "attrs": [
       {
         "id": 3,
@@ -528,6 +570,9 @@
     "applies_poison": 0,
     "notes": "白·气力恢复填充",
     "desc_cn_game": "气力回复速度 +8%",
+    "name_en": "Ki Regen Up",
+    "desc_en": "Ki Regen +8%/lv",
+    "desc_cn_game_en": "Ki Regen +8%",
     "attrs": [
       {
         "id": 6,
@@ -560,6 +605,9 @@
     "applies_poison": 0,
     "notes": "白·基础攻击填充",
     "desc_cn_game": "攻击 +8%",
+    "name_en": "Warrior's Breath",
+    "desc_en": "Attack +8%/lv",
+    "desc_cn_game_en": "Attack +8%",
     "attrs": [
       {
         "id": 1,
@@ -592,6 +640,9 @@
     "applies_poison": 0,
     "notes": "白·灵活流派 build",
     "desc_cn_game": "移速 +10%、闪避 +10%、体型 -30%",
+    "name_en": "Shrink",
+    "desc_en": "Move +10%, Atk Speed +10%, Size -30%",
+    "desc_cn_game_en": "Move +10%, Atk Speed +10%, Size -30%",
     "attrs": [
       {
         "id": 3,
@@ -640,6 +691,9 @@
     "applies_poison": 0,
     "notes": "白·BOSS 针对",
     "desc_cn_game": "对 BOSS 伤害 +15%，BOSS 战前完全恢复 HP",
+    "name_en": "Boss Slayer",
+    "desc_en": "Damage to Bosses +15%/lv. Full HP before boss fight",
+    "desc_cn_game_en": "Damage to Bosses +15%. Full HP before boss fight",
     "attrs": []
   },
   {
@@ -670,6 +724,9 @@
     "applies_poison": 0,
     "notes": "白·元素铺地",
     "desc_cn_game": "走过留下火焰足迹",
+    "name_en": "Flame Walk",
+    "desc_en": "Footprints deal 0.15×ATK/0.5s for 2s, ignites burn",
+    "desc_cn_game_en": "Footprints leave flame trail",
     "attrs": [
       {
         "id": 41,
@@ -711,6 +768,9 @@
     "applies_poison": 0,
     "notes": "橙·关卡级救命",
     "desc_cn_game": "每关获得 1 层圣盾，抵挡 1 次伤害",
+    "name_en": "Holy Shield",
+    "desc_en": "Start each stage with 1 Holy Shield (blocks 1 fatal hit)",
+    "desc_cn_game_en": "Each stage: 1 Holy Shield (blocks 1 fatal hit)",
     "attrs": []
   },
   {
@@ -737,6 +797,9 @@
     "applies_poison": 0,
     "notes": "紫·HP 主力",
     "desc_cn_game": "最大生命 +15%",
+    "name_en": "Power Soul",
+    "desc_en": "Max HP +15%/lv",
+    "desc_cn_game_en": "Max HP +15%",
     "attrs": [
       {
         "id": 4,
@@ -769,6 +832,9 @@
     "applies_poison": 0,
     "notes": "紫·低血增伤",
     "desc_cn_game": "HP<50% 时攻击 +10%",
+    "name_en": "Desperate Heart",
+    "desc_en": "Below 50% HP: Move +10%/lv",
+    "desc_cn_game_en": "Below 50% HP: Move +10%",
     "attrs": [
       {
         "id": 1,
@@ -804,6 +870,9 @@
     "applies_poison": 0,
     "notes": "紫·复活保底（一次性）",
     "desc_cn_game": "死亡后以 50% 生命复活一次",
+    "name_en": "Revive",
+    "desc_en": "Revive once with 50% HP after death (once per stage)",
+    "desc_cn_game_en": "Revive once with 50% HP",
     "attrs": []
   },
   {
@@ -840,6 +909,9 @@
     "applies_poison": 0,
     "notes": "蓝·低血再生",
     "desc_cn_game": "HP<30% 时缓慢恢复至 30%",
+    "name_en": "Desperate Regen",
+    "desc_en": "Below 30% HP: instant heal 30% +1%/lv (once per stage)",
+    "desc_cn_game_en": "Below 30% HP: instant heal 30%",
     "attrs": []
   },
   {
@@ -866,6 +938,9 @@
     "applies_poison": 0,
     "notes": "蓝·击杀回血",
     "desc_cn_game": "击杀后小概率回复少量生命",
+    "name_en": "Battle Recovery",
+    "desc_en": "On kill: 20% chance to heal 6%/lv max HP",
+    "desc_cn_game_en": "Kill chance to heal HP",
     "attrs": [
       {
         "id": 20,
@@ -898,6 +973,9 @@
     "applies_poison": 0,
     "notes": "蓝·走停流派",
     "desc_cn_game": "原地静止一会后获得减伤效果",
+    "name_en": "Mountain Stance",
+    "desc_en": "Standing still 1.5s: Defense +30%/lv (max 50%)",
+    "desc_cn_game_en": "Standing still grants defense",
     "attrs": [
       {
         "id": 11,
@@ -932,6 +1010,9 @@
     "applies_poison": 0,
     "notes": "蓝·受击豁免",
     "desc_cn_game": "最大生命 +10%，受伤后短时间无敌（CD 6s）",
+    "name_en": "Angel's Shelter",
+    "desc_en": "Max HP +10%/lv. Invincible 1.5s after being hit (CD 6s)",
+    "desc_cn_game_en": "Max HP +10%, invincible briefly after hit",
     "attrs": [
       {
         "id": 4,
@@ -969,6 +1050,9 @@
     "applies_poison": 0,
     "notes": "白·HP 填充",
     "desc_cn_game": "最大生命 +10%",
+    "name_en": "Blood Power",
+    "desc_en": "Max HP +10%/lv",
+    "desc_cn_game_en": "Max HP +10%",
     "attrs": [
       {
         "id": 4,
@@ -1001,6 +1085,9 @@
     "applies_poison": 0,
     "notes": "白·击杀小回血",
     "desc_cn_game": "击杀后小概率回复少量生命",
+    "name_en": "Demon Recovery",
+    "desc_en": "On kill: 15% chance to heal 5%/lv max HP",
+    "desc_cn_game_en": "Kill chance to heal HP",
     "attrs": [
       {
         "id": 20,
@@ -1033,6 +1120,9 @@
     "applies_poison": 0,
     "notes": "白·补血卡",
     "desc_cn_game": "最大生命 +8%，获得时小幅恢复生命",
+    "name_en": "Life Spring",
+    "desc_en": "Max HP +8%/lv. Heal 30% on stage clear",
+    "desc_cn_game_en": "Max HP +8%, heal on stage clear",
     "attrs": [
       {
         "id": 4,
@@ -1070,6 +1160,9 @@
     "applies_poison": 0,
     "notes": "橙·弹幕 build 核心",
     "desc_cn_game": "子弹 +3，攻速 +15%",
+    "name_en": "Storm King",
+    "desc_en": "Bullets +3, Attack +15%",
+    "desc_cn_game_en": "Bullets +3, Attack +15%",
     "attrs": [
       {
         "id": 12,
@@ -1109,6 +1202,9 @@
     "applies_poison": 0,
     "notes": "橙·远程狙击 build（膨胀路线大幅上调）",
     "desc_cn_game": "子弹变为元气弹，对远距离敌人造成更高伤害",
+    "name_en": "Spirit Bomb",
+    "desc_en": "Bullets become spirit bombs: farther flight = more damage (+50% max)",
+    "desc_cn_game_en": "Bullets travel farther for higher damage",
     "attrs": []
   },
   {
@@ -1135,6 +1231,9 @@
     "applies_poison": 0,
     "notes": "紫·攻速换伤害（保留惩罚，DPS 正 EV）",
     "desc_cn_game": "攻速 +30%，攻击 -10%",
+    "name_en": "Swift Shoot",
+    "desc_en": "Atk Speed +30%/lv, Attack -10%/lv",
+    "desc_cn_game_en": "Atk Speed +30%, Attack -10%",
     "attrs": [
       {
         "id": 2,
@@ -1174,6 +1273,9 @@
     "applies_poison": 0,
     "notes": "紫·追踪辅助（保留惩罚）",
     "desc_cn_game": "子弹追踪，攻击 -5%",
+    "name_en": "Homing Soul",
+    "desc_en": "Bullets home in. Attack -5%/lv",
+    "desc_cn_game_en": "Bullets home in. Attack -5%",
     "attrs": [
       {
         "id": 1,
@@ -1216,6 +1318,9 @@
     "applies_poison": 0,
     "notes": "蓝·AOE 辅助",
     "desc_cn_game": "普攻小概率额外释放炸弹",
+    "name_en": "Fire Support",
+    "desc_en": "Attack +10%/lv. Hits sometimes trigger explosion (AOE 80% ATK)",
+    "desc_cn_game_en": "Attack +10%, hits sometimes explode",
     "attrs": []
   },
   {
@@ -1250,6 +1355,9 @@
     "applies_poison": 0,
     "notes": "蓝·爆发流",
     "desc_cn_game": "命中分裂 3 颗小子弹",
+    "name_en": "Splitter",
+    "desc_en": "On hit: split into 3 small bullets (50% ATK, +10%/lv)",
+    "desc_cn_game_en": "On hit: split into 3 small bullets",
     "attrs": []
   },
   {
@@ -1282,6 +1390,9 @@
     "applies_poison": 0,
     "notes": "蓝·弹射 build",
     "desc_cn_game": "子弹获得弹射效果",
+    "name_en": "Bouncing Bullet",
+    "desc_en": "Bounce +1/lv (each bounce 0.6x damage)",
+    "desc_cn_game_en": "Bullets gain bounce",
     "attrs": []
   },
   {
@@ -1310,6 +1421,9 @@
     "applies_poison": 0,
     "notes": "白·小爆发卡",
     "desc_cn_game": "子弹打出后可返回",
+    "name_en": "Mirror Bullet",
+    "desc_en": "After hit, bullet returns dealing 0.6 ATK along the way",
+    "desc_cn_game_en": "Bullets return after hitting",
     "attrs": []
   },
   {
@@ -1339,6 +1453,9 @@
     "applies_poison": 0,
     "notes": "白·散射",
     "desc_cn_game": "获得斜向子弹",
+    "name_en": "Side Shot",
+    "desc_en": "Fire 2 extra bullets at +/-30 degrees",
+    "desc_cn_game_en": "Fire extra angled bullets",
     "attrs": []
   },
   {
@@ -1365,6 +1482,9 @@
     "applies_poison": 0,
     "notes": "白·基础多弹",
     "desc_cn_game": "子弹 +1",
+    "name_en": "Multi Bullet",
+    "desc_en": "Bullets per shot +1/lv",
+    "desc_cn_game_en": "Bullets +1",
     "attrs": [
       {
         "id": 12,
@@ -1407,6 +1527,9 @@
     "applies_poison": 0,
     "notes": "白·穿透辅助",
     "desc_cn_game": "普攻小概率概率释放能量束",
+    "name_en": "Light Beam",
+    "desc_en": "Attack +10%/lv. Sometimes fires piercing beam (100% ATK)",
+    "desc_cn_game_en": "Attack +10%, sometimes piercing beam",
     "attrs": []
   },
   {
@@ -1435,6 +1558,9 @@
     "applies_poison": 0,
     "notes": "橙·连击 build 核心（膨胀路线，去封顶）",
     "desc_cn_game": "每次斩击产生的连击数 ×2",
+    "name_en": "Multi Slash",
+    "desc_en": "Each slash creates 2 ninja clones",
+    "desc_cn_game_en": "Each slash creates 2 ninja clones",
     "attrs": []
   },
   {
@@ -1465,6 +1591,9 @@
     "applies_poison": 0,
     "notes": "紫·里程碑触发",
     "desc_cn_game": "连击每 +8 段生成黑洞",
+    "name_en": "Black Hole",
+    "desc_en": "Every 8 combo: spawn black hole pulling enemies (2.0 ATK). Combo -2",
+    "desc_cn_game_en": "Every 8 combo: spawn black hole",
     "attrs": []
   },
   {
@@ -1495,6 +1624,9 @@
     "applies_poison": 0,
     "notes": "蓝·火系法术",
     "desc_cn_game": "连击每 +14 段释放豪火球",
+    "name_en": "Greater Fireball",
+    "desc_en": "Every 14 combo: launch fireball (2.5 ATK). Combo -2",
+    "desc_cn_game_en": "Every 14 combo: launch fireball",
     "attrs": []
   },
   {
@@ -1525,6 +1657,9 @@
     "applies_poison": 0,
     "notes": "蓝·冰系法术",
     "desc_cn_game": "连击每 +6 段释放水龙卷",
+    "name_en": "Water Tornado",
+    "desc_en": "Every 6 combo: launch tornado (2.2 ATK). Combo -1",
+    "desc_cn_game_en": "Every 6 combo: launch tornado",
     "attrs": []
   },
   {
@@ -1559,6 +1694,9 @@
     "applies_poison": 1,
     "notes": "蓝·毒系法术",
     "desc_cn_game": "连击每 +8 段释放刀旋风",
+    "name_en": "Blade Storm",
+    "desc_en": "Every 8 combo: 6 blades storm (2.0 ATK). Combo +1",
+    "desc_cn_game_en": "Every 8 combo: blade storm",
     "attrs": []
   },
   {
@@ -1591,6 +1729,9 @@
     "applies_poison": 0,
     "notes": "蓝·静态加伤",
     "desc_cn_game": "划线前每静止 0.4s：下次斩击增加伤害",
+    "name_en": "Charge Slash",
+    "desc_en": "Stand still 0.4s before slash: damage +20%/lv (max x1.5)",
+    "desc_cn_game_en": "Pre-slash standing boosts damage",
     "attrs": []
   },
   {
@@ -1621,6 +1762,9 @@
     "applies_poison": 0,
     "notes": "蓝·雷系法术",
     "desc_cn_game": "连击每 +8 段释放闪电链",
+    "name_en": "Thunder Strike",
+    "desc_en": "Every 8 combo: lightning bolt (3.0 ATK). Combo -1",
+    "desc_cn_game_en": "Every 8 combo: lightning bolt",
     "attrs": []
   },
   {
@@ -1650,6 +1794,9 @@
     "applies_poison": 0,
     "notes": "白·辅助小弹",
     "desc_cn_game": "气力耗尽时释放手里剑",
+    "name_en": "Spirit Shuriken",
+    "desc_en": "At combo cap: slash end spawns +2 shuriken (0.6 ATK each)",
+    "desc_cn_game_en": "At combo cap: spawn shuriken",
     "attrs": [
       {
         "id": 12,
@@ -1684,6 +1831,9 @@
     "applies_poison": 0,
     "notes": "白·暴击辅助",
     "desc_cn_game": "连击每 +10：本次攻击暴击率 +10%",
+    "name_en": "Combo Crit",
+    "desc_en": "Per 10 combo: next slash Crit Dmg +10%/lv",
+    "desc_cn_game_en": "Per 10 combo: next crit damage +10%",
     "attrs": [
       {
         "id": 7,
@@ -1718,6 +1868,9 @@
     "applies_poison": 0,
     "notes": "橙·轨迹 build 核心",
     "desc_cn_game": "画线时两侧出现2条平行轨迹",
+    "name_en": "Multi Trail",
+    "desc_en": "When drawing: spawn 2 parallel trails",
+    "desc_cn_game_en": "When drawing: spawn 2 parallel trails",
     "attrs": []
   },
   {
@@ -1751,6 +1904,9 @@
     "applies_poison": 0,
     "notes": "紫·火系轨迹",
     "desc_cn_game": "画线轨迹处生成火墙，子弹穿过附火",
+    "name_en": "Fire Wall",
+    "desc_en": "Trail leaves flame wall 5s +1s/lv (0.8 ATK/0.5s). Bullets ignore wall",
+    "desc_cn_game_en": "Trail leaves flame wall; bullets pass through",
     "attrs": [
       {
         "id": 41,
@@ -1790,6 +1946,9 @@
     "applies_poison": 0,
     "notes": "紫·雷系轨迹",
     "desc_cn_game": "画线轨迹释放雷场",
+    "name_en": "Thunder Field",
+    "desc_en": "Trail spawns thunder field 3s +1s/lv (stun + 0.5 ATK every 0.5s)",
+    "desc_cn_game_en": "Trail spawns thunder field",
     "attrs": [
       {
         "id": 41,
@@ -1829,6 +1988,9 @@
     "applies_poison": 1,
     "notes": "紫·毒系轨迹",
     "desc_cn_game": "画线轨迹释放毒雾",
+    "name_en": "Corrosive Fog",
+    "desc_en": "Trail spawns poison fog 4s +1s/lv (0.35 ATK/s, +25% dmg taken)",
+    "desc_cn_game_en": "Trail spawns poison fog",
     "attrs": [
       {
         "id": 41,
@@ -1868,6 +2030,9 @@
     "applies_poison": 0,
     "notes": "紫·冰系轨迹",
     "desc_cn_game": "画线轨迹释放霜径",
+    "name_en": "Frost Trail",
+    "desc_en": "Trail spawns frost 3s +1s/lv (slow 40%, 0.5 ATK every 0.5s)",
+    "desc_cn_game_en": "Trail spawns frost",
     "attrs": [
       {
         "id": 41,
@@ -1906,6 +2071,9 @@
     "applies_poison": 0,
     "notes": "紫·控场推开",
     "desc_cn_game": "气力耗尽时释放冲击波",
+    "name_en": "Slash Wave",
+    "desc_en": "At combo cap: slash end creates AOE wave (2.5 ATK, 200px +0.3/lv)",
+    "desc_cn_game_en": "At combo cap: slash creates wave",
     "attrs": []
   },
   {
@@ -1938,6 +2106,9 @@
     "applies_poison": 0,
     "notes": "蓝·区域爆炸",
     "desc_cn_game": "气力耗尽且画线轨迹首次闭合时，闭合区间内释放爆炸",
+    "name_en": "Loop Explode",
+    "desc_en": "At combo cap: first closed-loop trail explodes (3.0 ATK +0.3/lv)",
+    "desc_cn_game_en": "Closed-loop trail explodes at combo cap",
     "attrs": []
   },
   {
@@ -1966,6 +2137,9 @@
     "applies_poison": 0,
     "notes": "蓝·画线机制改变",
     "desc_cn_game": "画线可穿过障碍物",
+    "name_en": "Trail Pierce",
+    "desc_en": "Trails pierce obstacles",
+    "desc_cn_game_en": "Trails pierce obstacles",
     "attrs": []
   },
   {
@@ -1996,6 +2170,9 @@
     "applies_poison": 0,
     "notes": "白·命中面积",
     "desc_cn_game": "轨迹宽度 +10%",
+    "name_en": "Trail Width",
+    "desc_en": "Trail width +10%/lv",
+    "desc_cn_game_en": "Trail width +10%",
     "attrs": []
   },
   {
@@ -2026,6 +2203,9 @@
     "applies_poison": 0,
     "notes": "白·斩击填充",
     "desc_cn_game": "画线伤害 +8%",
+    "name_en": "Trail Power",
+    "desc_en": "Slash damage +8%/lv",
+    "desc_cn_game_en": "Slash damage +8%",
     "attrs": []
   },
   {
@@ -2058,6 +2238,9 @@
     "applies_poison": 0,
     "notes": "紫·球流核心",
     "desc_cn_game": "每 8s 场上生成 1 颗随机强化球（每级 -2s）",
+    "name_en": "Tidal Orb",
+    "desc_en": "Spawn 1 power orb every 8s (-2s/lv)",
+    "desc_cn_game_en": "Spawn power orb every 8s (-2s/lv)",
     "attrs": []
   },
   {
@@ -2090,6 +2273,9 @@
     "applies_poison": 0,
     "notes": "紫·球叠加",
     "desc_cn_game": "拾取球时 30% 概率复制同类印记至下一波 +5%",
+    "name_en": "Orb Mark",
+    "desc_en": "On pickup: 30% chance to mark target. Next hit +5%/lv",
+    "desc_cn_game_en": "Pickup may mark target for bonus damage",
     "attrs": []
   },
   {
@@ -2120,6 +2306,9 @@
     "applies_poison": 0,
     "notes": "蓝·球数量",
     "desc_cn_game": "每关开局场上球数量 +30%",
+    "name_en": "Field Boost",
+    "desc_en": "Per orb on field: damage +30%/lv",
+    "desc_cn_game_en": "Per orb on field: damage +30%",
     "attrs": []
   },
   {
@@ -2152,6 +2341,9 @@
     "applies_poison": 0,
     "notes": "蓝·拾取辅助",
     "desc_cn_game": "拾取范围 +30%，划线时吸附半径内 30% 的球",
+    "name_en": "Magnet",
+    "desc_en": "Pickup range +30%/lv. Crit dmg +30%/lv inside aura",
+    "desc_cn_game_en": "Pickup range +30%, crit dmg +30% in aura",
     "attrs": []
   },
   {
@@ -2182,6 +2374,9 @@
     "applies_poison": 0,
     "notes": "蓝·拾取爆炸",
     "desc_cn_game": "拾取时在球位置爆炸 1.5×ATK (+0.3)",
+    "name_en": "Burst Pickup",
+    "desc_en": "On pickup: explode at orb position (1.5 ATK +0.3/lv)",
+    "desc_cn_game_en": "On pickup: explode at position (1.5 ATK)",
     "attrs": []
   },
   {
@@ -2212,6 +2407,9 @@
     "applies_poison": 0,
     "notes": "蓝·画线增益",
     "desc_cn_game": "拾取后本次画线攻击 +15%，持续 6s",
+    "name_en": "Subtle Glow",
+    "desc_en": "On pickup: bullet/slash dmg +15%/lv for 6s",
+    "desc_cn_game_en": "On pickup: damage +15% for 6s",
     "attrs": [
       {
         "id": 41,
@@ -2250,6 +2448,9 @@
     "applies_poison": 0,
     "notes": "白·火系球",
     "desc_cn_game": "火球入池，拾取造成 AOE 烧伤 1.0×ATK +0.2",
+    "name_en": "Fire Orb",
+    "desc_en": "Element orb. Pickup AOE burn 1.0 ATK (+0.2/lv)",
+    "desc_cn_game_en": "Element orb. Pickup AOE burn",
     "attrs": []
   },
   {
@@ -2279,6 +2480,9 @@
     "applies_poison": 0,
     "notes": "白·冰系球（修正原 R69 重复）",
     "desc_cn_game": "冰球入池，拾取造成 AOE 冰冻 2.0s +0.2s",
+    "name_en": "Ice Orb",
+    "desc_en": "Element orb. Pickup AOE freeze 2.0s (+0.2s/lv)",
+    "desc_cn_game_en": "Element orb. Pickup AOE freeze",
     "attrs": []
   },
   {
@@ -2308,6 +2512,9 @@
     "applies_poison": 1,
     "notes": "白·毒系球",
     "desc_cn_game": "毒球入池，拾取造成 AOE 剧毒 0.6×ATK/s 持续 3s",
+    "name_en": "Poison Orb",
+    "desc_en": "Element orb. Pickup AOE poison 0.6 ATK/s for 3s",
+    "desc_cn_game_en": "Element orb. Pickup AOE poison",
     "attrs": []
   },
   {
@@ -2337,6 +2544,9 @@
     "applies_poison": 0,
     "notes": "白·雷系球",
     "desc_cn_game": "雷球入池，拾取造成 AOE 雷电 1.5×ATK 雷链 +1 链",
+    "name_en": "Thunder Orb",
+    "desc_en": "Element orb. Pickup AOE thunder 1.5 ATK, chain +1/lv",
+    "desc_cn_game_en": "Element orb. Pickup AOE thunder chain",
     "attrs": []
   },
   {
@@ -2365,6 +2575,9 @@
     "applies_poison": 0,
     "notes": "橙·剑 build 核心",
     "desc_cn_game": "所有剑数量 ×2",
+    "name_en": "Twin Swords",
+    "desc_en": "Orbiting swords x2",
+    "desc_cn_game_en": "Orbiting swords x2",
     "attrs": []
   },
   {
@@ -2399,6 +2612,9 @@
     "applies_poison": 0,
     "notes": "紫·剑触发",
     "desc_cn_game": "每把剑小概率释放旋风",
+    "name_en": "Raging Sword",
+    "desc_en": "Each sword per cycle: 15% chance to launch slash wave (2.5 ATK, +5%/lv area)",
+    "desc_cn_game_en": "Sword sometimes launches slash wave",
     "attrs": []
   },
   {
@@ -2432,6 +2648,9 @@
     "applies_poison": 0,
     "notes": "紫·防御剑",
     "desc_cn_game": "2 把守护剑，阻挡远程子弹",
+    "name_en": "Guard Sword",
+    "desc_en": "+2 guard swords that block ranged bullets",
+    "desc_cn_game_en": "2 guard swords block ranged bullets",
     "attrs": [
       {
         "id": 13,
@@ -2468,6 +2687,9 @@
     "applies_poison": 0,
     "notes": "紫·剑范围",
     "desc_cn_game": "所有剑长度 +15%",
+    "name_en": "Long Reach",
+    "desc_en": "Orbit radius +15%/lv",
+    "desc_cn_game_en": "Orbit radius +15%",
     "attrs": []
   },
   {
@@ -2498,6 +2720,9 @@
     "applies_poison": 0,
     "notes": "紫·剑频率",
     "desc_cn_game": "所有剑转速 +15%",
+    "name_en": "Spin Boost",
+    "desc_en": "Orbit speed +15%/lv",
+    "desc_cn_game_en": "Orbit speed +15%",
     "attrs": []
   },
   {
@@ -2531,6 +2756,9 @@
     "applies_poison": 0,
     "notes": "蓝·吸血剑",
     "desc_cn_game": "2 把嗜血剑，命中概率恢复少量生命",
+    "name_en": "Vampire Sword",
+    "desc_en": "+2 vampire swords. 1% lifesteal on hit (CD 0.6s)",
+    "desc_cn_game_en": "2 vampire swords with lifesteal",
     "attrs": [
       {
         "id": 14,
@@ -2577,6 +2805,9 @@
     "applies_poison": 0,
     "notes": "蓝·剑伤增益",
     "desc_cn_game": "环绕剑伤害 +15%",
+    "name_en": "Razor Edge",
+    "desc_en": "Sword damage +15%/lv",
+    "desc_cn_game_en": "Sword damage +15%",
     "attrs": []
   },
   {
@@ -2610,6 +2841,9 @@
     "applies_poison": 0,
     "notes": "白·火系剑",
     "desc_cn_game": "火剑剑",
+    "name_en": "Flame Sword",
+    "desc_en": "+1 flame sword (0.40 ATK burn/0.5s, 2s duration)",
+    "desc_cn_game_en": "Flame Sword",
     "attrs": [
       {
         "id": 15,
@@ -2649,6 +2883,9 @@
     "applies_poison": 0,
     "notes": "白·雷系剑",
     "desc_cn_game": "雷霆剑",
+    "name_en": "Thunder Sword",
+    "desc_en": "+1 thunder sword (0.40 ATK chain damage)",
+    "desc_cn_game_en": "Thunder Sword",
     "attrs": [
       {
         "id": 16,
@@ -2688,6 +2925,9 @@
     "applies_poison": 1,
     "notes": "白·毒系剑",
     "desc_cn_game": "毒刺剑",
+    "name_en": "Poison Sword",
+    "desc_en": "+1 poison sword (0.30 ATK poison/s for 3s)",
+    "desc_cn_game_en": "Poison Sword",
     "attrs": [
       {
         "id": 17,
@@ -2727,6 +2967,9 @@
     "applies_poison": 0,
     "notes": "白·冰系剑",
     "desc_cn_game": "寒霜剑",
+    "name_en": "Frost Sword",
+    "desc_en": "+1 frost sword (0.30 ATK damage, slow 30% 1s)",
+    "desc_cn_game_en": "Frost Sword",
     "attrs": [
       {
         "id": 18,
@@ -2762,6 +3005,9 @@
     "applies_poison": 0,
     "notes": "橙·召唤 build 核心",
     "desc_cn_game": "获得精灵王，召唤物伤害 +50%、体型 +15%、攻速 +50%",
+    "name_en": "Summon Pact",
+    "desc_en": "Gain Black Ninja. Summon damage +50%, Atk Spd +15%, Move +50%",
+    "desc_cn_game_en": "Black Ninja summoned. Summon dmg +50%, Atk Spd +15%, Move +50%",
     "attrs": [
       {
         "id": 21,
@@ -2799,6 +3045,9 @@
     "applies_poison": 0,
     "notes": "紫·召唤增伤",
     "desc_cn_game": "召唤物伤害 +12%，攻击间隔 -12%",
+    "name_en": "Summon Rage",
+    "desc_en": "Summon dmg +12%/lv. Player dmg -12%/lv",
+    "desc_cn_game_en": "Summon dmg +12%, Player dmg -12%",
     "attrs": [
       {
         "id": 21,
@@ -2839,6 +3088,9 @@
     "applies_poison": 0,
     "notes": "紫·强力召唤",
     "desc_cn_game": "召唤精灵王",
+    "name_en": "Demon King",
+    "desc_en": "Summon demon king (ranged AOE attack)",
+    "desc_cn_game_en": "Summon demon king",
     "attrs": [
       {
         "id": 22,
@@ -2879,6 +3131,9 @@
     "applies_poison": 0,
     "notes": "蓝·单体高伤",
     "desc_cn_game": "召唤天神",
+    "name_en": "Thunder God",
+    "desc_en": "Summon thunder god (ranged single-target)",
+    "desc_cn_game_en": "Summon thunder god",
     "attrs": [
       {
         "id": 23,
@@ -2919,6 +3174,9 @@
     "applies_poison": 0,
     "notes": "蓝·防御召唤",
     "desc_cn_game": "召唤大猩猩",
+    "name_en": "Gorilla",
+    "desc_en": "Summon gorilla (ranged. Every 10s throws stunning banana, 3s stun)",
+    "desc_cn_game_en": "Summon gorilla",
     "attrs": [
       {
         "id": 24,
@@ -2956,6 +3214,9 @@
     "applies_poison": 0,
     "notes": "白·召唤填充",
     "desc_cn_game": "召唤物伤害 +10%",
+    "name_en": "Summon Power",
+    "desc_en": "Summon damage +10%/lv",
+    "desc_cn_game_en": "Summon damage +10%",
     "attrs": [
       {
         "id": 21,
@@ -2996,6 +3257,9 @@
     "applies_poison": 0,
     "notes": "白·雷系召唤",
     "desc_cn_game": "召唤落雷",
+    "name_en": "Thunder Summon",
+    "desc_en": "Summon thunder. Every 3s strikes random nearby AOE",
+    "desc_cn_game_en": "Summon thunder",
     "attrs": [
       {
         "id": 25,
@@ -3036,6 +3300,9 @@
     "applies_poison": 0,
     "notes": "白·冰系召唤",
     "desc_cn_game": "召唤北极熊",
+    "name_en": "Bear Summon",
+    "desc_en": "Summon bear ally (ranged single-target)",
+    "desc_cn_game_en": "Summon bear",
     "attrs": [
       {
         "id": 26,
@@ -3076,6 +3343,9 @@
     "applies_poison": 1,
     "notes": "白·毒系召唤",
     "desc_cn_game": "召唤毒蛇",
+    "name_en": "Snake Summon",
+    "desc_en": "Summon snake ally (ranged single-target)",
+    "desc_cn_game_en": "Summon snake",
     "attrs": [
       {
         "id": 27,
@@ -3116,6 +3386,9 @@
     "applies_poison": 0,
     "notes": "白·火系召唤",
     "desc_cn_game": "召唤火焰精灵",
+    "name_en": "Fire Spirit",
+    "desc_en": "Summon fire spirit ally (ranged single-target)",
+    "desc_cn_game_en": "Summon fire spirit",
     "attrs": [
       {
         "id": 28,
@@ -3148,6 +3421,9 @@
     "applies_poison": 0,
     "notes": "紫·火系强化",
     "desc_cn_game": "火伤 +30%，燃烧频率 +15%",
+    "name_en": "Fire+",
+    "desc_en": "Attack +30%/lv. Burn frequency +15%/lv",
+    "desc_cn_game_en": "Attack +30%, Burn rate +15%",
     "attrs": [
       {
         "id": 29,
@@ -3185,6 +3461,9 @@
     "applies_poison": 0,
     "notes": "紫·雷系强化",
     "desc_cn_game": "雷伤 +30%，闪电链目标 +1",
+    "name_en": "Thunder+",
+    "desc_en": "Attack +30%/lv. Chain targets +1/lv",
+    "desc_cn_game_en": "Attack +30%, Chain targets +1",
     "attrs": [
       {
         "id": 31,
@@ -3222,6 +3501,9 @@
     "applies_poison": 0,
     "notes": "紫·毒系强化",
     "desc_cn_game": "毒伤 +30%，8% 概率触发毒爆 +8%",
+    "name_en": "Poison+",
+    "desc_en": "Attack +30%/lv. 8% chance to spread poison +8%/lv",
+    "desc_cn_game_en": "Attack +30%, 8% poison spread +8%",
     "attrs": [
       {
         "id": 32,
@@ -3259,6 +3541,9 @@
     "applies_poison": 0,
     "notes": "紫·冰系强化",
     "desc_cn_game": "冰伤 +30%，8% 概率触发冰冻 +8%",
+    "name_en": "Ice+",
+    "desc_en": "Attack +30%/lv. 8% chance to spread freeze +8%/lv",
+    "desc_cn_game_en": "Attack +30%, 8% freeze spread +8%",
     "attrs": [
       {
         "id": 30,
@@ -3296,6 +3581,9 @@
     "applies_poison": 0,
     "notes": "蓝·火系附伤",
     "desc_cn_game": "子弹附火",
+    "name_en": "Fire Bullet",
+    "desc_en": "Bullets become fire: hits apply burn",
+    "desc_cn_game_en": "Bullets become fire bullets",
     "attrs": []
   },
   {
@@ -3322,6 +3610,9 @@
     "applies_poison": 0,
     "notes": "蓝·雷系附伤",
     "desc_cn_game": "子弹附雷",
+    "name_en": "Thunder Bullet",
+    "desc_en": "Bullets become thunder: hits apply chain lightning",
+    "desc_cn_game_en": "Bullets become thunder bullets",
     "attrs": []
   },
   {
@@ -3348,6 +3639,9 @@
     "applies_poison": 1,
     "notes": "蓝·毒系附伤",
     "desc_cn_game": "子弹附毒",
+    "name_en": "Poison Bullet",
+    "desc_en": "Bullets become poison: hits apply poison",
+    "desc_cn_game_en": "Bullets become poison bullets",
     "attrs": []
   },
   {
@@ -3374,6 +3668,9 @@
     "applies_poison": 0,
     "notes": "蓝·冰系附伤",
     "desc_cn_game": "子弹附冰",
+    "name_en": "Ice Bullet",
+    "desc_en": "Bullets become ice: hits apply slow + freeze",
+    "desc_cn_game_en": "Bullets become ice bullets",
     "attrs": []
   },
   {
@@ -3403,6 +3700,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
     "desc_cn_game": "气力耗尽时释放死神镰刀",
+    "name_en": "Death Scythe",
+    "desc_en": "At combo cap: throw piercing scythe from slash end (4 ATK). Max HP -30%",
+    "desc_cn_game_en": "At combo cap: throw piercing scythe. Max HP -30%",
     "attrs": [
       {
         "id": 4,
@@ -3439,6 +3739,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
     "desc_cn_game": "偶尔释放硫磺火",
+    "name_en": "Sulfur Laser",
+    "desc_en": "Every 6s: fire 1s piercing laser that burns. Max HP -30%",
+    "desc_cn_game_en": "Periodic sulfur laser. Max HP -30%",
     "attrs": [
       {
         "id": 4,
@@ -3489,6 +3792,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
     "desc_cn_game": "召唤恶魔宝宝",
+    "name_en": "Demon Baby",
+    "desc_en": "Summon Demon Baby (ranged piercing laser). Max HP -30%",
+    "desc_cn_game_en": "Summon Demon Baby. Max HP -30%",
     "attrs": [
       {
         "id": 43,
@@ -3529,6 +3835,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
     "desc_cn_game": "获得九条命",
+    "name_en": "Nine Lives Cat",
+    "desc_en": "Start with 1 life +8 extra revives (HP=1). Max HP -99%",
+    "desc_cn_game_en": "Multiple revives. Max HP -99%",
     "attrs": [
       {
         "id": 4,
@@ -3561,6 +3870,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
     "desc_cn_game": "击杀时小概率概率恢复少量生命",
+    "name_en": "Vampire",
+    "desc_en": "On kill: 5% chance to heal 20% max HP. Max HP -10%",
+    "desc_cn_game_en": "Kill chance to heal. Max HP -10%",
     "attrs": [
       {
         "id": 4,
@@ -3601,6 +3913,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
     "desc_cn_game": "子弹改为血飞刀",
+    "name_en": "Blood Knife",
+    "desc_en": "Replace basic shot with Blood Knife (pierce + multishot x2 + range +100%). Atk Spd -80%, Move -20%",
+    "desc_cn_game_en": "Replace basic with Blood Knife",
     "attrs": [
       {
         "id": 4,
@@ -3648,6 +3963,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
     "desc_cn_game": "普攻小概率释放光柱",
+    "name_en": "Holy Bullet",
+    "desc_en": "Basic attacks have 10% chance to summon holy AOE strike",
+    "desc_cn_game_en": "Basic attacks summon holy strike",
     "attrs": []
   },
   {
@@ -3674,6 +3992,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
     "desc_cn_game": "受到伤害减半",
+    "name_en": "Light Ward",
+    "desc_en": "Damage taken -50%",
+    "desc_cn_game_en": "Damage taken -50%",
     "attrs": [
       {
         "id": 11,
@@ -3714,6 +4035,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
     "desc_cn_game": "召唤天使宝宝",
+    "name_en": "Angel Baby",
+    "desc_en": "Summon Angel Baby (ranged single-target ally)",
+    "desc_cn_game_en": "Summon Angel Baby",
     "attrs": [
       {
         "id": 44,
@@ -3753,6 +4077,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
     "desc_cn_game": "命运之矛",
+    "name_en": "Spear of Fate",
+    "desc_en": "Spear of Fate x1",
+    "desc_cn_game_en": "Spear of Fate",
     "attrs": [
       {
         "id": 45,
@@ -3788,6 +4115,9 @@
     "applies_poison": 0,
     "notes": "主题关专属（天使）",
     "desc_cn_game": "获得减速立场",
+    "name_en": "Limit Break Technique",
+    "desc_en": "Enemies within 300px slowed by distance (max 50%)",
+    "desc_cn_game_en": "Nearby enemies slowed",
     "attrs": []
   }
 ]

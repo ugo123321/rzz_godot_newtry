@@ -114,7 +114,7 @@ func _draw_water_tornado(canvas: Node2D, t: Dictionary, life_t: float) -> void:
 		return
 	var alpha := 0.55 + life_t * 0.45
 	var size := tex.get_size()
-	var draw_r := 60.0 * FX_SCALE * GameConfig.get_world_scale()
+	var draw_r := 110.0 * FX_SCALE * GameConfig.get_world_scale()
 	var draw_scale := (draw_r * 2.2) / maxf(size.x, size.y)
 	var draw_size := size * draw_scale
 	var local_pos: Vector2 = Vector2(t.pos) - canvas.global_position
@@ -630,6 +630,7 @@ func spawn_v6_water_tornado(player: BattlePlayer, pos: Vector2, seg_ang: float, 
 			"hit": {},
 			"damage": dmg,
 			"dmg_mul": 1.0,
+			"radius": 100.0 * FX_SCALE * GameConfig.get_world_scale(),
 		}, "water_tornado"))
 	_skill_burst(pos, 5.5, 0.14, Color("#58d8ff"), 14)
 

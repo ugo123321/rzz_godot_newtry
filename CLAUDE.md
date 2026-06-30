@@ -182,6 +182,52 @@ compact.xlsx 末尾的 `desc_cn_game` 列（AI 列，索引 `r[34]`，中文 hea
 
 **风险**：跑 `build_rewards_v6_compact.py` 会清空整列 `desc_cn_game`（同 `pool_weight` 一样，属于生成器视为"策划手编值"而留空的字段）。日常仍按第十一条 — 直接改 compact.xlsx + 跑 export，**不要跑 build_rewards**。
 
+## 十三、所有新增可见文字**必须**同时提供中英文，走 i18n 框架
+
+项目已支持中英文切换（暂停菜单 → 语言切换），由 autoload `LanguageManager` 驱动。**所有面向玩家的新文字**（UI、提示、对白、卡牌名/描述、装备名、buff 标签、场景标题等）都**必须**走 i18n 框架，**禁止**在 .gd / .tscn 里硬编码裸中文。
+
+### 文字类型 → 选哪种机制
+
+| 类型 | 机制 | 例 |
+|---|---|---|
+| **UI 固定文字**（按钮、标题、提示模板） | `LanguageManager.tr_ui("UI_XXX")` 查 `config/i18n/ui_{zh_CN,en}.json` | `tr_ui("UI_PAUSE_RESUME")` |
+| **带变量的模板**（"等级: %d"、"获得：%s") | i18n key 里**整句含 `%`**，使用时 `tr_ui("UI_XXX_FMT") % value` | `tr_ui("UI_HUD_HEAL_FMT") % [amount, remaining]` |
+| **配置表记录字段**（卡牌名/描述、怪物名、关卡名、章节名、装备名） | `localize(rec, "name")` / `localize_field(rec, "name_en", "name_cn")`；表里加 `_en` 列 | rewards `name_cn/name_en`；stages `display_name/display_name_en` |
+| **后端用作 ID 的中文字符串** | **保持不动**（如 `attr_forge_director.FORGE_BUFF_TABLE` 的 `name_cn` 当数据流 key），仅在显示层 `tr_ui("FORGE_ATTR_" + name_cn)` 翻译 | 见第十四条数据流陷阱 |
+
+### 写新文字的硬规则
+
+1. **`.gd` 文件里禁止裸中文 `.text = "..."`** — 一律改 `tr_ui("UI_XXX")`。如果该 Label 是 `_ready` 之后才出现的（如弹窗内容刷新），还要在 `EventBus.language_changed` 信号里重新赋值；如果是常驻 UI，则需要一个 `_apply_texts()` 函数被 `_ready` 和 `_on_language_changed` 同时调用。
+2. **`.tscn` 里的中文 text 当占位即可**（编辑器里看的中文），运行时**必须**由 `.gd` 的 `_apply_texts()` 覆盖一次。
+3. **新增配置表字段** — 若该字段会被玩家看到（如关卡名 / 装备名 / 怪物名），表里**必须**同时加 `_en` 后缀对照列，并通过 `LanguageManager.localize(...)` 读取。
+4. **key 命名规范**：
+   - 前缀按模块分：`UI_PAUSE_*` / `UI_HUD_*` / `UI_BATTLE_*` / `UI_EQUIP_*` / `UI_FORGE_*` / `UI_BUFF_*` …
+   - 含 `printf` 模板的 key 后缀加 `_FMT`，且**整句含 `%`** — 禁止拆"等级:" + 数字（英文语序会拧）
+   - 名字应能直接读懂含义，不要 `UI_LABEL_1`
+5. **加完中文 key 必须同时加英文 key** — 两个 JSON 文件不允许只填一边。缺英文时 `tr_ui` 回落中文 + 控制台 `push_warning`，但视觉残留中文是 bug。
+6. **AI 翻译填表**：rewards_v6_compact.xlsx 新增的卡片，**AJ/AK/AL 三列（name_en / desc_en / desc_cn_game_en）必须同时填**，可参照 `tools/fill_card_translations.py` 的格式批量补。
+
+### 改老代码碰到硬编码中文怎么办
+
+直接顺手翻译走 `tr_ui`，不要留"以后再说"。中文回落机制存在是给字典暂缺 key 用，**不**是给"懒得加 key"用。
+
+### 验证
+
+每次写完新文字：
+1. 进游戏，暂停菜单切到 English
+2. 触发新文字出现的所有路径（弹窗 / HUD / 战斗提示 / 装备页 ...）
+3. 看是否还有中文残留；如果有 → 漏 i18n
+4. 切回中文，确认无字段缺失（`[UI_XXX]` 占位说明 zh_CN 也漏 key）
+
+### 关键参考文件
+
+- `scripts/autoload/language_manager.gd` — 核心 API（`tr_ui` / `localize` / `localize_field` / `set_language`）
+- `config/i18n/ui_zh_CN.json` / `ui_en.json` — UI 字典
+- `scripts/ui/pause_menu.gd` — 标准 `_apply_texts()` + `_on_language_changed` 模式参考
+- `tools/fill_card_translations.py` — 卡牌批量翻译脚本范例
+- `tools/export_rewards_v6_compact_json.py:91-118` — 读 xlsx 新增列到 JSON 的样板
+
+
 
 主题关专属弹窗（`get_themed_pool` 按 group 抽）**不看** `pool_weight`，所以主题卡 `pool_weight=0` 不影响主题关本身正常出。
 
