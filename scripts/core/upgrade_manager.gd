@@ -30,13 +30,15 @@ func generate_choices(player: Node) -> void:
 	_record_force_inject(player)
 
 
-# [RECORD-ONLY] 首次升级强制把弹幕之王塞到 choices[0]，方便录制买量视频
+# [RECORD-ONLY] 第二次升级强制把弹幕之王塞到 choices[0]，方便录制买量视频
 func _record_force_inject(player: Node) -> void:
 	if player == null:
 		return
 	var stacks: Dictionary = player.get("upgrade_stacks") if player.get("upgrade_stacks") != null else {}
-	if not stacks.is_empty():
+	if stacks.size() != 1:
 		return
+	if stacks.has("bullet_storm_king"):
+		return  # 玩家第一次就选了弹幕之王（max_level=1），别再塞
 	var already_has := false
 	for c in choices:
 		if String(c.get("id", "")) == "bullet_storm_king":
