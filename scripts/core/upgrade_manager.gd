@@ -27,6 +27,30 @@ func generate_choices(player: Node) -> void:
 			var idx := _weighted_index(available)
 			choices.append(available[idx])
 			available.remove_at(idx)
+	_record_force_inject(player)
+
+
+# [RECORD-ONLY] 首次升级强制把弹幕之王塞到 choices[0]，方便录制买量视频
+func _record_force_inject(player: Node) -> void:
+	if player == null:
+		return
+	var stacks: Dictionary = player.get("upgrade_stacks") if player.get("upgrade_stacks") != null else {}
+	if not stacks.is_empty():
+		return
+	var already_has := false
+	for c in choices:
+		if String(c.get("id", "")) == "bullet_storm_king":
+			already_has = true
+			break
+	if already_has:
+		return
+	for u in GameConfig.upgrades:
+		if String(u.get("id", "")) == "bullet_storm_king":
+			if choices.is_empty():
+				choices.append(u)
+			else:
+				choices[0] = u
+			return
 
 
 # 属性打造关结束时：以指定品质强制 roll 3 选 1（不走 _roll_rarity），
