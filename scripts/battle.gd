@@ -1159,8 +1159,9 @@ func _record_zoom_in() -> void:
 	if _record_cam_tween:
 		_record_cam_tween.kill()
 	_record_cam_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_record_cam_tween.tween_property(camera, "zoom", Vector2.ONE * 1.15, 0.25)
-	var target := (player.global_position + Vector2(_initial_camera_x, _initial_camera_y)) * 0.5
+	_record_cam_tween.tween_property(camera, "zoom", Vector2.ONE * 1.06, 0.25)
+	var initial := Vector2(_initial_camera_x, _initial_camera_y)
+	var target := initial.lerp(player.global_position, 0.25)
 	_record_cam_tween.parallel().tween_property(camera, "position", target, 0.25)
 
 func _record_zoom_out() -> void:

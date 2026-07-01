@@ -34,6 +34,11 @@ window/size/window_height_override=1280
 window/stretch/mode="viewport"
 window/handheld/orientation=1
 
+[editor]
+
+movie_writer/movie_file="D:/workspace/rzz_godot_newtry/mailiang/video.avi"
+movie_writer/fps=45
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/godot_mcp/plugin.cfg")

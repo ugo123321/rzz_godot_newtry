@@ -593,6 +593,8 @@ static func _character_tag_to_anim(tag_name: String) -> String:
 			return SpriteHelper.ANIM_HURT
 		"death":
 			return SpriteHelper.ANIM_DEATH
+		"charge":
+			return SpriteHelper.ANIM_CHARGE
 		_:
 			return ""
 
@@ -649,7 +651,10 @@ static func _load_character_atlas_frames(json_path: String, sheet_path: String) 
 	if not frames.has_animation(SpriteHelper.ANIM_IDLE):
 		return null
 
-	for anim_name in [SpriteHelper.ANIM_IDLE, SpriteHelper.ANIM_WALK, SpriteHelper.ANIM_ATTACK, SpriteHelper.ANIM_ATTACK01, SpriteHelper.ANIM_HURT, SpriteHelper.ANIM_DEATH]:
+	_derive_attack01_fallback(frames)
+	_derive_charge_loop(frames)
+
+	for anim_name in [SpriteHelper.ANIM_IDLE, SpriteHelper.ANIM_WALK, SpriteHelper.ANIM_ATTACK, SpriteHelper.ANIM_ATTACK01, SpriteHelper.ANIM_HURT, SpriteHelper.ANIM_DEATH, SpriteHelper.ANIM_CHARGE, SpriteHelper.ANIM_CHARGE_LOOP]:
 		if frames.has_animation(anim_name):
 			SpriteHelper.configure_animation(frames, anim_name)
 	return frames
@@ -665,6 +670,7 @@ static func _load_character_strip_frames(folder: String, prefix: String) -> Spri
 		SpriteHelper.ANIM_ATTACK: ["%s-Attack.png" % prefix, "%s-Attack02.png" % prefix, "%s-Attack03.png" % prefix, "%s-Attack3.png" % prefix],
 		SpriteHelper.ANIM_HURT: ["%s-Hurt.png" % prefix],
 		SpriteHelper.ANIM_DEATH: ["%s-Death.png" % prefix, "%s-DEATH.png" % prefix],
+		SpriteHelper.ANIM_CHARGE: ["%s-Charge.png" % prefix],
 	}
 	for anim_name in mapping.keys():
 		frames.add_animation(anim_name)
@@ -682,7 +688,54 @@ static func _load_character_strip_frames(folder: String, prefix: String) -> Spri
 			SpriteHelper.add_fallback_idle_frame(frames, base_dir, prefix)
 	if not frames.has_animation(SpriteHelper.ANIM_IDLE) or frames.get_frame_count(SpriteHelper.ANIM_IDLE) <= 0:
 		return null
+	_derive_attack01_fallback(frames)
+	_derive_charge_loop(frames)
+	if frames.has_animation(SpriteHelper.ANIM_ATTACK01):
+		SpriteHelper.configure_animation(frames, SpriteHelper.ANIM_ATTACK01)
+	if frames.has_animation(SpriteHelper.ANIM_CHARGE_LOOP):
+		SpriteHelper.configure_animation(frames, SpriteHelper.ANIM_CHARGE_LOOP)
 	return frames
+
+
+static func _derive_attack01_fallback(frames: SpriteFrames) -> void:
+	# 若素材未提供 Attack01（自动射击动画），用 Attack 的帧克隆一份独立槽位。
+	# 保持独立 SpriteFrames 动画名以便 sync_attack01_speed 单独调速。
+	if frames == null:
+		return
+	if frames.has_animation(SpriteHelper.ANIM_ATTACK01) and frames.get_frame_count(SpriteHelper.ANIM_ATTACK01) > 0:
+		return
+	if not frames.has_animation(SpriteHelper.ANIM_ATTACK):
+		return
+	var count := frames.get_frame_count(SpriteHelper.ANIM_ATTACK)
+	if count <= 0:
+		return
+	if not frames.has_animation(SpriteHelper.ANIM_ATTACK01):
+		frames.add_animation(SpriteHelper.ANIM_ATTACK01)
+	for i in range(count):
+		frames.add_frame(
+			SpriteHelper.ANIM_ATTACK01,
+			frames.get_frame_texture(SpriteHelper.ANIM_ATTACK, i),
+			frames.get_frame_duration(SpriteHelper.ANIM_ATTACK, i)
+		)
+
+
+static func _derive_charge_loop(frames: SpriteFrames) -> void:
+	# 从 Charge 的最后两帧派生一条循环动画 charge_loop，供 player 蓄力尾段循环使用。
+	if frames == null or not frames.has_animation(SpriteHelper.ANIM_CHARGE):
+		return
+	var count := frames.get_frame_count(SpriteHelper.ANIM_CHARGE)
+	if count <= 0:
+		return
+	if frames.has_animation(SpriteHelper.ANIM_CHARGE_LOOP):
+		return
+	frames.add_animation(SpriteHelper.ANIM_CHARGE_LOOP)
+	var start_idx := maxi(0, count - 2)
+	for i in range(start_idx, count):
+		frames.add_frame(
+			SpriteHelper.ANIM_CHARGE_LOOP,
+			frames.get_frame_texture(SpriteHelper.ANIM_CHARGE, i),
+			frames.get_frame_duration(SpriteHelper.ANIM_CHARGE, i)
+		)
 
 
 static func _collect_png_files(dir_path: String) -> Array:

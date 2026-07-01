@@ -8,6 +8,8 @@ const ANIM_ATTACK := "attack"
 const ANIM_ATTACK01 := "attack01"
 const ANIM_HURT := "hurt"
 const ANIM_DEATH := "death"
+const ANIM_CHARGE := "charge"
+const ANIM_CHARGE_LOOP := "charge_loop"
 
 const FRAME_W := 100
 const FRAME_H := 100
@@ -110,6 +112,12 @@ static func configure_animation(frames: SpriteFrames, anim_name: String) -> void
 		ANIM_HURT, ANIM_DEATH:
 			frames.set_animation_speed(anim_name, 8.0)
 			frames.set_animation_loop(anim_name, false)
+		ANIM_CHARGE:
+			frames.set_animation_speed(anim_name, 12.0)
+			frames.set_animation_loop(anim_name, false)
+		ANIM_CHARGE_LOOP:
+			frames.set_animation_speed(anim_name, 12.0)
+			frames.set_animation_loop(anim_name, true)
 		_:
 			frames.set_animation_speed(anim_name, 8.0)
 			frames.set_animation_loop(anim_name, frame_count > 1)

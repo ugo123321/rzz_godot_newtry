@@ -517,6 +517,7 @@ func start_bullet_time() -> void:
 	path_progress = 0.0
 	hit_projectiles_this_attack.clear()
 	_play_draw_start_fx()
+	_play_anim(SpriteHelper.ANIM_CHARGE)
 	add_path_point(home_position)
 
 
@@ -1308,12 +1309,19 @@ func _on_animation_finished() -> void:
 		if is_fail_death_pose() and not bool(death_anim.get("frozen", false)):
 			death_anim["anim_finished"] = true
 		return
+	if anim_sprite.animation == SpriteHelper.ANIM_CHARGE:
+		if state == State.BULLET_TIME and anim_sprite.sprite_frames.has_animation(SpriteHelper.ANIM_CHARGE_LOOP):
+			anim_sprite.play(SpriteHelper.ANIM_CHARGE_LOOP)
+		return
 	if anim_sprite.animation in [SpriteHelper.ANIM_ATTACK, SpriteHelper.ANIM_ATTACK01, SpriteHelper.ANIM_HURT]:
 		if state == State.ATTACKING and anim_sprite.animation == SpriteHelper.ANIM_ATTACK:
 			return
 		if anim_sprite.animation == SpriteHelper.ANIM_ATTACK01:
 			_auto_bullet_cycle_active = false
 			_auto_bullet_released = false
+		if anim_sprite.animation == SpriteHelper.ANIM_HURT and state == State.BULLET_TIME and anim_sprite.sprite_frames.has_animation(SpriteHelper.ANIM_CHARGE_LOOP):
+			anim_sprite.play(SpriteHelper.ANIM_CHARGE_LOOP)
+			return
 		if anim_sprite.sprite_frames.has_animation(SpriteHelper.ANIM_IDLE):
 			anim_sprite.play(SpriteHelper.ANIM_IDLE)
 

@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cc7mlvmh52piw"
+path="res://.godot/imported/yasuo.aseprite-e15303bd10e4392ff256e5125aea84a9.res"
+
+[deps]
+
+source_file="res://assets/Characters/Aseprite file/yasuo.aseprite"
+dest_files=["res://.godot/imported/yasuo.aseprite-e15303bd10e4392ff256e5125aea84a9.res"]
+
+[params]
+
