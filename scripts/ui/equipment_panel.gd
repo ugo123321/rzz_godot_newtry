@@ -5,6 +5,8 @@ class_name EquipmentPanelView
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 const SYNTHESIS_PANEL_SCENE := preload("res://scenes/ui/synthesis_panel.tscn")
+const ICON_CLOSE_PATH := "res://assets/ui/icons/system/icon_close.png"
+const ICON_BACK_PATH := "res://assets/ui/icons/system/icon_back.png"
 
 const SLOT_ORDER := [
 	"weapon",
@@ -40,9 +42,9 @@ const SLOT_BUTTON_NODES := {
 @onready var _main_vbox: VBoxContainer = $Frame/RootMargin/BaseRoot
 @onready var _inventory_grid: GridContainer = $Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid
 @onready var _inventory_empty_label: Label = $Frame/RootMargin/BaseRoot/InventoryEmptyLabel
-@onready var _battle_power_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatsBlock/PowerRow/BattlePowerLabel
-@onready var _attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatsBlock/SubStatsRow/AttackBox/Row/AttackLabel
-@onready var _hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatsBlock/SubStatsRow/HpBox/Row/HpLabel
+@onready var _battle_power_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow/BattlePowerLabel
+@onready var _attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row/AttackLabel
+@onready var _hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row/HpLabel
 @onready var _preview_viewport: SubViewport = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap/PreviewContainer/PreviewViewport
 @onready var _preview_sprite: AnimatedSprite2D = %PreviewSprite
 
@@ -73,7 +75,9 @@ func _should_fill_parent() -> bool:
 
 
 func _ready() -> void:
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# 默认 LINEAR：文字 / stat icon 走抗锯齿；ItemIcon / 预览像素艺术在 _apply_pixel_filter_tree
+	# 里显式改回 NEAREST。绝不能在 root 用 NEAREST（会污染 Label 字形 atlas 采样）。
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	if Engine.is_editor_hint():
 		call_deferred("_setup_preview_sprite")
 		return
@@ -121,6 +125,7 @@ func _setup_scene_ui() -> void:
 	PixelUi.apply_ui_font_tree(self)
 	_apply_pixel_filter_tree(self)
 	_style_detail_buttons()  # 必须在 _apply_pixel_filter_tree 之后，否则 LINEAR filter 被覆盖回 NEAREST
+	_style_detail_popup_panel()
 
 
 # 详情弹窗里的"装备 / 卸下 / 强化"3 个按钮：从默认 Godot 样式升级到 9-slice
@@ -134,6 +139,53 @@ func _style_detail_buttons() -> void:
 	if _btn_upgrade != null:
 		UiStyle.apply_primary_button(_btn_upgrade, Color("#efb840"), 10)  # 金：强化
 		_btn_upgrade.add_theme_color_override("font_color", Color(0.18, 0.10, 0.04))
+
+
+# 详情弹窗背景改用 panel_tooltip_std_9s（比 dialog 尺寸更近、圆角更小、更贴合物品详情弹窗定位）
+# 注意：PopupPanel 继承自 Window（不是 CanvasItem），不能设 texture_filter；LINEAR 由 StyleBoxTexture 自带
+func _style_detail_popup_panel() -> void:
+	if _detail_popup == null:
+		return
+	var tooltip_style := UiStyle.make_tooltip_stylebox(Color(0.20, 0.18, 0.16, 0.98), 12)
+	if tooltip_style != null:
+		_detail_popup.add_theme_stylebox_override("panel", tooltip_style)
+	_attach_detail_close_button()
+
+
+# 详情弹窗右上角挂 icon_close.png（Head HBox 现有：DetailIcon + HeadText，追加 spacer + close）
+func _attach_detail_close_button() -> void:
+	if _detail_popup == null:
+		return
+	var head := _detail_popup.get_node_or_null("Margin/VBox/Head") as HBoxContainer
+	if head == null or head.get_node_or_null("CloseBtn") != null:
+		return
+	if not ResourceLoader.exists(ICON_CLOSE_PATH):
+		return
+	var tex := load(ICON_CLOSE_PATH) as Texture2D
+	if tex == null:
+		return
+	var spacer := Control.new()
+	spacer.name = "HeadSpacer"
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(spacer)
+	var btn := TextureButton.new()
+	btn.name = "CloseBtn"
+	btn.texture_normal = tex
+	btn.texture_hover = tex
+	btn.texture_pressed = tex
+	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	btn.ignore_texture_size = true
+	btn.custom_minimum_size = Vector2(32, 32)
+	btn.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.pressed.connect(_on_detail_close_pressed)
+	head.add_child(btn)
+
+
+func _on_detail_close_pressed() -> void:
+	if _detail_popup != null:
+		_detail_popup.hide()
+	_current_detail_uid = -1
 
 
 func _bind_slot_buttons() -> void:
@@ -151,8 +203,12 @@ func _setup_preview_sprite() -> void:
 	var sprite := _get_preview_sprite()
 	if sprite == null:
 		return
-	var folder := str(GameConfig.get_player_value("character_folder", "Swordsman"))
-	var prefix := str(GameConfig.get_player_value("sprite_prefix", "Swordsman"))
+	# 编辑器 @tool 模式下 GameConfig 是 placeholder，方法不能调 → 用默认值走 preview
+	var folder := "Swordsman"
+	var prefix := "Swordsman"
+	if not Engine.is_editor_hint():
+		folder = str(GameConfig.get_player_value("character_folder", "Swordsman"))
+		prefix = str(GameConfig.get_player_value("sprite_prefix", "Swordsman"))
 	sprite.sprite_frames = SpriteHelper.build_character_frames(folder, prefix)
 	SpriteHelper.apply_pixel_art(sprite)
 	if sprite.sprite_frames != null:
@@ -183,10 +239,25 @@ func _apply_preview_sprite_scale() -> void:
 
 
 func _apply_pixel_filter_tree(root: Node) -> void:
+	# 默认 LINEAR（抗锯齿），只有装备物品 icon（ItemIcon）和角色预览像素动画保 NEAREST。
+	# PreviewSprite / PreviewViewport 里的东西也是像素艺术。
+	# 注意：不用 LINEAR_WITH_MIPMAPS —— 这些 stat icon 的 .import 里 mipmaps/generate=false，
+	# 请求 mipmap 版本时会退化到不理想的采样，反而看起来像 NEAREST。
 	if root is CanvasItem:
-		(root as CanvasItem).texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		var ci := root as CanvasItem
+		if _should_keep_ci_nearest(root):
+			ci.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		else:
+			ci.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	for child in root.get_children():
 		_apply_pixel_filter_tree(child)
+
+
+func _should_keep_ci_nearest(node: Node) -> bool:
+	var n := str(node.name)
+	if n == "ItemIcon" or n == "PreviewSprite" or n == "PreviewViewport" or n == "PreviewContainer":
+		return true
+	return false
 
 
 func _on_synthesis_pressed() -> void:
@@ -239,14 +310,50 @@ func _refresh_slots() -> void:
 			if icon_rect != null:
 				icon_rect.visible = false
 				icon_rect.texture = null
-			btn.modulate = Color(1, 1, 1, 1)
+			_apply_quality_visual(btn, 0, false)
 			continue
 		var quality := int(item.get("quality", 0))
 		var icon := _get_item_icon(item)
 		if icon_rect != null:
 			icon_rect.texture = icon
 			icon_rect.visible = icon != null
-		btn.modulate = LobbyState.get_quality_color(quality)
+		# slot 边框（self_modulate）+ icon 后底色（QualityBg）双重品质提示
+		_apply_quality_visual(btn, quality, true)
+
+
+# 保证按钮内有一个 QualityBg ColorRect，作为 ItemIcon 的背景板；返回它。
+# 首次创建时插在最前（索引 0）→ 位于 button 纹理之上、ItemIcon 之下。
+func _ensure_quality_bg(btn: TextureButton) -> ColorRect:
+	var bg := btn.get_node_or_null("QualityBg") as ColorRect
+	if bg == null:
+		bg = ColorRect.new()
+		bg.name = "QualityBg"
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		# 收边给 slot 边框留可视区
+		bg.offset_left = 6
+		bg.offset_top = 6
+		bg.offset_right = -6
+		bg.offset_bottom = -6
+		bg.color = Color(1, 1, 1, 0)
+		btn.add_child(bg)
+		btn.move_child(bg, 0)  # 索引 0 → 最底
+	return bg
+
+
+# 统一：slot 边框 self_modulate + icon 后底色 QualityBg；空槽两者都关。
+func _apply_quality_visual(btn: TextureButton, quality: int, has_item: bool) -> void:
+	var bg := _ensure_quality_bg(btn)
+	if not has_item:
+		bg.visible = false
+		btn.self_modulate = Color.WHITE
+		return
+	var color := LobbyState.get_quality_color(quality)
+	btn.self_modulate = color
+	bg.visible = true
+	var bg_color := color
+	bg_color.a = 0.72  # 保证颜色鲜明又能透一点 slot 花纹
+	bg.color = bg_color
 
 
 func _refresh_attributes() -> void:
@@ -297,7 +404,7 @@ func _apply_item_to_bag_slot(btn: TextureButton, item: Dictionary, uid: int) -> 
 	if icon_rect != null:
 		icon_rect.texture = icon
 		icon_rect.visible = icon != null
-	btn.modulate = LobbyState.get_quality_color(int(item.get("quality", 0)))
+	_apply_quality_visual(btn, int(item.get("quality", 0)), true)
 	btn.set_meta("bag_uid", uid)
 
 
@@ -306,7 +413,7 @@ func _apply_empty_bag_slot(btn: TextureButton) -> void:
 	if icon_rect != null:
 		icon_rect.texture = null
 		icon_rect.visible = false
-	btn.modulate = Color(1, 1, 1, 1)
+	_apply_quality_visual(btn, 0, false)
 	btn.set_meta("bag_uid", -1)
 
 

@@ -1,0 +1,364 @@
+{
+  "equipments": [
+    {
+      "def_id": "iron_dagger",
+      "name_cn": "铁制短刀",
+      "name_en": "Iron Dagger",
+      "slot": "weapon",
+      "icon_path": "res://assets/icons/equipment/icon_equip_iron_dagger.svg",
+      "is_rare": 0,
+      "tiers": [
+        {
+          "quality": 0,
+          "stat_bonuses": {
+            "attack": 5
+          },
+          "flag": null,
+          "effect_desc_cn": "攻击力+5",
+          "effect_desc_en": "ATK +5"
+        },
+        {
+          "quality": 1,
+          "stat_bonuses": {
+            "attack": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "攻击力+10",
+          "effect_desc_en": "ATK +10"
+        },
+        {
+          "quality": 2,
+          "stat_bonuses": {
+            "attack": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "攻击力+10",
+          "effect_desc_en": "ATK +10"
+        },
+        {
+          "quality": 3,
+          "stat_bonuses": {
+            "attack": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "攻击力+10",
+          "effect_desc_en": "ATK +10"
+        }
+      ]
+    },
+    {
+      "def_id": "light_cloth_armor",
+      "name_cn": "轻布甲",
+      "name_en": "Light Cloth Armor",
+      "slot": "armor",
+      "icon_path": "res://assets/icons/equipment/icon_equip_light_cloth_armor.svg",
+      "is_rare": 0,
+      "tiers": [
+        {
+          "quality": 0,
+          "stat_bonuses": {
+            "max_hp": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "生命+10",
+          "effect_desc_en": "HP +10"
+        },
+        {
+          "quality": 1,
+          "stat_bonuses": {
+            "max_hp": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "生命+10",
+          "effect_desc_en": "HP +10"
+        },
+        {
+          "quality": 2,
+          "stat_bonuses": {
+            "max_hp": 20
+          },
+          "flag": null,
+          "effect_desc_cn": "生命+20",
+          "effect_desc_en": "HP +20"
+        },
+        {
+          "quality": 3,
+          "stat_bonuses": {
+            "max_hp": 40
+          },
+          "flag": null,
+          "effect_desc_cn": "生命+40",
+          "effect_desc_en": "HP +40"
+        }
+      ]
+    },
+    {
+      "def_id": "hard_wood_shoes",
+      "name_cn": "硬木鞋",
+      "name_en": "Hard Wood Shoes",
+      "slot": "shoes",
+      "icon_path": "res://assets/icons/equipment/icon_equip_hard_wood_shoes.svg",
+      "is_rare": 0,
+      "tiers": [
+        {
+          "quality": 0,
+          "stat_bonuses": {
+            "crit_rate": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "暴击率基础值+5%",
+          "effect_desc_en": "Crit Rate +5%"
+        },
+        {
+          "quality": 1,
+          "stat_bonuses": {
+            "crit_rate": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "暴击率基础值+5%",
+          "effect_desc_en": "Crit Rate +5%"
+        },
+        {
+          "quality": 2,
+          "stat_bonuses": {
+            "crit_rate": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "暴击率基础值+5%",
+          "effect_desc_en": "Crit Rate +5%"
+        },
+        {
+          "quality": 3,
+          "stat_bonuses": {
+            "crit_rate": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "暴击率基础值+5%",
+          "effect_desc_en": "Crit Rate +5%"
+        }
+      ]
+    },
+    {
+      "def_id": "fur_hat",
+      "name_cn": "毛绒帽",
+      "name_en": "Fur Hat",
+      "slot": "helmet",
+      "icon_path": "res://assets/icons/equipment/icon_equip_fur_hat.svg",
+      "is_rare": 0,
+      "tiers": [
+        {
+          "quality": 0,
+          "stat_bonuses": {
+            "max_ki_pct": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "气力上限基础值+5%",
+          "effect_desc_en": "Max Ki +5%"
+        },
+        {
+          "quality": 1,
+          "stat_bonuses": {
+            "max_ki_pct": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "气力上限基础值+5%",
+          "effect_desc_en": "Max Ki +5%"
+        },
+        {
+          "quality": 2,
+          "stat_bonuses": {
+            "max_ki_pct": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "气力上限基础值+5%",
+          "effect_desc_en": "Max Ki +5%"
+        },
+        {
+          "quality": 3,
+          "stat_bonuses": {
+            "max_ki_pct": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "气力上限基础值+5%",
+          "effect_desc_en": "Max Ki +5%"
+        }
+      ]
+    },
+    {
+      "def_id": "storm_greatsword",
+      "name_cn": "暴风大剑",
+      "name_en": "Storm Greatsword",
+      "slot": "weapon",
+      "icon_path": "res://assets/icons/equipment/icon_equip_storm_greatsword.svg",
+      "is_rare": 0,
+      "tiers": [
+        {
+          "quality": 0,
+          "stat_bonuses": {
+            "attack": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "攻击力+10",
+          "effect_desc_en": "ATK +10"
+        },
+        {
+          "quality": 1,
+          "stat_bonuses": {
+            "crit_damage": 0.1
+          },
+          "flag": null,
+          "effect_desc_cn": "暴击伤害倍率基础值+10%",
+          "effect_desc_en": "Crit DMG +10%"
+        },
+        {
+          "quality": 2,
+          "stat_bonuses": {
+            "attack": 20
+          },
+          "flag": null,
+          "effect_desc_cn": "攻击力+20",
+          "effect_desc_en": "ATK +20"
+        },
+        {
+          "quality": 3,
+          "stat_bonuses": {},
+          "flag": "bullet_homing",
+          "effect_desc_cn": "子弹获得追踪效果",
+          "effect_desc_en": "Bullets seek nearby enemies"
+        }
+      ]
+    },
+    {
+      "def_id": "nimble_boots",
+      "name_cn": "轻灵之靴",
+      "name_en": "Nimble Boots",
+      "slot": "shoes",
+      "icon_path": "res://assets/icons/equipment/icon_equip_nimble_boots.svg",
+      "is_rare": 0,
+      "tiers": [
+        {
+          "quality": 0,
+          "stat_bonuses": {
+            "move_speed": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "移速基础值+10",
+          "effect_desc_en": "Move Speed +10"
+        },
+        {
+          "quality": 1,
+          "stat_bonuses": {
+            "move_speed": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "移速基础值+10",
+          "effect_desc_en": "Move Speed +10"
+        },
+        {
+          "quality": 2,
+          "stat_bonuses": {
+            "move_speed": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "移速基础值+10",
+          "effect_desc_en": "Move Speed +10"
+        },
+        {
+          "quality": 3,
+          "stat_bonuses": {},
+          "flag": "shock_aura",
+          "effect_desc_cn": "持续电击靠近的敌人",
+          "effect_desc_en": "Continuously shocks nearby enemies"
+        }
+      ]
+    },
+    {
+      "def_id": "jungle_armor",
+      "name_cn": "丛林甲",
+      "name_en": "Jungle Armor",
+      "slot": "armor",
+      "icon_path": "res://assets/icons/equipment/icon_equip_jungle_armor.svg",
+      "is_rare": 0,
+      "tiers": [
+        {
+          "quality": 0,
+          "stat_bonuses": {
+            "ki_regen_pct": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "气力回复速度基础值+5%",
+          "effect_desc_en": "Ki Regen +5%"
+        },
+        {
+          "quality": 1,
+          "stat_bonuses": {
+            "ki_regen_pct": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "气力回复速度基础值+5%",
+          "effect_desc_en": "Ki Regen +5%"
+        },
+        {
+          "quality": 2,
+          "stat_bonuses": {
+            "ki_regen_pct": 0.05
+          },
+          "flag": null,
+          "effect_desc_cn": "气力回复速度基础值+5%",
+          "effect_desc_en": "Ki Regen +5%"
+        },
+        {
+          "quality": 3,
+          "stat_bonuses": {},
+          "flag": "tree_x2",
+          "effect_desc_cn": "每关随机刷出的树木数量翻倍",
+          "effect_desc_en": "Trees spawned per stage x2"
+        }
+      ]
+    },
+    {
+      "def_id": "sturdy_helmet",
+      "name_cn": "坚固头盔",
+      "name_en": "Sturdy Helmet",
+      "slot": "helmet",
+      "icon_path": "res://assets/icons/equipment/icon_equip_sturdy_helmet.svg",
+      "is_rare": 0,
+      "tiers": [
+        {
+          "quality": 0,
+          "stat_bonuses": {
+            "max_hp": 20
+          },
+          "flag": null,
+          "effect_desc_cn": "生命+20",
+          "effect_desc_en": "HP +20"
+        },
+        {
+          "quality": 1,
+          "stat_bonuses": {
+            "max_hp": 10
+          },
+          "flag": null,
+          "effect_desc_cn": "生命+10",
+          "effect_desc_en": "HP +10"
+        },
+        {
+          "quality": 2,
+          "stat_bonuses": {
+            "max_hp": 20
+          },
+          "flag": null,
+          "effect_desc_cn": "生命+20",
+          "effect_desc_en": "HP +20"
+        },
+        {
+          "quality": 3,
+          "stat_bonuses": {},
+          "flag": "hit_dodge_5pct",
+          "effect_desc_cn": "受击时5%概率免伤",
+          "effect_desc_en": "5% chance to negate incoming hits"
+        }
+      ]
+    }
+  ]
+}

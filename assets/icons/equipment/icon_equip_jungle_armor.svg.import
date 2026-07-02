@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dqomdk6d5w47n"
-path="res://.godot/imported/power_icon.png-97b7c46f2369b85c5932c52329f02bc4.ctex"
+uid="uid://ccievur6rhe74"
+path="res://.godot/imported/icon_equip_jungle_armor.svg-1edabfd01a9e0f856984897c8b073009.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/equipment/power_icon.png"
-dest_files=["res://.godot/imported/power_icon.png-97b7c46f2369b85c5932c52329f02bc4.ctex"]
+source_file="res://assets/icons/equipment/icon_equip_jungle_armor.svg"
+dest_files=["res://.godot/imported/icon_equip_jungle_armor.svg-1edabfd01a9e0f856984897c8b073009.ctex"]
 
 [params]
 
@@ -38,3 +38,6 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
+svg/scale=1.0
+editor/scale_with_editor_scale=false
+editor/convert_colors_with_editor_theme=false

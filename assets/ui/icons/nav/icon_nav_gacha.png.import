@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://soar1ahjlfu4"
-path="res://.godot/imported/UI assets (1x).png-11af28b35dc03e57a675e38af8918fea.ctex"
+uid="uid://bq8prrawx0dx0"
+path="res://.godot/imported/icon_nav_gacha.png-0a1dc3ea2388bfcf51da3b1b46619fdb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/UI assets (1x).png"
-dest_files=["res://.godot/imported/UI assets (1x).png-11af28b35dc03e57a675e38af8918fea.ctex"]
+source_file="res://assets/ui/icons/nav/icon_nav_gacha.png"
+dest_files=["res://.godot/imported/icon_nav_gacha.png-0a1dc3ea2388bfcf51da3b1b46619fdb.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

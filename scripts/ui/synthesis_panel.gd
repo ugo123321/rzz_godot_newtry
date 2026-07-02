@@ -34,7 +34,7 @@ var _toast_base_top := 150.0
 
 
 func _ready() -> void:
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # 根节点默认 LINEAR
 	_material_slots = [%MaterialSlot0, %MaterialSlot1, %MaterialSlot2]
 	for i in range(SYNTH_SLOT_COUNT):
 		var slot_btn := _material_slots[i]
@@ -85,8 +85,13 @@ func _reset_state() -> void:
 
 
 func _apply_pixel_filter_tree(root: Node) -> void:
+	# 默认 LINEAR（抗锯齿），只有 ItemIcon（背包/合成槽里的装备物品像素图）保 NEAREST
 	if root is CanvasItem:
-		(root as CanvasItem).texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		var ci := root as CanvasItem
+		if str(root.name) == "ItemIcon":
+			ci.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		else:
+			ci.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	for child in root.get_children():
 		_apply_pixel_filter_tree(child)
 

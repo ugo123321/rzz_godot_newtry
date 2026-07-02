@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b43boi34ytvi2"
-path="res://.godot/imported/icon_equip_wood_shoes_pixel.svg-af2df653d7b6fc4e003f857666858602.ctex"
+uid="uid://bepsi4cd7tnue"
+path="res://.godot/imported/icon_equip_nimble_boots.svg-fea57b93052535229f1eefca3a8e1a3b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/icons/equipment/icon_equip_wood_shoes_pixel.svg"
-dest_files=["res://.godot/imported/icon_equip_wood_shoes_pixel.svg-af2df653d7b6fc4e003f857666858602.ctex"]
+source_file="res://assets/icons/equipment/icon_equip_nimble_boots.svg"
+dest_files=["res://.godot/imported/icon_equip_nimble_boots.svg-fea57b93052535229f1eefca3a8e1a3b.ctex"]
 
 [params]
 

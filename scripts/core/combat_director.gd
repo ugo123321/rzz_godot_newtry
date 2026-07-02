@@ -245,27 +245,6 @@ func _apply_hit(player: BattlePlayer, hit: Dictionary) -> void:
 	# Sheet4 元素状态注入（仅当伤害实际生效；slash 通常无 applies_<elem>，但 future-proof）
 	if dealt_damage > 0:
 		ElementEffectManager.try_apply(monster, info, player)
-	if dealt_damage > 0 and not bool(result.get("started_dying", false)):
-		var extra_base := player.get_ability_damage(1.0)
-		var extra_damage := LobbyState.roll_weapon_extra_damage(extra_base)
-		if extra_damage > 0 and not _is_non_targetable(monster):
-			# 武器额外伤害：物理 slash 类，标记为 is_extra，不暴击
-			var extra_info := DamageInfo.legacy(extra_damage)
-			extra_info.source = "slash_extra"
-			extra_info.category = "slash"
-			extra_info.is_extra = true
-			extra_info.can_crit = false
-			var extra_result: Dictionary = {}
-			if monster.has_method("take_damage_info"):
-				extra_result = monster.take_damage_info(extra_info, player.global_position)
-			else:
-				extra_result = monster.take_damage(extra_damage, player.global_position)
-			var actual_extra := int(extra_result.get("damage", 0))
-			if actual_extra > 0:
-				spawn_damage_number(hit.pos + Vector2(0.0, -10.0), actual_extra, false, false, Color("#ffd27a"))
-			if bool(extra_result.get("started_dying", false)):
-				result["started_dying"] = true
-			result["damage"] = dealt_damage + actual_extra
 	var combo_count: float = player.register_combo_hit()
 	spawn_damage_number(hit.pos, int(result.get("damage", 0)), is_crit)
 	var battle := get_tree().get_first_node_in_group("battle")

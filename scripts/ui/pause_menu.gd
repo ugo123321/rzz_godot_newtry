@@ -5,6 +5,7 @@ const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 
 const PixelCardIconT = preload("res://scripts/ui/pixel_card_icon.gd")
+const ICON_CLOSE_PATH := "res://assets/ui/icons/system/icon_close.png"
 
 enum View { PAUSE, DEBUG, DEBUG_UPGRADES }
 
@@ -147,6 +148,19 @@ func _build_ui() -> void:
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_child(root)
+
+	# 顶行：右上角 close 按钮（触屏用户主入口；不影响原有 Resume）
+	var header := HBoxContainer.new()
+	header.name = "Header"
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(header)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(spacer)
+	var close_btn := _make_icon_close_button()
+	if close_btn != null:
+		close_btn.pressed.connect(_on_resume_pressed)
+		header.add_child(close_btn)
 
 	_title = Label.new()
 	_title.name = "Title"
@@ -316,6 +330,26 @@ func _build_ui() -> void:
 	upgrades_box.add_child(_upgrades_back_btn)
 
 	PixelUi.apply_ui_font_tree(self)
+
+
+# 32×32 关闭按钮：走 icon_close.png，无背景，hover/pressed 靠 modulate
+func _make_icon_close_button() -> TextureButton:
+	if not ResourceLoader.exists(ICON_CLOSE_PATH):
+		return null
+	var tex := load(ICON_CLOSE_PATH) as Texture2D
+	if tex == null:
+		return null
+	var btn := TextureButton.new()
+	btn.name = "CloseBtn"
+	btn.texture_normal = tex
+	btn.texture_hover = tex
+	btn.texture_pressed = tex
+	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	btn.ignore_texture_size = true
+	btn.custom_minimum_size = Vector2(40, 40)
+	btn.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	return btn
 
 
 func _panel_min_size() -> Vector2:

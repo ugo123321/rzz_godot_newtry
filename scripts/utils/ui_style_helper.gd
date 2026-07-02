@@ -108,3 +108,33 @@ static func get_bar_frame_texture() -> Texture2D:
 
 static func get_bar_fill_texture() -> Texture2D:
 	return _load_tex(BAR_FILL_PATH)
+
+
+# ─── UI 图片抗锯齿（LINEAR filter） ───
+# 项目全局 default_texture_filter=NEAREST（保战斗像素锐利），但高清 UI 图缩放会锯齿。
+# 递归给指定分支下所有 TextureRect / TextureButton / NinePatchRect / Sprite2D 单独设 LINEAR。
+# exclude_paths 里的相对路径（可以是子路径关键字，match 用 String.contains）会被跳过 —
+# 例：装备预览的角色像素 sprite 传入 "PreviewSprite" 就不会被误改。
+static func apply_linear_filter_tree(root: Node, exclude_keywords: Array = []) -> void:
+	if root == null:
+		return
+	_apply_linear_recursive(root, exclude_keywords)
+
+
+static func _apply_linear_recursive(node: Node, exclude_keywords: Array) -> void:
+	var skip := false
+	for kw in exclude_keywords:
+		if str(kw).is_empty():
+			continue
+		if str(node.name).contains(str(kw)):
+			skip = true
+			break
+	if not skip and (node is TextureRect or node is TextureButton or node is NinePatchRect or node is Sprite2D or node is AnimatedSprite2D):
+		# AnimatedSprite2D 装备预览角色是像素，跳过；只当不在 exclude 里且不是像素动画时才 LINEAR
+		if not (node is AnimatedSprite2D):
+			(node as CanvasItem).texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	for child in node.get_children():
+		if skip:
+			# 父节点被 exclude 时，子节点也整体跳过（比如 PreviewViewport 里所有像素东西）
+			continue
+		_apply_linear_recursive(child, exclude_keywords)

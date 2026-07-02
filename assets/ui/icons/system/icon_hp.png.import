@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bgbjww6bnbxr5"
-path="res://.godot/imported/equipment_icon.png-d7619ea2fb966f2fe0259be23c450866.ctex"
+uid="uid://de1rwjnxwv63r"
+path="res://.godot/imported/icon_hp.png-4ee8177a47235ccb6a593e95aa2ac41e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/bottom/equipment_icon.png"
-dest_files=["res://.godot/imported/equipment_icon.png-d7619ea2fb966f2fe0259be23c450866.ctex"]
+source_file="res://assets/ui/icons/system/icon_hp.png"
+dest_files=["res://.godot/imported/icon_hp.png-4ee8177a47235ccb6a593e95aa2ac41e.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

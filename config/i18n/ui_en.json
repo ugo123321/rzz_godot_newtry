@@ -33,6 +33,7 @@
   "UI_HUD_CLICK_TO_START": "Tap screen to start",
   "UI_HUD_DAMAGE_TAKEN_FMT": "Hit! %d HP remaining",
   "UI_HUD_HEAL_FMT": "Healed %d HP (%d)",
+  "UI_HUD_DODGE": "Dodged!",
 
   "UI_MAIN_NO_CHAPTER": "No Chapter",
   "UI_MAIN_DEFAULT_CHAPTER": "Chapter",

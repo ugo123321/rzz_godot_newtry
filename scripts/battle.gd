@@ -1791,6 +1791,9 @@ func _prespawn_next_stage_world(next_index: int) -> void:
 
 func _spawn_prespawn_trees(container: Node2D, stage_idx: int, w: float, h: float) -> Array:
 	var count := int(GameConfig.get_tuning("tree_count_per_wave", 5))
+	# 装备 jungle_armor 传奇：树木数量翻倍
+	if LobbyState and LobbyState.get_active_equipment_flags().get("tree_x2", false):
+		count *= 2
 	var safe := Vector2(w * 0.5, h * 0.58)
 	var placed: Array = []
 	for n in range(count):

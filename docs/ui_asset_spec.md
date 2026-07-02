@@ -55,7 +55,8 @@ assets/ui/
 | `icon_cur_*` | `assets/ui/icons/currency/` | `icon_cur_gold.png` |
 | `icon_up_*` | `assets/ui/icons/upgrades/` | `icon_up_godspeed.png` |
 | `icon_th_*` | `assets/ui/icons/themed/` | `icon_th_demon_baby.png` |
-| 系统图标（无类别前缀，只有 `icon_pause` / `icon_close` / `icon_settings` / `icon_back` / `icon_menu`） | `assets/ui/icons/system/` | `icon_pause.png` |
+| `icon_nav_*`（底部选项卡） | `assets/ui/icons/nav/` | `icon_nav_gacha.png` |
+| 系统图标（无类别前缀，只有 `icon_pause` / `icon_close` / `icon_settings` / `icon_back` / `icon_menu` / `icon_power` / `icon_attack` / `icon_hp` / `icon_detail`） | `assets/ui/icons/system/` | `icon_pause.png` |
 | `deco_` | `assets/ui/decorations/` | `deco_star_gold.png` |
 | `bg_` | `assets/ui/backgrounds/` | `bg_main_menu.png` |
 
@@ -136,6 +137,8 @@ assets/ui/
 | 升级卡 | 现有 10 张保留，扩展到 50 | `icon_up_barrage_king.png` / `icon_up_godspeed.png` ... | `assets/ui/icons/upgrades/` |
 | 主题关 | 12 | `icon_th_demon_baby.png` × 6（恶魔）<br>`icon_th_angel_baby.png` × 6（天使） | `assets/ui/icons/themed/` |
 | 系统操作 | 4-6 | `icon_pause.png` / `icon_close.png` / `icon_settings.png` / `icon_back.png` / `icon_menu.png` | `assets/ui/icons/system/` ✅ 已交付 4 张 |
+| 属性 stat | 4 | `icon_power.png` / `icon_attack.png` / `icon_hp.png` / `icon_detail.png` | `assets/ui/icons/system/` ✅ 已交付（走 system 目录，不新开 stat 子目录） |
+| 导航 nav | 5 | `icon_nav_gacha.png` / `icon_nav_equipment.png` / `icon_nav_battle.png` / `icon_nav_dungeon.png` / `icon_nav_achievement.png` | `assets/ui/icons/nav/` ✅ 已交付 5 张（底部选项卡） |
 | 状态 | — 本期不出 | — | `assets/ui/icons/status/`（占位） |
 
 **主题关 12 张文件名**对应 `tools/build_rewards_v6_compact.py` 的 `PER_ID_DESC_OVERRIDE` 字典 key（恶魔 / 天使专属 reward id）。
@@ -258,8 +261,10 @@ green:  Color(0.30, 0.85, 0.40, 1.0)   # 绿 — 确认
 | 新 UI PNG 的 `.import` filter | `true`（LINEAR） | 高清现代风需要平滑缩放 |
 | 现有像素 icon（`assets/icons/upgrades/`） | 临时 `false`（NEAREST） | 旧像素图兜底 |
 | `process/fix_alpha_border` | `true`（默认） | 防 alpha 边白线 |
-| `mipmaps/generate` | `false` | UI 不需要 |
+| `mipmaps/generate` | **`true`（缩放显示的 icon 必须开）** | 128×128 源 → 40×40 显示 = 30% 缩放，无 mipmap 时 LINEAR 会锯齿。已开的：`icons/system/icon_{power,attack,hp,detail}` + `icons/nav/icon_nav_*` |
 | `NinePatchRect.patch_margin_*` | 按 § 4 切片数值 | 9-slice 配置 |
+
+**mipmap 判断准则**：图片显示尺寸 < 源尺寸 50% → 必须开 mipmap。9-slice 面板 / bar 拉伸时不需要（永远接近或大于源尺寸）；固定尺寸的 icon（stat / nav / equipment / themed）都需要开。
 
 ---
 
@@ -344,11 +349,22 @@ assets/ui/
 │   └── bar_fill_9s.png             ✅
 ├── buttons/
 │   └── btn_primary_9s.png          ✅
-└── icons/system/
-    ├── icon_pause.png              ✅
-    ├── icon_settings.png           ✅
-    ├── icon_close.png              ✅
-    └── icon_back.png               ✅
+└── icons/
+    ├── nav/                        ✅ 底部选项卡（5 张，均带 mipmap 抗锯齿）
+    │   ├── icon_nav_gacha.png      ✅
+    │   ├── icon_nav_equipment.png  ✅
+    │   ├── icon_nav_battle.png     ✅
+    │   ├── icon_nav_dungeon.png    ✅
+    │   └── icon_nav_achievement.png ✅
+    └── system/                     ✅ 系统操作 + 装备属性
+        ├── icon_pause.png              ✅
+        ├── icon_settings.png           ✅
+        ├── icon_close.png              ✅
+        ├── icon_back.png               ✅
+        ├── icon_power.png              ✅ (装备页战力，带 mipmap)
+        ├── icon_attack.png             ✅ (装备页攻击，带 mipmap)
+        ├── icon_hp.png                 ✅ (装备页生命，带 mipmap)
+        └── icon_detail.png             ✅ (装备页详情按钮，带 mipmap)
 ```
 
 **下一步**：建议你 ping 我，我把这 9 张图接入到 `.tscn` / `.gd`（配 `.import` 的 filter / 把 StyleBoxFlat 改成 NinePatchRect、blood bar / 升级弹窗 / 主菜单按钮换贴图、暂停 HUD 接 icon_pause），启动 Godot 实机看效果，再决定第 3 批要不要画。

@@ -43,31 +43,58 @@ var chapter_active_id: int = 0  # 0 = no active chapter
 var chapter_tower_height: float = 0.0
 var chapter_tower_blocks: Array = []  # each: {pos: Vector2, angle: float}
 
-var equipment_defs := {
-	"short_dagger": {
-		"name": "短刀",
-		"slot": SLOT_WEAPON,
-		"base_power": 38,
-		"icon_path": "res://assets/icons/equipment/icon_equip_dagger_pixel.svg",
-	},
-	"cloth_armor": {
-		"name": "布甲",
-		"slot": SLOT_ARMOR,
-		"base_power": 32,
-		"icon_path": "res://assets/icons/equipment/icon_equip_cloth_armor_pixel.svg",
-	},
-	"wood_shoes": {
-		"name": "木鞋",
-		"slot": SLOT_SHOES,
-		"base_power": 28,
-		"icon_path": "res://assets/icons/equipment/icon_equip_wood_shoes_pixel.svg",
-	},
-}
+const EQUIPMENTS_JSON_PATH := "res://config/json/equipments.json"
+# def_id -> { def_id, name_cn, name_en, slot, icon_path, is_rare, base_power, tiers[4] }
+# 由 config/json/equipments.json 加载。tools/export_equipments_json.py 从 xlsx 生成。
+var equipment_defs: Dictionary = {}
 
 
 func _ready() -> void:
+	_load_equipment_defs()
 	_ensure_slot_state()
 	call_deferred("_emit_all_state")
+
+
+func _load_equipment_defs() -> void:
+	equipment_defs.clear()
+	if not ResourceLoader.exists(EQUIPMENTS_JSON_PATH):
+		push_warning("[LobbyState] equipments.json not found at %s" % EQUIPMENTS_JSON_PATH)
+		return
+	var f := FileAccess.open(EQUIPMENTS_JSON_PATH, FileAccess.READ)
+	if f == null:
+		push_warning("[LobbyState] failed to open %s" % EQUIPMENTS_JSON_PATH)
+		return
+	var text := f.get_as_text()
+	f.close()
+	var parsed = JSON.parse_string(text)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		push_warning("[LobbyState] equipments.json is not a dict")
+		return
+	var arr = parsed.get("equipments", [])
+	if typeof(arr) != TYPE_ARRAY:
+		return
+	for rec in arr:
+		if typeof(rec) != TYPE_DICTIONARY:
+			continue
+		var def_id := str(rec.get("def_id", ""))
+		if def_id.is_empty():
+			continue
+		# base_power 未在 JSON 声明，用槽位默认值：weapon 38 / armor 32 / helmet 30 / shoes 28
+		var slot_key := str(rec.get("slot", SLOT_WEAPON))
+		var default_power := 30
+		if slot_key == SLOT_WEAPON:
+			default_power = 38
+		elif slot_key == SLOT_ARMOR:
+			default_power = 32
+		elif slot_key == SLOT_HELMET:
+			default_power = 30
+		elif slot_key == SLOT_SHOES:
+			default_power = 28
+		elif slot_key == SLOT_NECKLACE or slot_key == SLOT_RING:
+			default_power = 26
+		var def: Dictionary = rec.duplicate(true)
+		def["base_power"] = int(rec.get("base_power", default_power))
+		equipment_defs[def_id] = def
 
 
 func request_battle_launch(p_stage_index: int) -> void:
@@ -273,11 +300,12 @@ func get_item_by_uid(uid: int) -> Dictionary:
 
 func get_item_name(item: Dictionary) -> String:
 	var def_id := str(item.get("def_id", ""))
-	# 优先按 def_id 查 i18n（key 形如 UI_EQUIP_NAME_short_dagger）；缺时回落 def 内的中文 name
-	var key := "UI_EQUIP_NAME_" + def_id
 	var def := get_item_def(def_id)
-	var fallback := str(def.get("name", LanguageManager.tr_ui("UI_EQUIP_UNKNOWN_NAME")))
-	return LanguageManager.tr_ui(key, fallback)
+	# JSON 里的 name_cn / name_en → LanguageManager.localize(def, "name")
+	var name := LanguageManager.localize(def, "name")
+	if name != "":
+		return name
+	return LanguageManager.tr_ui("UI_EQUIP_UNKNOWN_NAME", def_id)
 
 
 func get_item_icon_path(item: Dictionary) -> String:
@@ -426,82 +454,96 @@ func get_item_skill_entries(item: Dictionary) -> Array[Dictionary]:
 
 
 func _skill_text_for_quality(item: Dictionary, tier: int) -> String:
-	var def_id := str(item.get("def_id", ""))
-	var level := int(item.get("level", 1))
-	match def_id:
-		"short_dagger":
-			match tier:
-				QUALITY_COMMON:
-					var value := 10 + (level - 1) * 2
-					return LanguageManager.tr_ui("UI_EQUIP_FX_short_dagger_C_FMT") % value
-				QUALITY_RARE:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_short_dagger_R")
-				QUALITY_EPIC:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_short_dagger_E")
-				QUALITY_LEGENDARY:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_short_dagger_L")
-		"cloth_armor":
-			match tier:
-				QUALITY_COMMON:
-					var hp_value := 10 + (level - 1) * 2
-					return LanguageManager.tr_ui("UI_EQUIP_FX_cloth_armor_C_FMT") % hp_value
-				QUALITY_RARE:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_cloth_armor_R")
-				QUALITY_EPIC:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_cloth_armor_E")
-				QUALITY_LEGENDARY:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_cloth_armor_L")
-		"wood_shoes":
-			match tier:
-				QUALITY_COMMON:
-					var crit_value := 5 + (level - 1)
-					return LanguageManager.tr_ui("UI_EQUIP_FX_wood_shoes_C_FMT") % crit_value
-				QUALITY_RARE:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_wood_shoes_R")
-				QUALITY_EPIC:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_wood_shoes_E")
-				QUALITY_LEGENDARY:
-					return LanguageManager.tr_ui("UI_EQUIP_FX_wood_shoes_L")
-	return LanguageManager.tr_ui("UI_EQUIP_UNDEFINED_SKILL")
+	var def := get_item_def(str(item.get("def_id", "")))
+	if def.is_empty():
+		return LanguageManager.tr_ui("UI_EQUIP_UNDEFINED_SKILL")
+	var tiers = def.get("tiers", [])
+	if typeof(tiers) != TYPE_ARRAY or tier < 0 or tier >= tiers.size():
+		return LanguageManager.tr_ui("UI_EQUIP_UNDEFINED_SKILL")
+	var tier_rec: Dictionary = tiers[tier]
+	return LanguageManager.localize_field(tier_rec, "effect_desc_en", "effect_desc_cn")
 
 
 func get_item_stat_bonus(item: Dictionary) -> Dictionary:
-	var def_id := str(item.get("def_id", ""))
-	var level := int(item.get("level", 1))
-	var quality := int(item.get("quality", QUALITY_COMMON))
+	# 累加 tier 0..quality 的 stat_bonuses（加法叠加，绝不连乘）。
+	# 缺失键取 0；未识别的 key 也会被并入（future-proof）。
 	var bonus := {
 		"attack": 0.0,
 		"max_hp": 0,
 		"crit_rate": 0.0,
+		"crit_damage": 0.0,
+		"move_speed": 0.0,
+		"max_ki_pct": 0.0,
+		"ki_regen_pct": 0.0,
 		"item_power": get_item_power(item),
 	}
-	match def_id:
-		"short_dagger":
-			if quality >= QUALITY_COMMON:
-				bonus.attack += 10 + (level - 1) * 2
-			if quality >= QUALITY_EPIC:
-				bonus.attack += 30
-			if quality >= QUALITY_LEGENDARY:
-				bonus.attack += 50
-		"cloth_armor":
-			if quality >= QUALITY_COMMON:
-				bonus.max_hp += 10 + (level - 1) * 2
-			if quality >= QUALITY_RARE:
-				bonus.max_hp += 20
-			if quality >= QUALITY_EPIC:
-				bonus.max_hp += 30
-			if quality >= QUALITY_LEGENDARY:
-				bonus.max_hp += 40
-		"wood_shoes":
-			if quality >= QUALITY_COMMON:
-				bonus.crit_rate += 0.05 + float(level - 1) * 0.01
-			if quality >= QUALITY_RARE:
-				bonus.crit_rate += 0.05
-			if quality >= QUALITY_EPIC:
-				bonus.crit_rate += 0.05
-			if quality >= QUALITY_LEGENDARY:
-				bonus.crit_rate += 0.05
+	var def := get_item_def(str(item.get("def_id", "")))
+	if def.is_empty():
+		return bonus
+	var quality := int(item.get("quality", QUALITY_COMMON))
+	var level := int(item.get("level", 1))
+	var tiers = def.get("tiers", [])
+	if typeof(tiers) != TYPE_ARRAY:
+		return bonus
+	for t in range(min(tiers.size(), quality + 1)):
+		var tier_rec: Dictionary = tiers[t]
+		var sb = tier_rec.get("stat_bonuses", {})
+		if typeof(sb) != TYPE_DICTIONARY:
+			continue
+		for k in sb.keys():
+			var key := str(k)
+			var val := float(sb[k])
+			match key:
+				"attack":
+					bonus.attack += val
+				"max_hp":
+					bonus.max_hp = int(bonus.max_hp) + int(val)
+				"crit_rate":
+					bonus.crit_rate += val
+				"crit_damage":
+					bonus.crit_damage += val
+				"move_speed":
+					bonus.move_speed += val
+				"max_ki_pct":
+					bonus.max_ki_pct += val
+				"ki_regen_pct":
+					bonus.ki_regen_pct += val
+	# 强化等级：仅让"每级 +N"的通用 flat 加成生效 —— 目前 xlsx 未给出 per_lv 表达，
+	# 沿用旧规则：level 每级给该件 base attack/hp/crit_rate 一个微增，避免强化毫无收益。
+	if level > 1:
+		var lv_bonus := level - 1
+		bonus.attack += float(lv_bonus) * 2.0
+		bonus.max_hp = int(bonus.max_hp) + lv_bonus * 2
+		bonus.crit_rate += float(lv_bonus) * 0.01
 	return bonus
+
+
+func get_active_equipment_flags() -> Dictionary:
+	# 遍历所有已装备物品的 tiers[0..quality]，收集所有 flag（非 null / 非空字符串）。
+	# 目前所有 flag 都在 quality=3 才解锁 —— 但框架允许更低 tier 也带 flag。
+	var flags: Dictionary = {}
+	_ensure_slot_state()
+	for slot in SLOT_ORDER:
+		var item := get_equipped_item(slot)
+		if item.is_empty():
+			continue
+		var def := get_item_def(str(item.get("def_id", "")))
+		if def.is_empty():
+			continue
+		var quality := int(item.get("quality", QUALITY_COMMON))
+		var tiers = def.get("tiers", [])
+		if typeof(tiers) != TYPE_ARRAY:
+			continue
+		for t in range(min(tiers.size(), quality + 1)):
+			var tier_rec: Dictionary = tiers[t]
+			var flag = tier_rec.get("flag", null)
+			if flag == null:
+				continue
+			var flag_str := str(flag)
+			if flag_str.is_empty():
+				continue
+			flags[flag_str] = true
+	return flags
 
 
 func get_equipment_totals() -> Dictionary:
@@ -510,6 +552,10 @@ func get_equipment_totals() -> Dictionary:
 		"attack": 0.0,
 		"max_hp": 0,
 		"crit_rate": 0.0,
+		"crit_damage": 0.0,
+		"move_speed": 0.0,
+		"max_ki_pct": 0.0,
+		"ki_regen_pct": 0.0,
 		"item_power": 0,
 	}
 	for slot in SLOT_ORDER:
@@ -520,42 +566,26 @@ func get_equipment_totals() -> Dictionary:
 		total.attack += float(bonus.get("attack", 0.0))
 		total.max_hp += int(bonus.get("max_hp", 0))
 		total.crit_rate += float(bonus.get("crit_rate", 0.0))
+		total.crit_damage += float(bonus.get("crit_damage", 0.0))
+		total.move_speed += float(bonus.get("move_speed", 0.0))
+		total.max_ki_pct += float(bonus.get("max_ki_pct", 0.0))
+		total.ki_regen_pct += float(bonus.get("ki_regen_pct", 0.0))
 		total.item_power += int(bonus.get("item_power", 0))
 	return total
 
 
 func get_battle_modifiers() -> Dictionary:
+	# player.gd 直接消费；含所有 stat 通道。加法叠加已在 get_equipment_totals 完成。
 	var totals := get_equipment_totals()
 	return {
 		"attack": float(totals.get("attack", 0.0)),
 		"max_hp": int(totals.get("max_hp", 0)),
 		"crit_rate": float(totals.get("crit_rate", 0.0)),
+		"crit_damage": float(totals.get("crit_damage", 0.0)),
+		"move_speed": float(totals.get("move_speed", 0.0)),
+		"max_ki_pct": float(totals.get("max_ki_pct", 0.0)),
+		"ki_regen_pct": float(totals.get("ki_regen_pct", 0.0)),
 	}
-
-
-func get_weapon_extra_damage_effect() -> Dictionary:
-	var weapon := get_equipped_item(SLOT_WEAPON)
-	if weapon.is_empty():
-		return {}
-	if str(weapon.get("def_id", "")) != "short_dagger":
-		return {}
-	if int(weapon.get("quality", QUALITY_COMMON)) < QUALITY_RARE:
-		return {}
-	return {
-		"chance": 0.5,
-		"ratio": 0.2,
-	}
-
-
-func roll_weapon_extra_damage(base_damage: int) -> int:
-	if base_damage <= 0:
-		return 0
-	var fx := get_weapon_extra_damage_effect()
-	if fx.is_empty():
-		return 0
-	if randf() > float(fx.get("chance", 0.0)):
-		return 0
-	return maxi(1, int(round(float(base_damage) * float(fx.get("ratio", 0.0)))))
 
 
 func get_player_preview_attributes() -> Dictionary:

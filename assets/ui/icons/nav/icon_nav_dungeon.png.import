@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ctppvfqas86up"
-path="res://.godot/imported/heart_icon.png-dbe3d8421c73767646ee861a127d6dc0.ctex"
+uid="uid://dg6om53cw415s"
+path="res://.godot/imported/icon_nav_dungeon.png-14199a8cc3bdb8a60600c5f1c7cfce40.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/equipment/heart_icon.png"
-dest_files=["res://.godot/imported/heart_icon.png-dbe3d8421c73767646ee861a127d6dc0.ctex"]
+source_file="res://assets/ui/icons/nav/icon_nav_dungeon.png"
+dest_files=["res://.godot/imported/icon_nav_dungeon.png-14199a8cc3bdb8a60600c5f1c7cfce40.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

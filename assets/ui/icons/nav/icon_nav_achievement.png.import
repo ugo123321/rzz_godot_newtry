@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://comndldfww2yu"
-path="res://.godot/imported/sword_icon.png-5eed0b6b97b3aa8cebb64671cadba638.ctex"
+uid="uid://coe7umg708wxr"
+path="res://.godot/imported/icon_nav_achievement.png-f30a98f04200774b8170523101ef67a2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/equipment/sword_icon.png"
-dest_files=["res://.godot/imported/sword_icon.png-5eed0b6b97b3aa8cebb64671cadba638.ctex"]
+source_file="res://assets/ui/icons/nav/icon_nav_achievement.png"
+dest_files=["res://.godot/imported/icon_nav_achievement.png-f30a98f04200774b8170523101ef67a2.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

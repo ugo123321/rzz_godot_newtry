@@ -1725,50 +1725,107 @@ func _draw_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
 		"blood_blade":
 			_draw_pixel_blood_blade(canvas, s)
 			return
-	# 默认普攻：像素小火球（保留元素染色 + 返回态蓝色）
+	# 默认普攻：像素白色月牙剑气（保留元素染色 + 返回态蓝色）
 	_draw_pixel_auto_bullet(canvas, s)
 
 
 const AUTO_BULLET_PIXEL: float = 3.0
-const AUTO_BULLET_RADIUS_BLOCKS: int = 4
+# 月牙剑气：以 (cx, 0) 为圆心的圆环段，内外半径给出"赤道"处的边界；实际厚度沿 y 抛物线 taper 收窄。
+# 赤道 (by=0) 处：blade tip 在 bx=+10（cx=-16 + r_o=26），内凹在 bx=+4，厚度 6 块（r_o-r_i）。
+# 两端 (|by|→half_h=9)：厚度 → 0，自然收成 1 像素尖点，构成月牙 horns。
+# 凸缘朝 +x（飞行方向），沿 rot 旋转贴齐弹道。
+const AUTO_BULLET_SWORD_ARC_CENTER_X: float = -16.0
+const AUTO_BULLET_SWORD_ARC_R_INNER: float = 20.0
+const AUTO_BULLET_SWORD_ARC_R_OUTER: float = 26.0
+const AUTO_BULLET_SWORD_ARC_HALF_HEIGHT: float = 9.0
 
-# 默认普攻子弹：像素小火球（rb=4 块、px=3、80ms 闪烁）
-# 调色板基色由 _bullet_element_tint() 派生 4 档（深→中→浅→白核心），保留元素混合染色。
-# returning=true（mirror 回弹）强制蓝调色板。
+# "白色剑气"专用调色板：外缘淡蓝描边 → 核心白，无元素时用这套保持"剑气"质感
+static var SWORD_AURA_WHITE_PALETTE: PackedColorArray = PackedColorArray([
+	Color("#4a7ab4"),  # 外缘描边（淡蓝）
+	Color("#8ab0dc"),  # 浅蓝晕
+	Color("#c4dcf4"),  # 淡蓝白
+	Color("#e8f2fc"),  # 近白
+	Color("#ffffff"),  # 核心白
+])
+
+# 剑气调色板派生：无元素（近白基色）→ 固定白蓝调色板；有元素染色 → 5 档全部保留元素 tint，
+# 核心也不再纯白（只轻微 lerp 30% 向白），确保整个剑气都被染上元素颜色而不是"白核 + 彩色边"
+func _derive_sword_aura_palette(base: Color) -> PackedColorArray:
+	if base.r > 0.98 and base.g > 0.98 and base.b > 0.98:
+		return SWORD_AURA_WHITE_PALETTE
+	var out: PackedColorArray = PackedColorArray()
+	out.push_back(base.darkened(0.40))              # 外缘：更深的元素色
+	out.push_back(base.darkened(0.10))              # 描边：接近纯元素色
+	out.push_back(base)                              # 中：纯元素色（原本这里已经开始 lerp 白，太淡）
+	out.push_back(base.lerp(Color.WHITE, 0.30))     # 近核：只掺 30% 白，仍带明显元素 tint
+	out.push_back(base.lerp(Color.WHITE, 0.55))     # 核心：55% 白 + 45% 元素色，视觉上仍是彩色而非纯白
+	return out
+
+# 默认普攻子弹：白色月牙剑气（圆环段 + y 抛物线 taper：cx=-13、r=18~21、|y|→7 收尖、px=3、80ms 闪烁）
+# 基色仍走 _bullet_element_tint()（无元素返回白），保留元素染色的调色板派生规则。
+# returning=true（sr=16 mirror 回弹）强制蓝调色板。
 func _draw_pixel_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
 	var pos: Vector2 = Vector2(s.get("pos", Vector2.ZERO))
 	var rot: float = float(s.get("rot", 0.0))
 	var life_t: float = _auto_bullet_life_t(s)
 	var t_ms: int = Time.get_ticks_msec()
 	var flicker: bool = int(t_ms / 80) % 2 == 0
-	# 选调色板：returning → 蓝；is_spirit 不会走到这里（前面已分发）；其余按元素色派生
 	var base_color: Color
 	if bool(s.get("returning", false)):
-		base_color = Color(0.30, 0.60, 1.0)  # 蓝
+		base_color = Color(0.30, 0.60, 1.0)
 	else:
 		base_color = _bullet_element_tint()
-	var palette: PackedColorArray = _derive_orb_palette(base_color)
+	var palette: PackedColorArray = _derive_sword_aura_palette(base_color)
 	var px: float = AUTO_BULLET_PIXEL
-	var rb: float = float(AUTO_BULLET_RADIUS_BLOCKS)
+	var cx: float = AUTO_BULLET_SWORD_ARC_CENTER_X
+	var r_in: float = AUTO_BULLET_SWORD_ARC_R_INNER
+	var r_out: float = AUTO_BULLET_SWORD_ARC_R_OUTER
+	var half_h: float = AUTO_BULLET_SWORD_ARC_HALF_HEIGHT
+	var mid_r: float = (r_in + r_out) * 0.5
+	var max_half_thick: float = (r_out - r_in) * 0.5
 	var local: Vector2 = pos - canvas.global_position
-	# 外发光圆晕（双层，按 life_t 淡出）
-	var glow_r1: float = px * (rb + 1.5)
-	var glow_r2: float = px * (rb + 0.5)
-	var glow_a1: float = 0.22 * life_t
-	var glow_a2: float = 0.32 * life_t
-	canvas.draw_circle(local, glow_r1, Color(base_color.r, base_color.g, base_color.b, glow_a1))
-	canvas.draw_circle(local, glow_r2, Color(base_color.r * 1.2, base_color.g * 1.2, base_color.b * 1.2, glow_a2))
-	# 像素栅格本体
+	# 月牙弧栅格：凸缘朝 +x（沿 rot 旋转到飞行方向）— 元素染色直接落在栅格调色板上，不再叠圆晕
 	canvas.draw_set_transform(local, rot, Vector2.ONE)
-	for by in range(-int(rb), int(rb) + 1):
-		for bx in range(-int(rb), int(rb) + 1):
-			var d: float = sqrt(float(bx * bx + by * by))
-			if d > rb + 0.35:
+	var x_min: int = int(floor(cx + r_in)) - 1
+	var x_max: int = int(ceil(cx + r_out)) + 1
+	var y_max: int = int(ceil(half_h)) + 1
+	for by in range(-y_max, y_max + 1):
+		var abs_by: float = absf(float(by))
+		if abs_by > half_h + 0.35:
+			continue
+		# 抛物线 taper：赤道 (t_end=0) 全厚，两端 (t_end=1) 归零 → 收成尖
+		var t_end: float = clampf(abs_by / half_h, 0.0, 1.0)
+		var local_half_thick: float = max_half_thick * (1.0 - t_end * t_end)
+		for bx in range(x_min, x_max + 1):
+			var dx: float = float(bx) - cx
+			if dx <= 0.0:
 				continue
-			var ratio: float = d / rb
-			var col: Color = _pixel_orb_block_color(ratio, flicker and ratio > 0.45, palette)
-			col.a *= 0.7 + life_t * 0.3
-			canvas.draw_rect(Rect2(bx * px - px * 0.5, by * px - px * 0.5, px, px), col)
+			var d: float = sqrt(dx * dx + float(by * by))
+			var offset: float = d - mid_r
+			# 环形段收窄判 hit：|d - 中线| ≤ 该 y 处的局部半厚（+0.35 让尖端还能画出 1 像素点）
+			if absf(offset) > local_half_thick + 0.35:
+				continue
+			# 归一化：外弧侧 (offset > 0) → t_pos 小 → 白刀刃；内凹侧 → t_pos 大 → 深描边
+			var denom: float = maxf(0.35, local_half_thick)
+			var t_pos: float = clampf(0.5 - offset / (2.0 * denom), 0.0, 1.0)
+			var idx: int
+			if t_pos < 0.20:
+				idx = 4  # 核心白（外弧刀刃）
+			elif t_pos < 0.40:
+				idx = 3  # 近白
+			elif t_pos < 0.60:
+				idx = 2  # 中
+			elif t_pos < 0.80:
+				idx = 1  # 深
+			else:
+				idx = 0  # 内凹缘描边
+			var col: Color = palette[idx]
+			# 全体块参与闪烁（刀刃处 lerp 向 palette[3] 产生"剑气抖动"，边缘处 lerp 向更深加对比）
+			if flicker:
+				var adj_idx: int = clamp(idx - 1, 0, palette.size() - 1)
+				col = col.lerp(palette[adj_idx], 0.35)
+			col.a *= 0.75 + life_t * 0.25
+			canvas.draw_rect(Rect2(float(bx) * px - px * 0.5, float(by) * px - px * 0.5, px, px), col)
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

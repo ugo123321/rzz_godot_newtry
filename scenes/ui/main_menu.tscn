@@ -11,12 +11,12 @@
 [ext_resource type="Texture2D" uid="uid://nsvmptqwdy3" path="res://assets/ui/battle/gem_icon.png" id="9_1_gem_icon"]
 [ext_resource type="Texture2D" uid="uid://jkwy8x7016ic" path="res://assets/ui/battle/gold_icon.png" id="9_gold_icon"]
 [ext_resource type="Texture2D" uid="uid://ddi8qdpland64" path="res://assets/ui/bottom/normal_button.png" id="10_tab_normal"]
-[ext_resource type="Texture2D" uid="uid://l5mk4hwcgorc" path="res://assets/ui/bottom/shop_icon.png" id="12_tab_shop"]
-[ext_resource type="Texture2D" uid="uid://bgbjww6bnbxr5" path="res://assets/ui/bottom/equipment_icon.png" id="13_tab_equip"]
-[ext_resource type="Texture2D" uid="uid://d1duu0ppfmcwf" path="res://assets/ui/bottom/battle_icon.png" id="14_tab_battle"]
+[ext_resource type="Texture2D" uid="uid://bq8prrawx0dx0" path="res://assets/ui/icons/nav/icon_nav_gacha.png" id="12_tab_shop"]
+[ext_resource type="Texture2D" uid="uid://cjomdx3kvmxbb" path="res://assets/ui/icons/nav/icon_nav_equipment.png" id="13_tab_equip"]
+[ext_resource type="Texture2D" uid="uid://dd3k2u4204yhl" path="res://assets/ui/icons/nav/icon_nav_battle.png" id="14_tab_battle"]
 [ext_resource type="Texture2D" uid="uid://dvgbb5t56b1gy" path="res://assets/ui/battle/money_bar.png" id="14_y2j7i"]
-[ext_resource type="Texture2D" uid="uid://brrt48cfcj8hp" path="res://assets/ui/bottom/dungeon_icon.png" id="15_tab_dungeon"]
-[ext_resource type="Texture2D" uid="uid://c76dabbwkh770" path="res://assets/ui/bottom/book_icon.png" id="16_tab_book"]
+[ext_resource type="Texture2D" uid="uid://dg6om53cw415s" path="res://assets/ui/icons/nav/icon_nav_dungeon.png" id="15_tab_dungeon"]
+[ext_resource type="Texture2D" uid="uid://coe7umg708wxr" path="res://assets/ui/icons/nav/icon_nav_achievement.png" id="16_tab_book"]
 
 [node name="MainMenu" type="Control" unique_id=230988136]
 custom_minimum_size = Vector2(720, 1280)
@@ -61,7 +61,7 @@ offset_bottom = -168.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 0
-theme_override_constants/margin_top = 70
+theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = -20
 

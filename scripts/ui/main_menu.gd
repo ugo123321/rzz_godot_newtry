@@ -199,31 +199,31 @@ func _apply_default_textures() -> void:
 		tab_focus_texture = _build_tab_focus_texture(false)
 
 	if icon_gacha == null:
-		icon_gacha = _load_tex("res://assets/ui/bottom/shop_icon.png")
+		icon_gacha = _load_tex("res://assets/ui/icons/nav/icon_nav_gacha.png")
 		if icon_gacha == null:
 			icon_gacha = _load_tex("res://assets/ui/home/icon_shop.png")
 		if icon_gacha == null:
 			icon_gacha = _build_tab_icon_texture(Tab.GACHA)
 	if icon_equipment == null:
-		icon_equipment = _load_tex("res://assets/ui/bottom/equipment_icon.png")
+		icon_equipment = _load_tex("res://assets/ui/icons/nav/icon_nav_equipment.png")
 		if icon_equipment == null:
 			icon_equipment = _load_tex("res://assets/ui/home/icon_bag.png")
 		if icon_equipment == null:
 			icon_equipment = _build_tab_icon_texture(Tab.EQUIPMENT)
 	if icon_stage == null:
-		icon_stage = _load_tex("res://assets/ui/bottom/battle_icon.png")
+		icon_stage = _load_tex("res://assets/ui/icons/nav/icon_nav_battle.png")
 		if icon_stage == null:
 			icon_stage = _load_tex("res://assets/ui/home/icon_battle.png")
 		if icon_stage == null:
 			icon_stage = _build_tab_icon_texture(Tab.STAGE)
 	if icon_dungeon == null:
-		icon_dungeon = _load_tex("res://assets/ui/bottom/dungeon_icon.png")
+		icon_dungeon = _load_tex("res://assets/ui/icons/nav/icon_nav_dungeon.png")
 		if icon_dungeon == null:
 			icon_dungeon = _load_tex("res://assets/ui/home/icon_map.png")
 		if icon_dungeon == null:
 			icon_dungeon = _build_tab_icon_texture(Tab.DUNGEON)
 	if icon_achievement == null:
-		icon_achievement = _load_tex("res://assets/ui/bottom/book_icon.png")
+		icon_achievement = _load_tex("res://assets/ui/icons/nav/icon_nav_achievement.png")
 		if icon_achievement == null:
 			icon_achievement = _load_tex("res://assets/ui/home/icon_book.png")
 		if icon_achievement == null:
@@ -309,12 +309,24 @@ func _apply_default_textures() -> void:
 	_apply_top_bar_textures()
 
 
+# v1.1 抗锯齿：UI 图默认 LINEAR（高清美术），只有装备物品 icon（BagSlot/SlotXxx 里的 ItemIcon）
+# 是像素艺术要保持 NEAREST。判断依据：TextureRect 的 name == "ItemIcon" 或父节点是 BagSlot* / Slot* TextureButton。
 func _apply_pixel_filter() -> void:
 	for node in _collect_texture_nodes(self):
-		if node is TextureRect or node is TextureButton:
-			if node == _stage_icon:
-				continue
+		if not (node is TextureRect or node is TextureButton):
+			continue
+		if _should_keep_nearest(node):
 			node.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		else:
+			node.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+
+
+func _should_keep_nearest(node: Node) -> bool:
+	# 装备物品图标（像素艺术）保持 NEAREST
+	if str(node.name) == "ItemIcon":
+		return true
+	# 保留原来 _stage_icon 的 LINEAR 逻辑（stage_icon 是关卡图，本来就是 LINEAR，跳过）
+	return false
 
 
 func _collect_texture_nodes(root: Node) -> Array:

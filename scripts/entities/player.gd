@@ -187,11 +187,25 @@ var trail_width_pct_total: float = 0.0   # sr=29 trail_width 累加
 var stand_guard_timer: float = 0.0       # sr=9 stand_guard 累计静止时长
 var stand_guard_active: bool = false     # sr=9 stand_guard 当前是否激活
 var combo_charge_time: float = 0.0       # sr=21 combo_charge 蓄力时长
-var bullet_homing_enabled: bool = false  # sr=12 bullet_homing 标记
+var bullet_homing_enabled: bool = false  # sr=12 bullet_homing 标记 / 装备 storm_greatsword 传奇也置 true
 var bullet_mirror_mult: float = 0.0      # sr=16 bullet_mirror 回弹伤害倍率(0=关)
 var iframe_cd_timer: float = 0.0         # sr=10 iframe_on_hit CD 计时
 var flame_walk_timer: float = 0.0        # sr=5 trail_burn_walk tick 计时
 var aura_tick_timer: float = 0.0         # sr=3 aura tick 计时
+
+# ---- 装备（equipments.json）驱动的属性 / flag ----
+# 全部走加法叠加：pct 类先求和 total_pct，再一次性 base × total_pct 作用一次。
+var equip_max_ki_pct: float = 0.0        # 累加进 ki_max_pct_total
+var equip_ki_regen_pct: float = 0.0      # 累加进 ki_regen_pct_total
+var equip_move_speed_add: float = 0.0    # move_speed 直接加法（flat）
+var equip_crit_damage_pct: float = 0.0   # 已在 _load_base_stats 里 apply（base × pct 一次），此变量仅供 rebuild 复用
+# 装备 flag（sturdy_helmet 橙 / nimble_boots 橙）
+var hit_dodge_chance: float = 0.0        # 5% 概率免伤（受击时判定）
+var aura_shock_enabled: bool = false     # 持续电击靠近的敌人
+var aura_shock_tick_timer: float = 0.0
+const AURA_SHOCK_RADIUS: float = 90.0
+const AURA_SHOCK_TICK: float = 0.5
+const AURA_SHOCK_ATK_MULT: float = 0.15
 
 # Phase 6 SR 字段
 var trail_multi_count: int = 0           # sr=24 trail_multi 多重轨迹（影响 path_hit_pad）
@@ -316,6 +330,15 @@ func _load_base_stats() -> void:
 		base_attack += float(equip.get("attack", 0.0))
 		max_hp += int(equip.get("max_hp", 0))
 		crit_rate += float(equip.get("crit_rate", 0.0))
+		# 加法叠加：crit_damage 的 +% 只在 base × total_pct 上作用一次，不复利。
+		var eq_crit_dmg_pct := float(equip.get("crit_damage", 0.0))
+		if eq_crit_dmg_pct != 0.0:
+			crit_damage += crit_damage * eq_crit_dmg_pct
+		# 缓存 pct / flat 供 _rebuild_upgrades 复用（rebuild 会重置 base 值，需重新 apply）
+		equip_max_ki_pct = float(equip.get("max_ki_pct", 0.0))
+		equip_ki_regen_pct = float(equip.get("ki_regen_pct", 0.0))
+		equip_move_speed_add = float(equip.get("move_speed", 0.0))
+		equip_crit_damage_pct = eq_crit_dmg_pct
 		hp = max_hp
 	size_scale = 1.0
 	bullet_count = 1
@@ -937,6 +960,12 @@ func make_ability_damage(source: String, mult: float, category: String, element:
 func take_damage(amount: int) -> int:
 	if invincible_timer > 0.0 or is_attack_invincible():
 		return 0
+	# 装备 sturdy_helmet 橙：5% 概率完全免伤（加法概率，不复利）
+	if hit_dodge_chance > 0.0 and randf() < hit_dodge_chance:
+		var battle_dodge := get_tree().get_first_node_in_group("battle")
+		if battle_dodge and battle_dodge.hud:
+			battle_dodge.hud.show_message(LanguageManager.tr_ui("UI_HUD_DODGE", "闪避"), 0.6)
+		return 0
 	# 过场期间免伤（玩家在跳跃 / 滚轴中不可被命中）
 	var battle := get_tree().get_first_node_in_group("battle")
 	if battle and "_transition_damage_lock" in battle and battle._transition_damage_lock:
@@ -963,6 +992,55 @@ func take_damage(amount: int) -> int:
 		battle.shake_camera(4.0, 0.12)
 	return final_damage
 
+
+func apply_equipment_flags(flags: Dictionary) -> void:
+	# 由 _rebuild_upgrades 末尾调用；负责把 LobbyState.get_active_equipment_flags() 的布尔状态
+	# 映射到 player 上的行为变量。tree_x2 属于关卡侧，由 battle.gd 单独读。
+	# 装 storm_greatsword 传奇 → 与卡片 sr=12 逻辑或运算（两者任一 true 都开启）
+	if bool(flags.get("bullet_homing", false)):
+		bullet_homing_enabled = true
+	# 5% 概率免伤
+	hit_dodge_chance = 0.05 if bool(flags.get("hit_dodge_5pct", false)) else 0.0
+	# 持续电击靠近的敌人
+	aura_shock_enabled = bool(flags.get("shock_aura", false))
+	if not aura_shock_enabled:
+		aura_shock_tick_timer = 0.0
+
+
+func _process_aura_shock(delta: float) -> void:
+	if not aura_shock_enabled:
+		return
+	aura_shock_tick_timer -= delta
+	if aura_shock_tick_timer > 0.0:
+		return
+	aura_shock_tick_timer = AURA_SHOCK_TICK
+	var battle := get_tree().get_first_node_in_group("battle")
+	if battle == null:
+		return
+	var monsters := get_tree().get_nodes_in_group("monster")
+	if monsters.is_empty():
+		return
+	var origin := global_position
+	var radius_sq := AURA_SHOCK_RADIUS * AURA_SHOCK_RADIUS
+	var dmg := maxi(1, int(round(get_ability_damage(AURA_SHOCK_ATK_MULT))))
+	for m in monsters:
+		if m == null or not is_instance_valid(m):
+			continue
+		if not (m is Node2D):
+			continue
+		if origin.distance_squared_to(m.global_position) > radius_sq:
+			continue
+		# 走 DamageInfo（雷元素 → Sheet4 element_effects 自动应用麻痹，遵守 CLAUDE.md 第一条）
+		var info := DamageInfo.legacy(dmg)
+		info.source = "equip_shock_aura"
+		info.category = "ability"
+		info.element = "thunder"
+		info.can_crit = false
+		info.is_dot = true
+		if m.has_method("take_damage_info"):
+			m.take_damage_info(info, origin)
+		elif m.has_method("take_damage"):
+			m.take_damage(dmg, origin)
 
 func heal_percent(ratio: float) -> void:
 	var amount := int(round(max_hp * ratio))
@@ -1174,6 +1252,9 @@ func _rebuild_upgrades() -> void:
 	ki_max_pct_total += forge_ki_max_pct_total
 	ki_regen_pct_total += forge_ki_regen_pct_total
 	crit_rate += forge_crit_rate_total
+	# 装备（equipments.json）% 加成也进 total_pct，一起在下面一次性 apply（不复利）
+	ki_max_pct_total += equip_max_ki_pct
+	ki_regen_pct_total += equip_ki_regen_pct
 
 	# v6 attr 累加 -> 实际生效字段
 	attack_speed_mult = 1.0 + atk_speed_pct_total
@@ -1193,6 +1274,13 @@ func _rebuild_upgrades() -> void:
 		base_attack += float(equip.get("attack", 0.0))
 		max_hp += int(equip.get("max_hp", 0))
 		crit_rate += float(equip.get("crit_rate", 0.0))
+		# crit_damage +% 在 rebuild 后再作用一次（因 base 值刚被卡片系统重设）
+		var eq_crit_dmg_pct2 := float(equip.get("crit_damage", 0.0))
+		if eq_crit_dmg_pct2 != 0.0:
+			crit_damage += crit_damage * eq_crit_dmg_pct2
+		# 装备 flag（tree_x2 由 battle.gd 直接读；这里只处理玩家自身 flag）
+		var flags: Dictionary = LobbyState.get_active_equipment_flags()
+		apply_equipment_flags(flags)
 	ki_max = base_ki
 	ki_regen_speed *= ki_regen_mult
 	hp = mini(hp, max_hp)
@@ -1369,7 +1457,8 @@ func update_joystick_locomotion(dir: Vector2, delta: float, battle: Node) -> voi
 		return
 	_check_water_under_feet(battle)
 	var water_mult := WATER_SLOW_MULT if on_water_terrain else 1.0
-	var speed := float(GameConfig.get_player_value("move_speed", 120.0)) * move_speed_penalty_mult * water_mult
+	var base_move := float(GameConfig.get_player_value("move_speed", 120.0)) + equip_move_speed_add
+	var speed := base_move * move_speed_penalty_mult * water_mult
 	var next_pos := global_position + dir.normalized() * speed * delta
 	var blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(next_pos)
 	if battle != null and battle.has_method("is_in_bounds") and battle.is_in_bounds(next_pos) and not blocked:
@@ -1712,6 +1801,7 @@ func _process(delta: float) -> void:
 	if trigger_dispatcher != null:
 		trigger_dispatcher.tick(delta)
 	SpecialRuleDispatcherT.on_tick(self, delta)
+	_process_aura_shock(delta)
 	if is_fail_death_pose():
 		path_line.visible = false
 		for _l in _trail_extra_lines:

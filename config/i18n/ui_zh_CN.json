@@ -33,6 +33,7 @@
   "UI_HUD_CLICK_TO_START": "点击屏幕开始游戏",
   "UI_HUD_DAMAGE_TAKEN_FMT": "受到攻击！剩余 %d HP",
   "UI_HUD_HEAL_FMT": "回复 %d HP（%d）",
+  "UI_HUD_DODGE": "闪避！",
 
   "UI_MAIN_NO_CHAPTER": "暂无章节",
   "UI_MAIN_DEFAULT_CHAPTER": "章节",
