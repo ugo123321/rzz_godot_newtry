@@ -199,6 +199,18 @@ var equip_max_ki_pct: float = 0.0        # 累加进 ki_max_pct_total
 var equip_ki_regen_pct: float = 0.0      # 累加进 ki_regen_pct_total
 var equip_move_speed_add: float = 0.0    # move_speed 直接加法（flat）
 var equip_crit_damage_pct: float = 0.0   # 已在 _load_base_stats 里 apply（base × pct 一次），此变量仅供 rebuild 复用
+
+# ---- 天赋卡牌（talents.json）flat 加成缓存 ----
+# 全部走加法，_load_base_stats 中一次性 apply；_rebuild_upgrades 中同样重加一次（rebuild 会重置 base 值）。
+var talent_attack_add: float = 0.0
+var talent_max_hp_add: int = 0
+var talent_max_ki_add: float = 0.0
+var talent_ki_regen_add: float = 0.0
+var talent_crit_rate_add: float = 0.0
+var talent_crit_damage_add: float = 0.0
+var talent_move_speed_add: float = 0.0
+var talent_attack_interval_add: float = 0.0   # 攻速卡：累加负值 → 缩短 attack_interval（get_auto_bullet_cycle_interval 里 apply）
+var talent_bullet_range_add: float = 0.0      # 射程卡：累加 px；ability_manager 通过 get_effective_auto_bullet_range() 读取
 # 装备 flag（sturdy_helmet 橙 / nimble_boots 橙）
 var hit_dodge_chance: float = 0.0        # 5% 概率免伤（受击时判定）
 var aura_shock_enabled: bool = false     # 持续电击靠近的敌人
@@ -339,7 +351,26 @@ func _load_base_stats() -> void:
 		equip_ki_regen_pct = float(equip.get("ki_regen_pct", 0.0))
 		equip_move_speed_add = float(equip.get("move_speed", 0.0))
 		equip_crit_damage_pct = eq_crit_dmg_pct
+		# 天赋卡：读取当前 owned 卡的 flat 加成并 apply（下一次 rebuild 也会再 apply 一次）
+		var talent := LobbyState.get_talent_modifiers()
+		talent_attack_add = float(talent.get("attack", 0.0))
+		talent_max_hp_add = int(talent.get("max_hp", 0))
+		talent_max_ki_add = float(talent.get("max_ki", 0.0))
+		talent_ki_regen_add = float(talent.get("ki_regen", 0.0))
+		talent_crit_rate_add = float(talent.get("crit_rate", 0.0))
+		talent_crit_damage_add = float(talent.get("crit_damage", 0.0))
+		talent_move_speed_add = float(talent.get("move_speed", 0.0))
+		talent_attack_interval_add = float(talent.get("attack_interval", 0.0))
+		talent_bullet_range_add = float(talent.get("bullet_range", 0.0))
+		base_attack += talent_attack_add
+		max_hp += talent_max_hp_add
+		base_ki += talent_max_ki_add
+		ki_regen_speed += talent_ki_regen_add
+		crit_rate += talent_crit_rate_add
+		crit_damage += talent_crit_damage_add
 		hp = max_hp
+		ki_max = base_ki
+		ki = ki_max
 	size_scale = 1.0
 	bullet_count = 1
 
@@ -454,7 +485,15 @@ func is_attack_invincible() -> bool:
 
 
 func get_auto_bullet_cycle_interval() -> float:
-	return 1.0 / maxf(0.01, basic_attack_speed * attack_speed_mult * bonus_attack_speed_mult * move_speed_penalty_mult)
+	var interval := 1.0 / maxf(0.01, basic_attack_speed * attack_speed_mult * bonus_attack_speed_mult * move_speed_penalty_mult)
+	# 攻速卡：talent_attack_interval_add 为负值 → 缩短 interval；clamp 最小 0.05s 避免刷屏
+	return maxf(0.05, interval + talent_attack_interval_add)
+
+
+# 射程卡：base auto_bullet_range + talent bullet_range 加成（ability_manager 消费）
+func get_effective_auto_bullet_range() -> float:
+	var base_range := float(GameConfig.get_player_value("auto_bullet_range", 378))
+	return base_range + talent_bullet_range_add
 
 
 func sync_auto_bullet_anim_speed() -> void:
@@ -1281,6 +1320,23 @@ func _rebuild_upgrades() -> void:
 		# 装备 flag（tree_x2 由 battle.gd 直接读；这里只处理玩家自身 flag）
 		var flags: Dictionary = LobbyState.get_active_equipment_flags()
 		apply_equipment_flags(flags)
+		# 天赋卡 flat 加成：rebuild 会重置 base_attack/max_hp/base_ki/crit_rate/ki_regen_speed，需要重新加上
+		var talent := LobbyState.get_talent_modifiers()
+		talent_attack_add = float(talent.get("attack", 0.0))
+		talent_max_hp_add = int(talent.get("max_hp", 0))
+		talent_max_ki_add = float(talent.get("max_ki", 0.0))
+		talent_ki_regen_add = float(talent.get("ki_regen", 0.0))
+		talent_crit_rate_add = float(talent.get("crit_rate", 0.0))
+		talent_crit_damage_add = float(talent.get("crit_damage", 0.0))
+		talent_move_speed_add = float(talent.get("move_speed", 0.0))
+		talent_attack_interval_add = float(talent.get("attack_interval", 0.0))
+		talent_bullet_range_add = float(talent.get("bullet_range", 0.0))
+		base_attack += talent_attack_add
+		max_hp += talent_max_hp_add
+		base_ki += talent_max_ki_add
+		ki_regen_speed += talent_ki_regen_add
+		crit_rate += talent_crit_rate_add
+		crit_damage += talent_crit_damage_add
 	ki_max = base_ki
 	ki_regen_speed *= ki_regen_mult
 	hp = mini(hp, max_hp)
@@ -1457,7 +1513,7 @@ func update_joystick_locomotion(dir: Vector2, delta: float, battle: Node) -> voi
 		return
 	_check_water_under_feet(battle)
 	var water_mult := WATER_SLOW_MULT if on_water_terrain else 1.0
-	var base_move := float(GameConfig.get_player_value("move_speed", 120.0)) + equip_move_speed_add
+	var base_move := float(GameConfig.get_player_value("move_speed", 120.0)) + equip_move_speed_add + talent_move_speed_add
 	var speed := base_move * move_speed_penalty_mult * water_mult
 	var next_pos := global_position + dir.normalized() * speed * delta
 	var blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(next_pos)

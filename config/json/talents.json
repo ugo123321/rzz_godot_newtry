@@ -1,0 +1,464 @@
+{
+  "talents": [
+    {
+      "id": "strength",
+      "name_cn": "力量",
+      "name_en": "Strength",
+      "quality": 0,
+      "weight": 15,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "attack",
+          "per_level": 2.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "攻击力+{v0}",
+      "desc_template_en": "ATK +{v0}",
+      "display": [
+        {
+          "per_level": 2.0,
+          "pct": false
+        }
+      ]
+    },
+    {
+      "id": "hp",
+      "name_cn": "生命",
+      "name_en": "Vitality",
+      "quality": 0,
+      "weight": 15,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "max_hp",
+          "per_level": 2.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "生命+{v0}",
+      "desc_template_en": "HP +{v0}",
+      "display": [
+        {
+          "per_level": 2.0,
+          "pct": false
+        }
+      ]
+    },
+    {
+      "id": "ki",
+      "name_cn": "气力",
+      "name_en": "Ki",
+      "quality": 1,
+      "weight": 10,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "max_ki",
+          "per_level": 5.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "气力上限+{v0}",
+      "desc_template_en": "Max Ki +{v0}",
+      "display": [
+        {
+          "per_level": 5.0,
+          "pct": false
+        }
+      ]
+    },
+    {
+      "id": "ki_regen",
+      "name_cn": "回气",
+      "name_en": "Ki Regen",
+      "quality": 1,
+      "weight": 10,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "ki_regen",
+          "per_level": 2.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "气力回复速度+{v0}",
+      "desc_template_en": "Ki Regen +{v0}",
+      "display": [
+        {
+          "per_level": 2.0,
+          "pct": false
+        }
+      ]
+    },
+    {
+      "id": "crit_rate",
+      "name_cn": "暴击率",
+      "name_en": "Crit Rate",
+      "quality": 1,
+      "weight": 10,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "crit_rate",
+          "per_level": 0.005
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "暴击率+{v0}",
+      "desc_template_en": "Crit Rate +{v0}",
+      "display": [
+        {
+          "per_level": 0.5,
+          "pct": true
+        }
+      ]
+    },
+    {
+      "id": "crit_damage",
+      "name_cn": "暴伤",
+      "name_en": "Crit Damage",
+      "quality": 1,
+      "weight": 10,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "crit_damage",
+          "per_level": 0.02
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "暴击伤害倍率+{v0}",
+      "desc_template_en": "Crit Damage +{v0}",
+      "display": [
+        {
+          "per_level": 2.0,
+          "pct": true
+        }
+      ]
+    },
+    {
+      "id": "move_speed",
+      "name_cn": "移速",
+      "name_en": "Move Speed",
+      "quality": 1,
+      "weight": 10,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "move_speed",
+          "per_level": 5.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "移动速度+{v0}",
+      "desc_template_en": "Move Speed +{v0}",
+      "display": [
+        {
+          "per_level": 5.0,
+          "pct": false
+        }
+      ]
+    },
+    {
+      "id": "range",
+      "name_cn": "射程",
+      "name_en": "Range",
+      "quality": 0,
+      "weight": 15,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "bullet_range",
+          "per_level": 15.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "射程+{v0}",
+      "desc_template_en": "Range +{v0}",
+      "display": [
+        {
+          "per_level": 5.0,
+          "pct": true
+        }
+      ]
+    },
+    {
+      "id": "atk_speed",
+      "name_cn": "攻速",
+      "name_en": "Attack Speed",
+      "quality": 0,
+      "weight": 15,
+      "max_level": 10,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "attack_interval",
+          "per_level": -0.05
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "攻速+{v0}",
+      "desc_template_en": "Attack Speed +{v0}",
+      "display": [
+        {
+          "per_level": 2.0,
+          "pct": true
+        }
+      ]
+    },
+    {
+      "id": "lethal_strike",
+      "name_cn": "致命一击",
+      "name_en": "Lethal Strike",
+      "quality": 2,
+      "weight": 5,
+      "max_level": 3,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "crit_rate",
+          "per_level": 0.05
+        },
+        {
+          "key": "crit_damage",
+          "per_level": 0.05
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "暴击率+{v0}, 暴击伤害倍率+{v1}",
+      "desc_template_en": "Crit Rate +{v0}, Crit Damage +{v1}",
+      "display": [
+        {
+          "per_level": 5.0,
+          "pct": true
+        },
+        {
+          "per_level": 5.0,
+          "pct": true
+        }
+      ]
+    },
+    {
+      "id": "lightning_dash",
+      "name_cn": "电光石火",
+      "name_en": "Lightning Dash",
+      "quality": 2,
+      "weight": 5,
+      "max_level": 3,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "move_speed",
+          "per_level": 5.0
+        },
+        {
+          "key": "attack_interval",
+          "per_level": -0.1
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "移动速度+{v0}, 攻速+{v1}",
+      "desc_template_en": "Move Speed +{v0}, Attack Speed +{v1}",
+      "display": [
+        {
+          "per_level": 5.0,
+          "pct": false
+        },
+        {
+          "per_level": 5.0,
+          "pct": true
+        }
+      ]
+    },
+    {
+      "id": "meditation",
+      "name_cn": "冥想",
+      "name_en": "Meditation",
+      "quality": 2,
+      "weight": 5,
+      "max_level": 3,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "max_ki",
+          "per_level": 10.0
+        },
+        {
+          "key": "ki_regen",
+          "per_level": 5.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "气力上限+{v0}, 气力回复速度+{v1}",
+      "desc_template_en": "Max Ki +{v0}, Ki Regen +{v1}",
+      "display": [
+        {
+          "per_level": 5.0,
+          "pct": false
+        },
+        {
+          "per_level": 5.0,
+          "pct": false
+        }
+      ]
+    },
+    {
+      "id": "super_enhance",
+      "name_cn": "超级强化",
+      "name_en": "Super Enhance",
+      "quality": 2,
+      "weight": 5,
+      "max_level": 3,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "attack",
+          "per_level": 10.0
+        },
+        {
+          "key": "max_hp",
+          "per_level": 5.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "攻击力+{v0}, 生命+{v1}",
+      "desc_template_en": "ATK +{v0}, HP +{v1}",
+      "display": [
+        {
+          "per_level": 10.0,
+          "pct": false
+        },
+        {
+          "per_level": 5.0,
+          "pct": false
+        }
+      ]
+    },
+    {
+      "id": "long_range_strike",
+      "name_cn": "远程打击",
+      "name_en": "Long-Range Strike",
+      "quality": 2,
+      "weight": 5,
+      "max_level": 3,
+      "pity_target": 0,
+      "effects": [
+        {
+          "key": "attack",
+          "per_level": 5.0
+        },
+        {
+          "key": "bullet_range",
+          "per_level": 20.0
+        }
+      ],
+      "unlock_flag": "",
+      "desc_template_cn": "攻击力+{v0}, 射程+{v1}",
+      "desc_template_en": "ATK +{v0}, Range +{v1}",
+      "display": [
+        {
+          "per_level": 5.0,
+          "pct": false
+        },
+        {
+          "per_level": 6.0,
+          "pct": true
+        }
+      ]
+    },
+    {
+      "id": "unlock_first_reward",
+      "name_cn": "先发制人",
+      "name_en": "First Strike",
+      "quality": 3,
+      "weight": 1,
+      "max_level": 1,
+      "pity_target": 5,
+      "effects": [],
+      "unlock_flag": "first_reward",
+      "desc_template_cn": "进入游戏时触发一次奖励",
+      "desc_template_en": "Trigger one reward on game start",
+      "display": []
+    },
+    {
+      "id": "unlock_angel_stage",
+      "name_cn": "天使关",
+      "name_en": "Angel Stage",
+      "quality": 3,
+      "weight": 1,
+      "max_level": 1,
+      "pity_target": 15,
+      "effects": [],
+      "unlock_flag": "angel_stage",
+      "desc_template_cn": "解锁天使关",
+      "desc_template_en": "Unlock Angel Stage",
+      "display": []
+    },
+    {
+      "id": "unlock_demon_stage",
+      "name_cn": "恶魔关",
+      "name_en": "Demon Stage",
+      "quality": 3,
+      "weight": 1,
+      "max_level": 1,
+      "pity_target": 20,
+      "effects": [],
+      "unlock_flag": "demon_stage",
+      "desc_template_cn": "解锁恶魔关",
+      "desc_template_en": "Unlock Demon Stage",
+      "display": []
+    },
+    {
+      "id": "unlock_forge_stage",
+      "name_cn": "属性打造",
+      "name_en": "Attribute Forge",
+      "quality": 3,
+      "weight": 1,
+      "max_level": 1,
+      "pity_target": 30,
+      "effects": [],
+      "unlock_flag": "forge_stage",
+      "desc_template_cn": "解锁属性打造关",
+      "desc_template_en": "Unlock Attribute Forge Stage",
+      "display": []
+    },
+    {
+      "id": "unlock_mystery_portal",
+      "name_cn": "神秘大奖",
+      "name_en": "Mystery Grand Prize",
+      "quality": 3,
+      "weight": 1,
+      "max_level": 1,
+      "pity_target": 10,
+      "effects": [],
+      "unlock_flag": "mystery_portal",
+      "desc_template_cn": "偶尔会出现神秘传送门",
+      "desc_template_en": "Mystery portals may appear",
+      "display": []
+    },
+    {
+      "id": "unlock_elite_enemy",
+      "name_cn": "精英化",
+      "name_en": "Elite Mutation",
+      "quality": 3,
+      "weight": 1,
+      "max_level": 1,
+      "pity_target": 25,
+      "effects": [],
+      "unlock_flag": "elite_enemy",
+      "desc_template_cn": "敌人小概率变异",
+      "desc_template_en": "Enemies may mutate into elites",
+      "display": []
+    }
+  ]
+}

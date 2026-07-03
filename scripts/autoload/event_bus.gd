@@ -19,3 +19,4 @@ signal equipment_changed
 signal forge_buff_applied(buff_name_cn: String, delta_pct: float, world_pos: Vector2)
 signal forge_session_complete(rarity: String, stacked_count: int)
 signal language_changed(lang: String)
+signal talent_changed(id: String, old_level: int, new_level: int)

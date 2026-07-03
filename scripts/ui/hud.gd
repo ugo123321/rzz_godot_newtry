@@ -276,7 +276,7 @@ func _draw() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		viewport_size = get_viewport_rect().size
 
-	_draw_wood_widget()
+	_draw_gold_widget()
 
 	if _countdown_show:
 		_draw_countdown(viewport_size)

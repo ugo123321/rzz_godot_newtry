@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1n3ldxyyajdm"
-path="res://.godot/imported/Wox grass fill.png-7d0696e6efc041253c747f093bafe7b0.ctex"
+uid="uid://d3rmvl5ee6cfg"
+path="res://.godot/imported/1.jpg-413234d1ea2f649380316e23208fdc5e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scenes/ui/Wox grass fill.png"
-dest_files=["res://.godot/imported/Wox grass fill.png-7d0696e6efc041253c747f093bafe7b0.ctex"]
+source_file="res://cankao/1.jpg"
+dest_files=["res://.godot/imported/1.jpg-413234d1ea2f649380316e23208fdc5e.ctex"]
 
 [params]
 

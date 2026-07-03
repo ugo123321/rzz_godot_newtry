@@ -182,5 +182,16 @@
   "UI_BUFF_NOTICE_ATTACK": "ATK +30%",
   "UI_BUFF_NOTICE_KI": "Ki +30%",
   "UI_BUFF_NOTICE_COMBO": "Combo x2",
-  "UI_BUFF_NOTICE_ICE": "Freeze Orb"
+  "UI_BUFF_NOTICE_ICE": "Freeze Orb",
+
+  "UI_TALENT_TITLE": "Talent Cards",
+  "UI_TALENT_DRAW": "Draw",
+  "UI_TALENT_CLOSE_HINT": "Tap blank area to close",
+  "UI_TALENT_LV_FMT": "LV%d",
+  "UI_TALENT_INSUFFICIENT_GOLD": "Not enough gold",
+  "UI_TALENT_MAX_LEVEL": "Max",
+  "UI_TALENT_MAX_ALL": "All talents maxed",
+  "UI_TALENT_LOCKED": "?",
+  "UI_TALENT_PITY_HIT": "Pity Guaranteed!",
+  "UI_TALENT_DEBUG_UNLOCK_ALL": "Unlock All"
 }

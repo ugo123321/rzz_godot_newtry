@@ -44,6 +44,9 @@ func update(delta: float, battle: Node) -> void:
 
 
 func _spawn_portal(battle: Node) -> void:
+	# 神秘大奖卡门控：未抽到 → 传送门不 spawn
+	if LobbyState and not LobbyState.has_unlock("mystery_portal"):
+		return
 	var w := float(GameConfig.get_tuning("logical_width", 720))
 	var h := float(GameConfig.get_tuning("logical_height", 1280))
 	var safe: Vector2 = battle.player.global_position if battle.player else Vector2(w * 0.5, h * 0.5)

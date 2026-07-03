@@ -32,7 +32,7 @@ const QUALITY_COLORS := ["#f2f2f2", "#57a8ff", "#b172ff", "#ffa640"]
 const DROP_RATE := 0.10
 const EQUIPMENT_DROP_ENABLED := true
 
-var gold: int = 0
+var gold: int = 5000
 var wood: int = 0
 var equipment_inventory: Array[Dictionary] = []
 var equipped_by_slot: Dictionary = {}
@@ -48,9 +48,19 @@ const EQUIPMENTS_JSON_PATH := "res://config/json/equipments.json"
 # 由 config/json/equipments.json 加载。tools/export_equipments_json.py 从 xlsx 生成。
 var equipment_defs: Dictionary = {}
 
+# 天赋卡牌（config/excel/card.xlsx → config/json/talents.json）
+const TALENTS_JSON_PATH := "res://config/json/talents.json"
+const TALENT_DRAW_COST := 100
+var talent_defs: Dictionary = {}           # id -> def dict（含 effects[] / display[] / unlock_flag / pity_target 等）
+var talent_order: Array[String] = []       # 保持 xlsx 顺序，供 UI 网格排列
+var talents_owned: Dictionary = {}         # id -> level (int, 1..max_level)
+var talent_pity_counters: Dictionary = {}  # id -> 连续未抽到该卡的次数（选中归零；不入 pool 的卡不动）
+var _first_reward_given_this_run: bool = false  # 先发制人卡的 per-run flag，由 request_battle_launch 重置
+
 
 func _ready() -> void:
 	_load_equipment_defs()
+	_load_talent_defs()
 	_ensure_slot_state()
 	call_deferred("_emit_all_state")
 
@@ -97,9 +107,241 @@ func _load_equipment_defs() -> void:
 		equipment_defs[def_id] = def
 
 
+func _load_talent_defs() -> void:
+	talent_defs.clear()
+	talent_order.clear()
+	if not ResourceLoader.exists(TALENTS_JSON_PATH):
+		push_warning("[LobbyState] talents.json not found at %s" % TALENTS_JSON_PATH)
+		return
+	var f := FileAccess.open(TALENTS_JSON_PATH, FileAccess.READ)
+	if f == null:
+		push_warning("[LobbyState] failed to open %s" % TALENTS_JSON_PATH)
+		return
+	var text := f.get_as_text()
+	f.close()
+	var parsed = JSON.parse_string(text)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		push_warning("[LobbyState] talents.json is not a dict")
+		return
+	var arr = parsed.get("talents", [])
+	if typeof(arr) != TYPE_ARRAY:
+		return
+	for rec in arr:
+		if typeof(rec) != TYPE_DICTIONARY:
+			continue
+		var tid := str(rec.get("id", ""))
+		if tid.is_empty():
+			continue
+		talent_defs[tid] = rec.duplicate(true)
+		talent_order.append(tid)
+
+
+func get_talent_def(id: String) -> Dictionary:
+	var src: Dictionary = talent_defs.get(id, {})
+	return src.duplicate(true)
+
+
+func get_talent_level(id: String) -> int:
+	return int(talents_owned.get(id, 0))
+
+
+func get_owned_talent_ids() -> Array[String]:
+	var result: Array[String] = []
+	for tid in talent_order:
+		if int(talents_owned.get(tid, 0)) > 0:
+			result.append(tid)
+	return result
+
+
+# 结果 dict：
+#   {}                              = 抽卡失败（余额不足）
+#   {status:"max_all", id:""}       = 全部满级；不扣款
+#   {status:"ok", id, level_before, level_after, is_new, is_pity, def}
+func draw_talent_card() -> Dictionary:
+	if talent_order.is_empty():
+		return {}
+	# 先收集所有未满级候选（保底 counter 只对未满级卡生效）
+	var pool: Array[String] = []
+	var weights: Array[int] = []
+	var total_weight := 0
+	for tid in talent_order:
+		var def: Dictionary = talent_defs[tid]
+		var max_lv := int(def.get("max_level", 1))
+		var cur_lv := int(talents_owned.get(tid, 0))
+		if cur_lv >= max_lv:
+			continue
+		var w := int(def.get("weight", 1))
+		if w <= 0:
+			continue
+		pool.append(tid)
+		weights.append(w)
+		total_weight += w
+	if pool.is_empty():
+		return {"status": "max_all", "id": ""}
+	if gold < TALENT_DRAW_COST:
+		return {}
+	if not spend_gold(TALENT_DRAW_COST):
+		return {}
+	# 保底检查：任何 candidate 的 counter+1 >= pity_target 就强制中它（多张时选 counter 最大）
+	var picked_id := ""
+	var is_pity := false
+	var pity_champ := ""
+	var pity_champ_counter := -1
+	for tid in pool:
+		var def: Dictionary = talent_defs[tid]
+		var pity_target := int(def.get("pity_target", 0))
+		if pity_target <= 0:
+			continue
+		var counter := int(talent_pity_counters.get(tid, 0))
+		# 本次抽卡未中就会 +1，所以判断 counter+1 >= pity_target 即为触发
+		if counter + 1 >= pity_target and counter > pity_champ_counter:
+			pity_champ = tid
+			pity_champ_counter = counter
+	if pity_champ != "":
+		picked_id = pity_champ
+		is_pity = true
+	else:
+		# 正常加权随机
+		var roll := randi_range(1, total_weight)
+		var acc := 0
+		picked_id = pool[0]
+		for i in range(pool.size()):
+			acc += weights[i]
+			if roll <= acc:
+				picked_id = pool[i]
+				break
+	# counter 更新：未选中 → +1；选中 → 归零
+	for tid in pool:
+		if tid == picked_id:
+			talent_pity_counters[tid] = 0
+		else:
+			talent_pity_counters[tid] = int(talent_pity_counters.get(tid, 0)) + 1
+	var level_before := int(talents_owned.get(picked_id, 0))
+	var level_after := level_before + 1
+	talents_owned[picked_id] = level_after
+	if EventBus:
+		EventBus.talent_changed.emit(picked_id, level_before, level_after)
+	return {
+		"status": "ok",
+		"id": picked_id,
+		"level_before": level_before,
+		"level_after": level_after,
+		"is_new": level_before == 0,
+		"is_pity": is_pity,
+		"def": talent_defs[picked_id].duplicate(true),
+	}
+
+
+# 是否已解锁指定 unlock_flag（橙卡 unlock_flag 非空 + level >= 1）
+func has_unlock(flag: String) -> bool:
+	if flag.is_empty():
+		return false
+	for tid in talents_owned.keys():
+		if int(talents_owned[tid]) < 1:
+			continue
+		var def: Dictionary = talent_defs.get(tid, {})
+		if str(def.get("unlock_flag", "")) == flag:
+			return true
+	return false
+
+
+# 调试专用：一键把所有 unlock 卡设为 LV1（发 talent_changed 循环让 UI refresh）
+func force_unlock_all_orange() -> void:
+	for tid in talent_order:
+		var def: Dictionary = talent_defs.get(tid, {})
+		if str(def.get("unlock_flag", "")).is_empty():
+			continue
+		var old_lv := int(talents_owned.get(tid, 0))
+		if old_lv >= 1:
+			continue
+		talents_owned[tid] = 1
+		if EventBus:
+			EventBus.talent_changed.emit(tid, old_lv, 1)
+
+
+# 累加所有已拥有卡片的当前等级效果 → 属性通道字典
+func get_talent_modifiers() -> Dictionary:
+	var mods := {
+		"attack": 0.0,
+		"max_hp": 0,
+		"max_ki": 0.0,
+		"ki_regen": 0.0,
+		"crit_rate": 0.0,
+		"crit_damage": 0.0,
+		"move_speed": 0.0,
+		"attack_interval": 0.0,   # 累加负值 → 减少 attack_interval → 提升攻速
+		"bullet_range": 0.0,      # 累加子弹有效射程 (px)
+	}
+	for tid in talents_owned.keys():
+		var level := int(talents_owned[tid])
+		if level <= 0:
+			continue
+		var def: Dictionary = talent_defs.get(tid, {})
+		if def.is_empty():
+			continue
+		var effects_arr = def.get("effects", [])
+		if typeof(effects_arr) != TYPE_ARRAY:
+			continue
+		for e in effects_arr:
+			if typeof(e) != TYPE_DICTIONARY:
+				continue
+			var key := str(e.get("key", ""))
+			if not mods.has(key):
+				continue
+			var per_lv := float(e.get("per_level", 0.0))
+			var total := per_lv * float(level)
+			if key == "max_hp":
+				mods[key] = int(mods[key]) + int(round(total))
+			else:
+				mods[key] = float(mods[key]) + total
+	return mods
+
+
+func get_talent_name(id: String) -> String:
+	var def := get_talent_def(id)
+	return LanguageManager.localize(def, "name")
+
+
+# 按 desc_template + display[] 生成"累计值"描述文案。
+# desc_template_cn/en 里的 {v0}/{v1} → display[i].per_level × level（若 pct=true 则再拼 `%`）
+# 未拥有的卡传 level=0 → 显示"每级增量"（即 v0 = display.per_level × 1）。
+func get_talent_desc_at_level(id_or_def, level: int) -> String:
+	var def: Dictionary
+	if typeof(id_or_def) == TYPE_STRING:
+		def = get_talent_def(str(id_or_def))
+	elif typeof(id_or_def) == TYPE_DICTIONARY:
+		def = id_or_def
+	else:
+		return ""
+	if def.is_empty():
+		return ""
+	var tmpl := LanguageManager.localize_field(def, "desc_template_en", "desc_template_cn")
+	var display_arr = def.get("display", [])
+	if typeof(display_arr) != TYPE_ARRAY or display_arr.is_empty():
+		return tmpl  # 橙卡等无属性文案，模板本身就是完整描述
+	var factor := maxi(level, 1)
+	for i in range(display_arr.size()):
+		var d = display_arr[i]
+		if typeof(d) != TYPE_DICTIONARY:
+			continue
+		var per_lv := float(d.get("per_level", 0.0))
+		var is_pct := bool(d.get("pct", false))
+		var v := per_lv * float(factor)
+		var v_str := ""
+		if abs(v - round(v)) < 0.01:
+			v_str = "%d" % int(round(v))
+		else:
+			v_str = ("%.1f" % v).trim_suffix(".0")
+		if is_pct:
+			v_str += "%"
+		tmpl = tmpl.replace("{v%d}" % i, v_str)
+	return tmpl
+
+
 func request_battle_launch(p_stage_index: int) -> void:
 	stage_index = maxi(0, p_stage_index)
 	_pending_launch = true
+	_first_reward_given_this_run = false  # 每次新一局重置先发制人 flag
 
 
 func consume_battle_launch() -> bool:

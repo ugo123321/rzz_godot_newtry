@@ -424,7 +424,7 @@ func _update_auto_bullets(delta: float, player: BattlePlayer, monsters: Array) -
 	var nearest = _find_nearest_monster(player.global_position, monsters)
 	if nearest == null:
 		return
-	var range_px := float(GameConfig.get_player_value("auto_bullet_range", 378))
+	var range_px := player.get_effective_auto_bullet_range()
 	if player.global_position.distance_to(nearest.global_position) > range_px:
 		return
 	_connect_auto_bullet_release()
@@ -440,7 +440,7 @@ func _spawn_bullet_from_angle(player: BattlePlayer, ang: float, damage: int, is_
 	var dir := Vector2(cos(ang), sin(ang))
 	var spawn_pos := player.global_position + dir * (player.get_effective_radius() + GameConfig.scale_world(AUTO_BULLET_SPAWN_OFFSET))
 	var max_life := float(GameConfig.get_player_value("auto_bullet_life", 0.9))
-	var range_px := float(GameConfig.get_player_value("auto_bullet_range", 378))
+	var range_px := player.get_effective_auto_bullet_range()
 	# sr=49 血飞刀：射程 ×range_mult；穿透由 _apply_projectile_hit 末段判定（行为永远生效，不受视觉互斥影响）
 	var blood_blade: bool = bool(player.blood_blade_pierce)
 	if blood_blade:

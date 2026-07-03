@@ -14,9 +14,9 @@
 [ext_resource type="Texture2D" uid="uid://bq8prrawx0dx0" path="res://assets/ui/icons/nav/icon_nav_gacha.png" id="12_tab_shop"]
 [ext_resource type="Texture2D" uid="uid://cjomdx3kvmxbb" path="res://assets/ui/icons/nav/icon_nav_equipment.png" id="13_tab_equip"]
 [ext_resource type="Texture2D" uid="uid://dd3k2u4204yhl" path="res://assets/ui/icons/nav/icon_nav_battle.png" id="14_tab_battle"]
-[ext_resource type="Texture2D" uid="uid://dvgbb5t56b1gy" path="res://assets/ui/battle/money_bar.png" id="14_y2j7i"]
 [ext_resource type="Texture2D" uid="uid://dg6om53cw415s" path="res://assets/ui/icons/nav/icon_nav_dungeon.png" id="15_tab_dungeon"]
 [ext_resource type="Texture2D" uid="uid://coe7umg708wxr" path="res://assets/ui/icons/nav/icon_nav_achievement.png" id="16_tab_book"]
+[ext_resource type="PackedScene" path="res://scenes/ui/talent_cards_panel.tscn" id="17_talent_panel"]
 
 [node name="MainMenu" type="Control" unique_id=230988136]
 custom_minimum_size = Vector2(720, 1280)
@@ -82,6 +82,7 @@ vertical_alignment = 1
 [node name="EquipmentPanel" parent="Content" unique_id=161874588 instance=ExtResource("2_equipment")]
 unique_name_in_owner = true
 visible = false
+texture_filter = 2
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -300,19 +301,15 @@ text = "副本系统
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="AchievementPanel" type="CenterContainer" parent="Content" unique_id=850228246]
+[node name="AchievementPanel" type="Control" parent="Content" unique_id=850228246]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Placeholder" type="Label" parent="Content/AchievementPanel" unique_id=873881728]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "成就系统
-敬请期待"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="TalentCardsPanel" parent="Content/AchievementPanel" unique_id=549642973 instance=ExtResource("17_talent_panel")]
+layout_mode = 1
 
 [node name="BottomBar" type="Control" parent="." unique_id=372677655]
 custom_minimum_size = Vector2(0, 168)
@@ -596,7 +593,6 @@ text = "图鉴"
 horizontal_alignment = 1
 
 [node name="TopBarBg" type="TextureRect" parent="." unique_id=1062283630]
-visible = false
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -607,7 +603,6 @@ offset_bottom = 84.0
 grow_horizontal = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture = ExtResource("14_y2j7i")
 expand_mode = 1
 
 [node name="MarginContainer" type="MarginContainer" parent="TopBarBg" unique_id=865535812]
@@ -676,6 +671,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="GemBar" type="Control" parent="TopBarBg/MarginContainer/TopBar" unique_id=694785780]
+visible = false
 custom_minimum_size = Vector2(139, 31)
 layout_mode = 2
 size_flags_vertical = 4

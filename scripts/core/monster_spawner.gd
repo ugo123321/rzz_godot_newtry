@@ -315,6 +315,11 @@ func _pick_weighted_cluster() -> Dictionary:
 # 精英化掷骰：给当前 _spawn_queue 里的每个条目按 stage_index 概率挂 elite_kind；
 # 主题关（demon/angel）若整波无精英，强制 _spawn_queue[0] 精英化（保底 1 只）
 func _apply_elite_rolls(stage_index: int, battle: Node) -> void:
+	# 精英化卡门控：未抽到 elite_enemy → 全部不精英；同时跳过主题关强制精英保底
+	if LobbyState and not LobbyState.has_unlock("elite_enemy"):
+		for entry in _spawn_queue:
+			entry["elite_kind"] = ""
+		return
 	var t: float = clampf(float(stage_index) / float(ELITE_END_STAGE), 0.0, 1.0)
 	var chance: float = ELITE_BASE_CHANCE + t * (ELITE_END_CHANCE - ELITE_BASE_CHANCE)
 	var any_elite := false

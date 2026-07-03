@@ -69,12 +69,12 @@ const DEFAULT_TAB := Tab.STAGE
 @onready var _tab_labels: Array[Label] = [
 	%TabGacha/TabLabel, %TabEquipment/TabLabel, %TabStage/TabLabel, %TabDungeon/TabLabel, %TabAchievement/TabLabel,
 ]
-@onready var _top_gold_label: Label = $TopBar/GoldBar/Value
-@onready var _top_gem_label: Label = $TopBar/GemBar/Value
-@onready var _top_gold_bg: TextureRect = $TopBar/GoldBar/Bg
-@onready var _top_gem_bg: TextureRect = $TopBar/GemBar/Bg
-@onready var _top_gold_icon: TextureRect = $TopBar/GoldBar/Icon
-@onready var _top_gem_icon: TextureRect = $TopBar/GemBar/Icon
+@onready var _top_gold_label: Label = $TopBarBg/MarginContainer/TopBar/GoldBar/Value
+@onready var _top_gem_label: Label = $TopBarBg/MarginContainer/TopBar/GemBar/Value
+@onready var _top_gold_bg: TextureRect = $TopBarBg/MarginContainer/TopBar/GoldBar/Bg
+@onready var _top_gem_bg: TextureRect = $TopBarBg/MarginContainer/TopBar/GemBar/Bg
+@onready var _top_gold_icon: TextureRect = $TopBarBg/MarginContainer/TopBar/GoldBar/Icon
+@onready var _top_gem_icon: TextureRect = $TopBarBg/MarginContainer/TopBar/GemBar/Icon
 @onready var _panels: Array[Control] = [
 	%GachaPanel, %EquipmentPanel, %StagePanel, %DungeonPanel, %AchievementPanel,
 ]

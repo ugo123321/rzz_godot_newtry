@@ -182,5 +182,16 @@
   "UI_BUFF_NOTICE_ATTACK": "攻击+30%",
   "UI_BUFF_NOTICE_KI": "气力+30%",
   "UI_BUFF_NOTICE_COMBO": "连击×2",
-  "UI_BUFF_NOTICE_ICE": "冰冻球"
+  "UI_BUFF_NOTICE_ICE": "冰冻球",
+
+  "UI_TALENT_TITLE": "天赋卡牌",
+  "UI_TALENT_DRAW": "抽卡",
+  "UI_TALENT_CLOSE_HINT": "点击空白处以关闭",
+  "UI_TALENT_LV_FMT": "LV%d",
+  "UI_TALENT_INSUFFICIENT_GOLD": "金币不足",
+  "UI_TALENT_MAX_LEVEL": "满级",
+  "UI_TALENT_MAX_ALL": "所有天赋已满级",
+  "UI_TALENT_LOCKED": "?",
+  "UI_TALENT_PITY_HIT": "保底触发！",
+  "UI_TALENT_DEBUG_UNLOCK_ALL": "解锁全部"
 }

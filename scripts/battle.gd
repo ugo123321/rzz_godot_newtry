@@ -499,6 +499,12 @@ func _trigger_lobby_start_upgrade() -> void:
 		state = GameState.PLAYING
 		return
 	state = GameState.PLAYING
+	# 先发制人卡门控：未解锁 → 直接跳过开局升级，进 PLAYING
+	# 同时 per-run 保护，已给过就不重复
+	if LobbyState and (not LobbyState.has_unlock("first_reward") or LobbyState._first_reward_given_this_run):
+		return
+	if LobbyState:
+		LobbyState._first_reward_given_this_run = true
 	experience.pending_level_ups += 1
 	experience.try_trigger_upgrade(self)
 
@@ -1079,8 +1085,18 @@ func get_stage_theme(idx: int) -> String:
 		return ""
 	if (idx + 1) % 4 != 0:
 		return ""
+	# 天使/恶魔卡门控：都未解锁 → 普通关；只解锁一方 → 强制该主题；都解锁 → 保持随机
+	var has_angel: bool = LobbyState.has_unlock("angel_stage") if LobbyState else false
+	var has_demon: bool = LobbyState.has_unlock("demon_stage") if LobbyState else false
+	if not has_angel and not has_demon:
+		return ""
 	if not _themed_stage_overrides.has(idx):
-		_themed_stage_overrides[idx] = "demon" if randi() % 2 == 0 else "angel"
+		if has_angel and has_demon:
+			_themed_stage_overrides[idx] = "demon" if randi() % 2 == 0 else "angel"
+		elif has_angel:
+			_themed_stage_overrides[idx] = "angel"
+		else:
+			_themed_stage_overrides[idx] = "demon"
 	return String(_themed_stage_overrides[idx])
 
 
@@ -1466,6 +1482,9 @@ func _try_enter_reward_room(next_stage_index: int) -> bool:
 	if stage.is_empty():
 		return false
 	var rt := str(stage.get("room_type", ""))
+	# 属性打造关门控：未抽到 forge_stage 卡 → 降级为普通关
+	if rt == "attr_forge" and LobbyState and not LobbyState.has_unlock("forge_stage"):
+		rt = ""
 	if rt == "attr_forge":
 		stage_index = next_stage_index
 		# v3：不再直接进入打造小游戏，先走"小跳跃跳进门"动画
