@@ -128,7 +128,7 @@ offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-expand_mode = 5
+expand_mode = 1
 stretch_mode = 5
 
 [node name="SlotArmor" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots" unique_id=1006209893]
@@ -152,7 +152,7 @@ offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-expand_mode = 5
+expand_mode = 1
 stretch_mode = 5
 
 [node name="SlotShoes" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots" unique_id=542862201]
@@ -176,7 +176,7 @@ offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-expand_mode = 5
+expand_mode = 1
 stretch_mode = 5
 
 [node name="PreviewWrap" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=1184187636]
@@ -237,7 +237,7 @@ offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-expand_mode = 5
+expand_mode = 1
 stretch_mode = 5
 
 [node name="SlotNecklace" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots" unique_id=1418437364]
@@ -261,7 +261,7 @@ offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-expand_mode = 5
+expand_mode = 1
 stretch_mode = 5
 
 [node name="SlotRing" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots" unique_id=783815904]
@@ -285,7 +285,7 @@ offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-expand_mode = 5
+expand_mode = 1
 stretch_mode = 5
 
 [node name="MarginContainer" type="MarginContainer" parent="Frame/RootMargin/BaseRoot/UpperArea" unique_id=188857679]
@@ -547,7 +547,7 @@ horizontal_alignment = 1
 
 [node name="DetailPopup" type="PopupPanel" parent="." unique_id=1781527274]
 unique_name_in_owner = true
-size = Vector2i(520, 560)
+size = Vector2i(560, 640)
 theme_override_styles/panel = SubResource("StyleBoxFlat_detail")
 
 [node name="Margin" type="MarginContainer" parent="DetailPopup" unique_id=493441903]
@@ -556,14 +556,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 2.0
 offset_top = 2.0
-offset_right = 518.0
-offset_bottom = 558.0
+offset_right = 558.0
+offset_bottom = 638.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 14
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
 
 [node name="VBox" type="VBoxContainer" parent="DetailPopup/Margin" unique_id=1078849933]
 layout_mode = 2
@@ -577,7 +577,7 @@ theme_override_constants/separation = 12
 unique_name_in_owner = true
 custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
-expand_mode = 5
+expand_mode = 1
 stretch_mode = 5
 
 [node name="HeadText" type="VBoxContainer" parent="DetailPopup/Margin/VBox/Head" unique_id=207732079]
@@ -587,42 +587,56 @@ size_flags_horizontal = 3
 [node name="DetailNameLabel" type="Label" parent="DetailPopup/Margin/VBox/Head/HeadText" unique_id=1574923188]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 34
 
 [node name="DetailLevelLabel" type="Label" parent="DetailPopup/Margin/VBox/Head/HeadText" unique_id=211919218]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 26
 
 [node name="DetailSkillText" type="RichTextLabel" parent="DetailPopup/Margin/VBox" unique_id=1028065338]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 280)
+custom_minimum_size = Vector2(0, 320)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+theme_override_font_sizes/italic_font_size = 28
+theme_override_font_sizes/bold_italic_font_size = 28
 bbcode_enabled = true
 
 [node name="DetailTipLabel" type="Label" parent="DetailPopup/Margin/VBox" unique_id=170426239]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
 
 [node name="ActionRow" type="HBoxContainer" parent="DetailPopup/Margin/VBox" unique_id=1370520975]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 10
 
 [node name="BtnEquip" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=661109105]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 68)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
 text = "穿戴"
 
 [node name="BtnUnequip" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=1290576736]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 68)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
 text = "卸下"
 
 [node name="BtnUpgrade" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=867442681]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 68)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
 text = "升级"
 
 [node name="DetailsPopup" type="AcceptDialog" parent="." unique_id=1342962880]

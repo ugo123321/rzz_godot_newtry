@@ -57,11 +57,18 @@ var talents_owned: Dictionary = {}         # id -> level (int, 1..max_level)
 var talent_pity_counters: Dictionary = {}  # id -> 连续未抽到该卡的次数（选中归零；不入 pool 的卡不动）
 var _first_reward_given_this_run: bool = false  # 先发制人卡的 per-run flag，由 request_battle_launch 重置
 
+# 侦察挂机（会话内累计，本分支 no-savedata，不写盘）
+const SCOUT_BASE_HOURLY_GOLD := 100          # 第 1 章基础每小时金币
+const SCOUT_PER_CHAPTER_BONUS := 80          # 每提升 1 章 +80/小时
+const SCOUT_MAX_ACCUMULATE_SECONDS := 86400  # 24 小时上限
+var _scout_last_settle_unix: int = 0         # 上次结算/领取时的 unix 秒；启动时初始化
+
 
 func _ready() -> void:
 	_load_equipment_defs()
 	_load_talent_defs()
 	_ensure_slot_state()
+	_scout_last_settle_unix = int(Time.get_unix_time_from_system())
 	call_deferred("_emit_all_state")
 
 
@@ -381,6 +388,49 @@ func spend_gold(amount: int) -> bool:
 	if EventBus:
 		EventBus.gold_changed.emit(gold)
 	return true
+
+
+# ─── 侦察挂机 ─────────────────────────────────────────────
+# 章节获取：目前只有 1 章，且无"最高通关章节"记录 → 用当前所选 stage 所在章节。
+# 后续接入存档 / 加"highest_chapter" 字段时，只改这一处返回值即可。
+func get_scout_chapter_id() -> int:
+	if not is_instance_valid(GameConfig):
+		return 1
+	var chap := GameConfig.get_chapter_for_stage(stage_index)
+	if chap.is_empty():
+		return 1
+	return int(chap.get("chapter_id", 1))
+
+
+func get_scout_hourly_gold() -> int:
+	var cid := get_scout_chapter_id()
+	return SCOUT_BASE_HOURLY_GOLD + maxi(0, cid - 1) * SCOUT_PER_CHAPTER_BONUS
+
+
+func get_scout_accumulated_seconds() -> int:
+	var now := int(Time.get_unix_time_from_system())
+	var delta := now - _scout_last_settle_unix
+	if delta < 0:
+		delta = 0
+	return mini(delta, SCOUT_MAX_ACCUMULATE_SECONDS)
+
+
+func get_scout_pending_gold() -> int:
+	var secs := get_scout_accumulated_seconds()
+	if secs <= 0:
+		return 0
+	return int(floor(float(secs) / 3600.0 * float(get_scout_hourly_gold())))
+
+
+func claim_scout_reward() -> int:
+	var reward := get_scout_pending_gold()
+	if reward <= 0:
+		return 0
+	add_gold(reward)
+	_scout_last_settle_unix = int(Time.get_unix_time_from_system())
+	if EventBus:
+		EventBus.scout_claimed.emit(reward)
+	return reward
 
 
 func add_wood(amount: int) -> void:

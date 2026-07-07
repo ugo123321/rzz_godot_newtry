@@ -76,12 +76,12 @@
   },
   {
     "key": "exp_base_to_level",
-    "value": 100,
+    "value": 50,
     "description": "升级所需基础经验"
   },
   {
     "key": "exp_growth",
-    "value": 1.22,
+    "value": 1,
     "description": "升级经验增长"
   },
   {

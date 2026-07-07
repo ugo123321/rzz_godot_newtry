@@ -5,6 +5,7 @@ const ICON_SIZE := 48
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const PixelCardIconT = preload("res://scripts/ui/pixel_card_icon.gd")
 const DescFormatT = preload("res://scripts/utils/desc_format.gd")
+const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 
 signal upgrade_picked(index: int)
 
@@ -126,33 +127,22 @@ func _calc_card_metrics(choice_count: int) -> Dictionary:
 	return {
 		"card_size": Vector2(card_w, card_h),
 		"preview_h": preview_h,
-		"icon_size": clampf(preview_h - 12.0, ICON_SIZE, preview_h),
+		"icon_size": clampf(preview_h * 0.6, ICON_SIZE, 96.0),
 		"name_font": 24 if card_w < 170.0 else 28,
 		"desc_font": 18 if card_w < 170.0 else 22,
 	}
 
 
 func _create_icon_widget(upgrade: Dictionary, icon_size: float = float(ICON_SIZE)) -> Control:
+	# 优先：xlsx E 列填了 skill_XX 的走 PNG + FRAME 边框
+	var widget := UiStyle.build_reward_icon_with_frame(upgrade, icon_size)
+	if widget != null:
+		return widget
+
+	# fallback：像素图标（按 id 前缀 + applies_<elem> 程序化绘制），用于 emoji / 空 icon 卡
 	var box := CenterContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	# 接入正式图：icon_file 指向 res://*.png 等
-	var icon_path := str(upgrade.get("icon_file", ""))
-	if not icon_path.is_empty():
-		var texture := load(icon_path) as Texture2D
-		if texture != null:
-			var icon := TextureRect.new()
-			icon.texture = texture
-			icon.custom_minimum_size = Vector2(icon_size, icon_size)
-			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			box.add_child(icon)
-			return box
-
-	# 占位：像素图标（按 id 前缀 + applies_<elem> 程序化绘制）
 	var pixel := PixelCardIconT.new()
 	pixel.upgrade = upgrade
 	pixel.icon_size = icon_size

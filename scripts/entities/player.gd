@@ -275,6 +275,37 @@ var slash_end_ki_drained: bool = false    # 仅当本次画线把气力耗尽时
 # sr=50 proximity_slow（无下限术式）
 var proximity_slow_radius: float = 0.0   # 0 = 关
 
+# sr=51 psychic_petrify_all（念力）— on_slash_end 时全场石化。仅一个数值持续时长，由 sv+level 决定
+var psychic_petrify_duration: float = 0.0   # 0 = 未装备
+
+# sr=52 periodic_iframe（独角兽）— 定时无敌 + 彩虹色 modulate 视觉
+var unicorn_cd: float = 0.0                # 触发间隔（attr 40）
+var unicorn_duration: float = 0.0          # 每次持续（attr 41）
+var unicorn_timer: float = 0.0             # 距离下一次触发秒数
+var unicorn_rainbow_active: bool = false   # invincible 期间为 true，_apply_combat_modulate 走 HSV
+
+# sr=53 laser_cannon_basic（普攻改激光炮）
+var laser_cannon_active: bool = false
+var laser_cannon_atk_mult: float = 3.0
+var laser_cannon_pierce: bool = true
+var laser_cannon_color_key: String = "white"
+
+# sr=54 melee_basic（普攻改近战）
+var melee_basic_active: bool = false
+var melee_basic_atk_bonus: float = 0.5
+var melee_range_px: float = 60.0
+
+# sr=55 bomb_on_slash_end（炸弹人）
+var bomber_atk_mult: float = 0.0           # 0 = 未装备
+var bomber_fuse_sec: float = 2.0
+var bomber_cross_arm_px: float = 180.0
+
+# sr=56 orbit_shield（环绕盾）— 数量走 attr 46 shield_orbit_count_add
+var shield_orbit_count: int = 0
+var shield_orbit_radius: float = 280.0
+var shield_orbit_speed: float = 1.5
+var shield_orbit_angle: float = 0.0        # 当前旋转角度，_process 累加
+
 # 打造关结算后头顶 ↑ 箭头：表示"属性提升"。
 # show_forge_buff_arrow(duration) 启动；duration 秒后自动淡出消失。
 var _forge_arrow_timer := 0.0
@@ -1279,6 +1310,23 @@ func _rebuild_upgrades() -> void:
 	sulfur_laser_atk_mult = 0.0  # 0 = 未装备硫磺火
 	proximity_slow_radius = 0.0
 	proximity_slow_max = 0.0
+	# 追加：sr 51-56 静态字段重置（动态计时如 unicorn_timer / shield_orbit_angle 不重置）
+	psychic_petrify_duration = 0.0
+	unicorn_cd = 0.0
+	unicorn_duration = 0.0
+	laser_cannon_active = false
+	laser_cannon_atk_mult = 3.0
+	laser_cannon_pierce = true
+	laser_cannon_color_key = "white"
+	melee_basic_active = false
+	melee_basic_atk_bonus = 0.5
+	melee_range_px = 60.0
+	bomber_atk_mult = 0.0
+	bomber_fuse_sec = 2.0
+	bomber_cross_arm_px = 180.0
+	shield_orbit_count = 0
+	shield_orbit_radius = 280.0
+	shield_orbit_speed = 1.5
 
 	# 表驱动写入：遍历所有 v6 卡，AttrEngine 按 trigger 判断是否激活
 	AttrEngineT.apply_cards(self, upgrade_stacks, GameConfig.upgrades_by_id)
@@ -1474,6 +1522,11 @@ func _apply_combat_modulate() -> void:
 	# 传送门进出动画期间：portal_traverse 用 tween 控制 modulate.a，
 	# 这里不能用 Color.WHITE / 受伤色覆盖。
 	if _portal_traverse_active:
+		return
+	# sr=52 独角兽：无敌期间彩虹 modulate（优先级高于受伤/普通无敌闪烁）
+	if unicorn_rainbow_active and invincible_timer > 0.0 and damage_flash_timer <= 0.0:
+		var hue: float = fmod(float(Time.get_ticks_msec()) * 0.0005, 1.0)
+		modulate = Color.from_hsv(hue, 0.85, 1.0)
 		return
 	if damage_flash_timer > 0.0 and int(floor(damage_flash_timer * 22.0)) % 2 == 0:
 		modulate = Color(1.0, 0.45, 0.45)
@@ -1936,6 +1989,9 @@ func _draw() -> void:
 	# sr=6 圣盾：每层 charges 画一圈金色像素环绕（旋转 + 闪烁）
 	if holy_shield_charges > 0:
 		_draw_holy_shield(holy_shield_charges)
+	# sr=56 orbit_shield：环绕盾（数量 = shield_orbit_count）
+	if shield_orbit_count > 0:
+		_draw_orbit_shields()
 	var ring_alpha := _get_trigger_ring_alpha()
 	if ring_alpha <= 0.0:
 		return
@@ -2107,3 +2163,43 @@ func _draw_arrow_grid(cx: float, cy: float, px: float, color: Color, outline: bo
 			var px_x: float = cx + gx * px
 			var px_y: float = cy + gy * px
 			draw_rect(Rect2(px_x - px * 0.5, px_y - px * 0.5, px, px), color)
+
+
+# sr=56 orbit_shield：绕玩家一圈画 N 面盾。
+# 每面盾：圆润盾牌轮廓（4 档蓝调色板 + 中心十字纹章 + 外层 glow）。
+const SHIELD_PALETTE := [
+	Color("#c0d8ff"),  # 高光
+	Color("#6b9dff"),  # 主色
+	Color("#2a5cd0"),  # 暗
+	Color("#0f2870"),  # 描边
+]
+
+func _draw_orbit_shields() -> void:
+	var count: int = shield_orbit_count
+	if count <= 0:
+		return
+	var r: float = float(shield_orbit_radius)
+	var base_ang: float = float(shield_orbit_angle)
+	for i in range(count):
+		var a: float = base_ang + TAU * float(i) / float(count)
+		var pos: Vector2 = Vector2(cos(a), sin(a)) * r
+		_draw_pixel_orbit_shield(pos)
+
+
+func _draw_pixel_orbit_shield(pos: Vector2) -> void:
+	var t_ms: int = Time.get_ticks_msec()
+	var flicker: float = 1.0 if (int(t_ms / 90) % 2 == 0) else 0.85
+	var glow_col: Color = SHIELD_PALETTE[1]
+	glow_col.a = 0.28 * flicker
+	# 外层 glow 圆
+	draw_circle(pos, GameConfig.scale_world(18.0), glow_col)
+	# 盾形：中间圆 + 底部小三角尖
+	var r_main: float = GameConfig.scale_world(11.0)
+	draw_circle(pos, r_main + 1.0, SHIELD_PALETTE[3])  # 描边
+	draw_circle(pos, r_main, SHIELD_PALETTE[1])         # 主色
+	draw_circle(pos + Vector2(0.0, -r_main * 0.35), r_main * 0.55, SHIELD_PALETTE[0])  # 顶部高光
+	# 中心十字纹章
+	var cross_w: float = GameConfig.scale_world(2.0)
+	var cross_l: float = GameConfig.scale_world(7.0)
+	draw_rect(Rect2(pos.x - cross_w * 0.5, pos.y - cross_l * 0.5, cross_w, cross_l), SHIELD_PALETTE[0])
+	draw_rect(Rect2(pos.x - cross_l * 0.5, pos.y - cross_w * 0.5, cross_l, cross_w), SHIELD_PALETTE[0])

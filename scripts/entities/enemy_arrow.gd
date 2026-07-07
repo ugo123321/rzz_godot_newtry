@@ -2,6 +2,7 @@ extends Node2D
 class_name EnemyArrow
 
 enum Pattern { SINGLE, CROSS, BOUNCE }
+enum DrawStyle { SPRITE, PIXEL_ORB, PIXEL_SQUARE }
 
 const DEFAULT_ARROW_TEXTURES: Array[String] = [
 	"res://assets/Characters/Characters(100x100)/Archer/Arrow(projectile)/Arrow01(32x32).png",
@@ -12,6 +13,13 @@ const HIT_RADIUS := 6.0
 const DRAW_SCALE := 1.75
 const VERTICAL_FX_SCALE_Y := 1
 const SPAWN_OFFSET := 10.0
+
+# 程序化像素绘制（豪火球术配方，参考 ability_manager._draw_pixel_fireball）
+const PIXEL_SIZE_WORLD := 2.5
+const ORB_RADIUS_BLOCKS := 4
+const SQUARE_HALF_BLOCKS := 3  # 7x7 网格
+const SQUARE_SPIN_SPEED := 1.4  # rad/s，约 4.5s 一圈
+const FLICKER_INTERVAL_MS := 80
 
 var velocity := Vector2.ZERO
 var damage := 10
@@ -24,6 +32,8 @@ var _effect_key := ""
 var _tint := Color.WHITE
 var _static_sprite: Sprite2D
 var _animated_sprite: AnimatedSprite2D
+var _draw_style := DrawStyle.SPRITE
+var _draw_rot := 0.0
 
 
 static func spawn(
@@ -148,7 +158,9 @@ static func _create(
 	arrow._tint = tint
 	arrow.velocity = dir * maxf(40.0, speed)
 	arrow.global_position = from_pos + dir * GameConfig.scale_world(SPAWN_OFFSET)
-	if arrow._uses_vertical_fx() and not effect_key.is_empty():
+	if effect_key == "enemy_cross_magic" or effect_key == "enemy_bounce_blob":
+		arrow.rotation = 0.0
+	elif arrow._uses_vertical_fx() and not effect_key.is_empty():
 		arrow.rotation = 0.0
 	else:
 		arrow.rotation = dir.angle()
@@ -193,6 +205,117 @@ func _uses_vertical_fx() -> bool:
 	return pattern == Pattern.CROSS or _effect_key == "enemy_cross_magic"
 
 
+func _uses_pixel_draw() -> bool:
+	return _draw_style != DrawStyle.SPRITE
+
+
+func _process(_delta: float) -> void:
+	if not _uses_pixel_draw() or not _alive:
+		return
+	if _draw_style == DrawStyle.PIXEL_SQUARE:
+		_draw_rot = fmod(_draw_rot + SQUARE_SPIN_SPEED * _delta, TAU)
+	queue_redraw()
+
+
+func _draw() -> void:
+	match _draw_style:
+		DrawStyle.PIXEL_ORB:
+			_draw_pixel_orb()
+		DrawStyle.PIXEL_SQUARE:
+			_draw_pixel_square()
+
+
+# ------ 像素小圆球（cross_shooter）— 紫色魔法 ------
+func _draw_pixel_orb() -> void:
+	var base := _tint if _tint != Color.WHITE else Color("#b078e0")
+	var palette := _pixel_palette(base)
+	var px := _pixel_size()
+	var rb := float(ORB_RADIUS_BLOCKS)
+	var flicker := int(Time.get_ticks_msec() / FLICKER_INTERVAL_MS) % 2 == 0
+	# 外发光晕（两层圆晕）
+	var halo := base
+	halo.a = 0.28
+	draw_circle(Vector2.ZERO, (rb + 1.6) * px, halo)
+	halo.a = 0.14
+	draw_circle(Vector2.ZERO, (rb + 3.0) * px, halo)
+	# 主体（每方块按距离取色）
+	for by in range(-int(rb), int(rb) + 1):
+		for bx in range(-int(rb), int(rb) + 1):
+			var d := sqrt(float(bx * bx + by * by))
+			if d > rb + 0.3:
+				continue
+			var ratio := d / rb
+			var col := _orb_block_color(ratio, flicker and ratio > 0.5, palette)
+			draw_rect(Rect2(bx * px - px * 0.5, by * px - px * 0.5, px, px), col)
+	# 核心 2x2 高光
+	var core: Color = palette[4] if not flicker else palette[4].lerp(Color.WHITE, 0.5)
+	draw_rect(Rect2(-px, -px, px, px), core)
+	draw_rect(Rect2(0.0, -px, px, px), core)
+	draw_rect(Rect2(-px, 0.0, px, px), core)
+	draw_rect(Rect2(0.0, 0.0, px, px), core)
+
+
+# ------ 像素慢速旋转正方形（bounce_slime）— 粘液红 ------
+func _draw_pixel_square() -> void:
+	var base := _tint if _tint != Color.WHITE else Color("#ff6868")
+	var palette := _pixel_palette(base)
+	var px := _pixel_size()
+	var hb := float(SQUARE_HALF_BLOCKS)
+	var flicker := int(Time.get_ticks_msec() / FLICKER_INTERVAL_MS) % 2 == 0
+	# 外发光晕（正方形外圈弱光）
+	var halo := base
+	halo.a = 0.24
+	var halo_size := (hb + 1.5) * px * 2.0
+	draw_rect(Rect2(-halo_size * 0.5, -halo_size * 0.5, halo_size, halo_size), halo)
+	# 应用旋转
+	draw_set_transform(Vector2.ZERO, _draw_rot, Vector2.ONE)
+	# 主体：每方块按到中心的切比雪夫距离取色（保持方形轮廓）
+	for by in range(-int(hb), int(hb) + 1):
+		for bx in range(-int(hb), int(hb) + 1):
+			var d := float(maxi(abs(bx), abs(by)))
+			var ratio := d / hb
+			var col := _orb_block_color(ratio, flicker and ratio > 0.55, palette)
+			draw_rect(Rect2(bx * px - px * 0.5, by * px - px * 0.5, px, px), col)
+	# 核心 1 方块高光
+	var core: Color = palette[4] if not flicker else palette[4].lerp(Color.WHITE, 0.5)
+	draw_rect(Rect2(-px * 0.5, -px * 0.5, px, px), core)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _pixel_size() -> float:
+	return PIXEL_SIZE_WORLD * GameConfig.get_world_scale()
+
+
+# 5 档调色板：[外圈最深, 深, 中, 浅, 核心]（同 ability_manager._derive_orb_palette 思路）
+static func _pixel_palette(base: Color) -> PackedColorArray:
+	var out := PackedColorArray()
+	out.push_back(base.darkened(0.72))
+	out.push_back(base.darkened(0.42))
+	out.push_back(base)
+	out.push_back(base.lerp(Color.WHITE, 0.5))
+	out.push_back(base.lerp(Color.WHITE, 0.82))
+	return out
+
+
+static func _orb_block_color(dist_ratio: float, flicker: bool, palette: PackedColorArray) -> Color:
+	var idx: int
+	if dist_ratio > 0.92:
+		idx = 0
+	elif dist_ratio > 0.72:
+		idx = 1
+	elif dist_ratio > 0.50:
+		idx = 2
+	elif dist_ratio > 0.28:
+		idx = 3
+	else:
+		idx = 4
+	var col: Color = palette[idx]
+	if flicker:
+		var adj_idx: int = clamp(idx - 1, 0, palette.size() - 1)
+		col = col.lerp(palette[adj_idx], 0.4)
+	return col
+
+
 func _vertical_fx_scale() -> Vector2:
 	var base := SpriteHelper.pixel_scale(DRAW_SCALE * GameConfig.get_world_scale())
 	var scale := Vector2(base, base * VERTICAL_FX_SCALE_Y)
@@ -202,6 +325,16 @@ func _vertical_fx_scale() -> Vector2:
 
 
 func _ready() -> void:
+	if _effect_key == "enemy_cross_magic":
+		_draw_style = DrawStyle.PIXEL_ORB
+		set_process(true)
+		queue_redraw()
+		return
+	if _effect_key == "enemy_bounce_blob":
+		_draw_style = DrawStyle.PIXEL_SQUARE
+		set_process(true)
+		queue_redraw()
+		return
 	if not _effect_key.is_empty():
 		var frames := EffectHelper.build_effect_frames(_effect_key)
 		if frames != null and frames.get_frame_count(EffectHelper.ANIM_PREVIEW) > 0:
@@ -254,7 +387,8 @@ func _try_bounce() -> bool:
 	if not bounced:
 		return false
 	bounces_left -= 1
-	rotation = velocity.angle()
+	if not _uses_pixel_draw():
+		rotation = velocity.angle()
 	if _battle and _battle.particles:
 		_battle.particles.hit_spark(global_position, false)
 	return false

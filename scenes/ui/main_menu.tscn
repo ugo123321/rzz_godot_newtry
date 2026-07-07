@@ -8,15 +8,15 @@
 [ext_resource type="Texture2D" uid="uid://beanu6i8q6j37" path="res://assets/ui/battle/mission_forest.png" id="6_mission"]
 [ext_resource type="Texture2D" uid="uid://bd3mrpph35vf0" path="res://assets/ui/battle/start_button.png" id="7_start"]
 [ext_resource type="Texture2D" uid="uid://3no6q1s1w2lg" path="res://assets/ui/battle/money_bg.png" id="8_money_bg"]
-[ext_resource type="Texture2D" uid="uid://nsvmptqwdy3" path="res://assets/ui/battle/gem_icon.png" id="9_1_gem_icon"]
-[ext_resource type="Texture2D" uid="uid://jkwy8x7016ic" path="res://assets/ui/battle/gold_icon.png" id="9_gold_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_cur_gem.png" id="9_1_gem_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="9_gold_icon"]
 [ext_resource type="Texture2D" uid="uid://ddi8qdpland64" path="res://assets/ui/bottom/normal_button.png" id="10_tab_normal"]
 [ext_resource type="Texture2D" uid="uid://bq8prrawx0dx0" path="res://assets/ui/icons/nav/icon_nav_gacha.png" id="12_tab_shop"]
 [ext_resource type="Texture2D" uid="uid://cjomdx3kvmxbb" path="res://assets/ui/icons/nav/icon_nav_equipment.png" id="13_tab_equip"]
 [ext_resource type="Texture2D" uid="uid://dd3k2u4204yhl" path="res://assets/ui/icons/nav/icon_nav_battle.png" id="14_tab_battle"]
 [ext_resource type="Texture2D" uid="uid://dg6om53cw415s" path="res://assets/ui/icons/nav/icon_nav_dungeon.png" id="15_tab_dungeon"]
 [ext_resource type="Texture2D" uid="uid://coe7umg708wxr" path="res://assets/ui/icons/nav/icon_nav_achievement.png" id="16_tab_book"]
-[ext_resource type="PackedScene" path="res://scenes/ui/talent_cards_panel.tscn" id="17_talent_panel"]
+[ext_resource type="PackedScene" uid="uid://cb6wm6ifww2tv" path="res://scenes/ui/talent_cards_panel.tscn" id="17_talent_panel"]
 
 [node name="MainMenu" type="Control" unique_id=230988136]
 custom_minimum_size = Vector2(720, 1280)

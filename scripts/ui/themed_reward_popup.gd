@@ -14,7 +14,7 @@ const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 
 const PANEL_MARGIN := 36.0
 const PANEL_MIN_SIZE := Vector2(360.0, 540.0)
-const CARD_ICON_SIZE := 128.0
+const CARD_ICON_SIZE := 96.0
 const SHOW_DURATION := 0.32
 const HIDE_DURATION := 0.18
 
@@ -214,21 +214,25 @@ func _on_root_resized() -> void:
 
 
 func _apply_theme_palette() -> void:
+	# 面板 / 按钮走标准 9-slice（panel_dialog_9s / btn_primary_9s），只在色调上区分主题。
+	# 面板 tint 保持较高亮度，避免把 9-slice 底纹压成一片死色；主题氛围交给 title / accept 按钮 / overlay。
 	var panel_tint: Color
 	var accent: Color
+	var accept_font: Color
 	var title_text: String
 	if _theme == "demon":
-		panel_tint = Color(0.55, 0.15, 0.18, 1.0)   # 血红面板色（叠到白色 9s 贴图上）
-		accent = Color(0.92, 0.18, 0.15, 1.0)
+		panel_tint = Color(0.68, 0.42, 0.44, 1.0)   # 灰烬玫瑰底纹（暗红但保留 panel 结构）
+		accent = Color("#c63e3e")                    # 主色（title / name / accept 按钮）
+		accept_font = Color(0.98, 0.96, 0.96)
 		title_text = LanguageManager.tr_ui("UI_THEMED_DEMON_TITLE")
-		_overlay.color = Color(0.15, 0.0, 0.0, 0.7)
+		_overlay.color = Color(0.18, 0.03, 0.05, 0.6)
 	else:
-		panel_tint = Color(0.96, 0.88, 0.55, 1.0)   # 圣金面板色
-		accent = Color(0.78, 0.62, 0.18, 1.0)
+		panel_tint = Color(0.90, 0.84, 0.66, 1.0)   # 圣光米黄
+		accent = Color("#efb840")                    # 与其他 popup 主按钮同款金
+		accept_font = Color(0.12, 0.08, 0.03)
 		title_text = LanguageManager.tr_ui("UI_THEMED_ANGEL_TITLE")
-		_overlay.color = Color(0.6, 0.55, 0.25, 0.45)
+		_overlay.color = Color(0.55, 0.50, 0.22, 0.38)
 
-	# 主面板：9-slice panel_dialog_9s + 主题染色
 	var panel_style := UiStyle.make_dialog_stylebox(panel_tint, 20)
 	if panel_style != null:
 		_panel.add_theme_stylebox_override("panel", panel_style)
@@ -238,17 +242,15 @@ func _apply_theme_palette() -> void:
 	_title_label.modulate = accent
 	_name_label.modulate = accent
 	if _theme == "demon":
-		_desc_label.modulate = Color(1.0, 0.92, 0.88)
+		_desc_label.modulate = Color(0.98, 0.94, 0.92)
 	else:
-		_desc_label.modulate = Color(0.32, 0.22, 0.05)
+		_desc_label.modulate = Color(0.28, 0.20, 0.06)
 
-	# Accept / Decline 按钮：9-slice btn_primary_9s + 主题色
 	UiStyle.apply_primary_button(_accept_btn, accent, 10)
-	_accept_btn.add_theme_color_override("font_color", Color(1, 1, 1) if _theme == "demon" else Color(0.05, 0.04, 0.04))
+	_accept_btn.add_theme_color_override("font_color", accept_font)
 
-	# 放弃按钮用低饱和灰，跟主题不抢戏
-	UiStyle.apply_primary_button(_decline_btn, Color(0.42, 0.42, 0.48), 10)
-	_decline_btn.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
+	UiStyle.apply_primary_button(_decline_btn, Color(0.55, 0.60, 0.78), 10)
+	_decline_btn.add_theme_color_override("font_color", Color(0.96, 0.96, 0.98))
 
 
 func _apply_upgrade_content() -> void:
@@ -260,19 +262,12 @@ func _apply_upgrade_content() -> void:
 	# 重建 icon widget
 	for child in _icon_widget.get_children():
 		child.queue_free()
-	var icon_path := str(_upgrade.get("icon_file", ""))
-	if not icon_path.is_empty():
-		var texture := load(icon_path) as Texture2D
-		if texture != null:
-			var icon := TextureRect.new()
-			icon.texture = texture
-			icon.custom_minimum_size = Vector2(CARD_ICON_SIZE, CARD_ICON_SIZE)
-			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_icon_widget.add_child(icon)
-			return
+	# 优先：xlsx E 列 skill_XX 的 PNG + FRAME 边框
+	var framed := UiStyle.build_reward_icon_with_frame(_upgrade, CARD_ICON_SIZE)
+	if framed != null:
+		_icon_widget.add_child(framed)
+		return
+	# fallback：程序化像素卡（emoji / 空 icon 卡走此路）
 	var pixel := PixelCardIconT.new()
 	pixel.upgrade = _upgrade
 	pixel.icon_size = CARD_ICON_SIZE

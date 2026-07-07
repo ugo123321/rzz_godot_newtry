@@ -86,6 +86,8 @@ ATTR_CODES: list[tuple[int, str, str, str, str]] = [
     (43, "召唤", "恶魔宝宝召唤数+", "summon_demon_baby_count_add", "恶魔宝宝（远程激光穿透）召唤数量"),
     (44, "召唤", "天使宝宝召唤数+", "summon_angel_baby_count_add", "天使宝宝（远程单体雷伤）召唤数量"),
     (45, "剑", "命运之矛数量+", "sword_spear_count_add", "命运之矛（环绕长枪）数量"),
+    # ----- 追加 -----
+    (46, "剑", "环绕盾数量+", "shield_orbit_count_add", "环绕盾（阻挡敌方远程子弹）数量"),
 ]
 
 EN_KEY_TO_CODE: dict[str, int] = {en: c for c, _, _, en, _ in ATTR_CODES}
@@ -261,6 +263,25 @@ SPECIAL_RULE_CODES: list[tuple[int, str, str, str, str]] = [
     (50, "proximity_slow", "无下限术式（近距离怪物线性减速）",
         "[aura_radius_px, max_slow_pct]",
         "光环半径(像素)；最大减速%（距离玩家越近减速越高，线性插值）"),
+    # ---- 追加：普攻 / 画线 / 召唤 改造类 (51-56) ----
+    (51, "psychic_petrify_all", "念力全场石化（画线末尾触发）",
+        "[freeze_duration_sec, aura_radius_px]",
+        "石化持续秒（每级增量）；aura 半径预留（实际全场）；石化=灰色 tint+完全定身；元素状态由 applies_ice 触发"),
+    (52, "periodic_iframe", "定时无敌（独角兽）",
+        "[]",
+        "CD 走属性槽 attr 40 cooldown_sec；持续走属性槽 attr 41 duration_sec；invincible 期间 player.modulate 走 HSV hue 旋转"),
+    (53, "laser_cannon_basic", "普攻改蓄力激光炮",
+        "[atk_mult, color_key, pierce]",
+        "激光 ATK 倍率；颜色 key（white/fire/ice/thunder）；是否穿透(1/0)；蓄力速度受玩家攻速影响；环形蓄力条跟随玩家右上方"),
+    (54, "melee_basic", "普攻改近战挥砍",
+        "[atk_bonus_pct, melee_range_px]",
+        "额外攻击加成%；近战射程像素；sr 内部强锁 bullet_count=1；无子弹外观"),
+    (55, "bomb_on_slash_end", "炸弹人（画线末尾埋炸弹）",
+        "[atk_mult, fuse_sec, cross_arm_px]",
+        "爆炸 ATK 倍率；引信秒数；十字臂长像素；引信到时十字 AOE"),
+    (56, "orbit_shield", "环绕盾（阻挡敌方子弹）",
+        "[orbit_radius_px, orbit_speed_rad_per_sec]",
+        "轨道半径像素；自转角速 (rad/s)；数量走属性槽 attr 46 shield_orbit_count_add"),
 ]
 
 # rid -> (type_id, special_values_array)

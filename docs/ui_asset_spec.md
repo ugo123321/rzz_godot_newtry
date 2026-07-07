@@ -1,6 +1,14 @@
-# UI 素材规范 v1.1
+# UI 素材规范 v1.2
 
 > 给策划 / 美术看的 Photoshop 出图工作流。**每张图的完整放置路径都写在表格里**，照着 PS 出图，按路径丢文件，程序端接入。
+
+**v1.2 改动**（2026-07-07）
+
+- 第 3 批 upgrades 交付：117 张升级卡 icon（`skill_01~117.png`）+ FRAME 边框（`deco_frame_32.png`）已接入 upgrade_popup / themed_reward_popup
+- 装备 icon 迁移 PNG：8 张 `equip_01~08.png` 替换旧 SVG，走同一「品质色底层 + icon 顶层」结构
+- **主题关专属 12 张放弃出图**：策划决定复用升级卡池 icon（demon_scythe → skill_03 等），themed/ 目录空置
+- 新增 `panel_card_9s.png`（升级卡片背景 9-slice）+ `award_text_decoration.png`（奖励标题装饰）
+- 第 4 批未启动 — 详见 § 11 现状 + § 12 下一步 ROI
 
 **v1.1 改动**（2026-06-29）
 
@@ -132,16 +140,16 @@ assets/ui/
 
 | 类别 | 数量 | 文件名样例 | 完整路径目录 |
 | --- | --- | --- | --- |
-| 装备 | ~12 | `icon_eq_sword.png` / `icon_eq_armor.png` / `icon_eq_helmet.png` / `icon_eq_boots.png` / `icon_eq_ring.png` / `icon_eq_amulet.png` ... | `assets/ui/icons/equipment/` |
-| 货币 | 3 | `icon_cur_gold.png` / `icon_cur_gem.png` / `icon_cur_stone.png` | `assets/ui/icons/currency/` |
-| 升级卡 | 现有 10 张保留，扩展到 50 | `icon_up_barrage_king.png` / `icon_up_godspeed.png` ... | `assets/ui/icons/upgrades/` |
-| 主题关 | 12 | `icon_th_demon_baby.png` × 6（恶魔）<br>`icon_th_angel_baby.png` × 6（天使） | `assets/ui/icons/themed/` |
+| 装备 | 8 张覆盖 8 def_id | `equip_01.png` ~ `equip_08.png`（16×16 手绘像素、xlsx D 列 slug 映射） | `assets/ui/icons/equipment/` ✅ 已交付 |
+| 货币 | 2 | `icon_cur_gold.png` / `icon_cur_gem.png` | `assets/ui/icons/currency/` ✅ 已交付（策划确认只有金币 + 宝石，不做矿石）|
+| 升级卡 | 117 | `skill_01.png` ~ `skill_117.png`（xlsx E 列 skill_XX 映射） | `assets/ui/icons/upgrades/` ✅ 已交付 |
+| 主题关 | — 已放弃 | 复用升级卡池 icon（demon_scythe → skill_03 等） | `assets/ui/icons/themed/`（占位空目录） |
 | 系统操作 | 4-6 | `icon_pause.png` / `icon_close.png` / `icon_settings.png` / `icon_back.png` / `icon_menu.png` | `assets/ui/icons/system/` ✅ 已交付 4 张 |
 | 属性 stat | 4 | `icon_power.png` / `icon_attack.png` / `icon_hp.png` / `icon_detail.png` | `assets/ui/icons/system/` ✅ 已交付（走 system 目录，不新开 stat 子目录） |
 | 导航 nav | 5 | `icon_nav_gacha.png` / `icon_nav_equipment.png` / `icon_nav_battle.png` / `icon_nav_dungeon.png` / `icon_nav_achievement.png` | `assets/ui/icons/nav/` ✅ 已交付 5 张（底部选项卡） |
 | 状态 | — 本期不出 | — | `assets/ui/icons/status/`（占位） |
 
-**主题关 12 张文件名**对应 `tools/build_rewards_v6_compact.py` 的 `PER_ID_DESC_OVERRIDE` 字典 key（恶魔 / 天使专属 reward id）。
+**升级卡 / 装备 icon 数据流**：xlsx 单元格填 slug（`skill_XX` / `equip_XX`）→ export 脚本写 json → `UiStyleHelper.build_reward_icon_with_frame` / `LobbyState.get_item_icon_path` 加载 PNG + 品质色底层 + FRAME 边框。详见 memory `project_ui_standardization` 「数据流」段。
 
 **风格**：全部背景透明、主体居中、四周留 4px 安全边、抗锯齿全开、不写文字。
 
@@ -306,19 +314,22 @@ green:  Color(0.30, 0.85, 0.40, 1.0)   # 绿 — 确认
 9. `assets/ui/icons/system/icon_back.png` 32×32
 10. ~~`panel_topbar_9s.png`~~ — **取消**，HUD 顶部用透明 + 文字漂浮
 
-### 第 3 批 — 图标库批量补全
+### 第 3 批 — 图标库批量补全 ✅ 已交付主要部分
 
-11. `assets/ui/icons/equipment/` 12 张 — `icon_eq_sword.png` / `icon_eq_armor.png` / `icon_eq_helmet.png` / `icon_eq_boots.png` / `icon_eq_ring.png` / `icon_eq_amulet.png` ... 全部 64×64
-12. `assets/ui/icons/themed/` 12 张 — 主题关恶魔 / 天使专属
-13. `assets/ui/icons/upgrades/` 扩展到 50 — 每张奖励卡专属
+11. `assets/ui/icons/equipment/equip_01~08.png` — 8 张手绘像素装备 icon（每个 def_id 一张，4 品质共享）✅
+12. `assets/ui/icons/upgrades/skill_01~117.png` — 117 张升级卡 icon ✅
+13. `assets/ui/decorations/deco_frame_32.png` — 升级卡 / 主题关 icon FRAME 边框 ✅
+14. `assets/ui/panels/panel_card_9s.png` — 卡片 9-slice 背景 ✅
+15. `assets/ui/decorations/award_text_decoration.png` — 奖励标题装饰 ✅
+16. ~~主题关专属 12 张~~ — **策划放弃**，复用升级卡池 icon
 
-### 第 4 批 — 剩余 polish
+### 第 4 批 — 剩余 polish（下一步）
 
-14. 其余 tooltip 档（mini / 详情）— `assets/ui/panels/panel_tooltip_mini_9s.png` + `panel_tooltip_detail_9s.png`
-15. 次按钮 / 圆按钮 / 标签按钮 — `assets/ui/buttons/btn_secondary_9s.png` / `btn_round.png` / `btn_tab_9s.png`
-16. 货币图标 — `assets/ui/icons/currency/icon_cur_gold.png` / `icon_cur_gem.png` / `icon_cur_stone.png`
-17. 装饰元素 — `assets/ui/decorations/deco_*.png`
-18. 全屏背景 — `assets/ui/backgrounds/bg_*.png`
+17. ~~货币图标 3 张~~ → **✅ 已交付 2 张**：`icon_cur_gold.png` / `icon_cur_gem.png`（策划确认不做矿石）
+18. **次按钮 / 圆按钮 / 标签按钮** — `assets/ui/buttons/btn_secondary_9s.png` / `btn_round.png` / `btn_tab_9s.png`（当前所有次要按钮走"低饱和灰"的主按钮，层级不够）
+19. **其余 tooltip 档** — `panel_tooltip_mini_9s.png` + `panel_tooltip_detail_9s.png`（现有 std 档已够用，非急）
+20. **全屏背景 —— 只补缺失的场景，主菜单已完成**：详见 § 12 说明；主菜单 `bg_main.png` 用户认可保留，只补 `bg_battle_result.png`（战斗结算） / `bg_pause.png`（暂停覆盖）等未交付场景
+21. **装饰元素** — `deco_star_gold.png` / `deco_ribbon.png` 等，配合奖励 / 结算界面
 
 ---
 
@@ -338,17 +349,21 @@ green:  Color(0.30, 0.85, 0.40, 1.0)   # 绿 — 确认
 
 ## § 11. 当前进度
 
-**已交付（截至 v1.1）**：
+**已交付（截至 v1.2）**：
 
 ```
 assets/ui/
 ├── panels/
 │   ├── panel_dialog_9s.png         ✅
 │   ├── panel_tooltip_std_9s.png    ✅
+│   ├── panel_card_9s.png           ✅ (卡片背景)
 │   ├── bar_frame_9s.png            ✅
 │   └── bar_fill_9s.png             ✅
 ├── buttons/
 │   └── btn_primary_9s.png          ✅
+├── decorations/
+│   ├── deco_frame_32.png           ✅ (升级卡 / 主题关 icon 边框，62.5% opaque)
+│   └── award_text_decoration.png   ✅ (奖励标题装饰)
 └── icons/
     ├── nav/                        ✅ 底部选项卡（5 张，均带 mipmap 抗锯齿）
     │   ├── icon_nav_gacha.png      ✅
@@ -356,20 +371,59 @@ assets/ui/
     │   ├── icon_nav_battle.png     ✅
     │   ├── icon_nav_dungeon.png    ✅
     │   └── icon_nav_achievement.png ✅
-    └── system/                     ✅ 系统操作 + 装备属性
-        ├── icon_pause.png              ✅
-        ├── icon_settings.png           ✅
-        ├── icon_close.png              ✅
-        ├── icon_back.png               ✅
-        ├── icon_power.png              ✅ (装备页战力，带 mipmap)
-        ├── icon_attack.png             ✅ (装备页攻击，带 mipmap)
-        ├── icon_hp.png                 ✅ (装备页生命，带 mipmap)
-        └── icon_detail.png             ✅ (装备页详情按钮，带 mipmap)
+    ├── system/                     ✅ 系统操作 + 装备属性
+    │   ├── icon_pause.png              ✅
+    │   ├── icon_settings.png           ✅
+    │   ├── icon_close.png              ✅
+    │   ├── icon_back.png               ✅
+    │   ├── icon_power.png              ✅ (装备页战力，带 mipmap)
+    │   ├── icon_attack.png             ✅ (装备页攻击，带 mipmap)
+    │   ├── icon_hp.png                 ✅ (装备页生命，带 mipmap)
+    │   └── icon_detail.png             ✅ (装备页详情按钮，带 mipmap)
+    ├── upgrades/                   ✅ 117 张手绘升级卡 icon
+    │   └── skill_01.png ~ skill_117.png
+    └── equipment/                  ✅ 8 张手绘装备 icon（4 品质共享）
+        └── equip_01.png ~ equip_08.png
 ```
 
-**下一步**：建议你 ping 我，我把这 9 张图接入到 `.tscn` / `.gd`（配 `.import` 的 filter / 把 StyleBoxFlat 改成 NinePatchRect、blood bar / 升级弹窗 / 主菜单按钮换贴图、暂停 HUD 接 icon_pause），启动 Godot 实机看效果，再决定第 3 批要不要画。
+**接入层已就绪**：
+- `scripts/utils/ui_style_helper.gd` — `make_dialog_stylebox` / `apply_primary_button` / `build_reward_icon_with_frame` / `try_load_upgrade_icon` / `apply_linear_filter_tree`
+- 已接入 popup：upgrade_popup、themed_reward_popup、pause_menu、reward_wheel_popup、scout_reward_popup、equipment_panel、synthesis_panel、talent_cards_panel、main_menu（scout btn / bottom nav）、forge_settlement_popup
 
 ---
 
-**版本**：v1.1（2026-06-29）
+## § 12. 下一步 ROI 排序
+
+**关于"全屏背景"的澄清（v1.2 修订）**：这一项不是"重画主菜单背景"。主菜单 `res://assets/ui/battle/bg_main.png` 用户已认可保留 —— 它只是在 `assets/ui/battle/` 而不是 `assets/ui/backgrounds/`，是**遗留路径**问题，不影响视觉。真正缺背景的是这些界面：
+
+| 场景 | 当前状态 | 建议背景 |
+| --- | --- | --- |
+| 主菜单 | ✅ 已有 `assets/ui/battle/bg_main.png`（保留） | — |
+| 战斗关卡 | ✅ 用 `terrain_background.gd` 程序化生成地形 | — |
+| **战斗结算 / 死亡** | ❌ 目前用半透明 ColorRect 遮罩 | `bg_battle_result.png` 720×1280，可带光晕 / 荣耀感 |
+| **暂停覆盖** | ❌ 目前用半透明黑色遮罩 | `bg_pause.png` 720×1280，可带模糊质感 |
+| **抽卡 / 转盘** | ❌ 目前用九宫格 panel | `bg_gacha.png` 720×1280，可带神秘/星光 |
+| **升级 3 选 1 弹窗** | 已有主题氛围（rays + spark），无独立背景 | 可选，非急 |
+
+如果只做 1 张背景 → 建议 `bg_battle_result.png`（玩家每关都看到，冲击频次最高）。
+
+---
+
+| 优先级 | 交付物 | 张数 | 影响面 | 工作量 |
+| --- | --- | --- | --- | --- |
+| ~~**P0**~~ | ~~货币图标（gold / gem）~~ | ~~2 张 64×64~~ | ~~主菜单顶栏 / 转盘 / 装备强化~~ | ~~✅ 已交付~~ |
+| **P1** | 次按钮 + 圆按钮 + tab 按钮 3 张 9-slice | 3 张 | 装备详情"卸下"、pause_menu"debug"、语言切换 tab 层级区分 | 中 |
+| **P2** | 战斗结算背景 `bg_battle_result.png` | 1 张 720×1280 | 每关必见 | 中（1 张背景）|
+| **P3** | 暂停背景 + 抽卡背景 | 2 张 720×1280 | 玩家经常看到 | 中大 |
+| **P4** | tooltip 其他档（mini / detail） | 2 张 9-slice | 装备详情弹窗可以更贴合 | 中 |
+| **P5** | status/ buff-debuff icons | ~10 张 32×32 | 战斗内燃烧 / 冰冻 / 中毒等状态图标化 | 中 |
+
+**建议路径**：P2 → P1 → P3 → P4 → P5。
+- P2 立刻做（战斗结算是玩家每关必见）
+- P1 层级区分做完后 UI 呼吸感强一大截
+- P3 / P4 / P5 属于打磨阶段
+
+---
+
+**版本**：v1.2（2026-07-07）
 **约定基准**：720×1280 竖屏 / 高清现代风 / 9-slice 单图 / 3 档 tooltip / 系统图标走 `icons/system/`

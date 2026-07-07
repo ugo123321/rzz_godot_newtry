@@ -22,6 +22,25 @@ const TYPE_DEMON_GROUND := "demon_ground"
 const TYPE_ANGEL_GROUND := "angel_ground"
 const TYPE_FORGE_GROUND := "forge_ground"
 const TYPE_PARADE_GROUND := "parade_ground"
+# 章节地图演进：草地→土路→乡村→石板路→城镇→城堡→王宫（每 4 关一段）
+const TYPE_VILLAGE := "village"
+const TYPE_TOWN := "town"
+const TYPE_CASTLE := "castle"
+const TYPE_PALACE := "palace"
+const TYPE_PALACE_CORRIDOR := "palace_corridor"
+
+# 段索引 → 地面 tile 类型：每 4 关一段（打造/主题/boss 关会 override）
+# 段 7 是 boss 前一关（idx=28）的专用火把长廊过渡地面
+const SEGMENT_TERRAIN_MAP := {
+	0: TYPE_GRASS,             # 关 1-4：草地荒野
+	1: TYPE_DIRT,              # 关 5-8：土路
+	2: TYPE_VILLAGE,           # 关 9-12：乡村
+	3: TYPE_STONE,             # 关 13-16：石板路
+	4: TYPE_TOWN,              # 关 17-20：城镇
+	5: TYPE_CASTLE,            # 关 21-24：城堡
+	6: TYPE_PALACE,            # 关 25-28 + 关 30：王宫
+	7: TYPE_PALACE_CORRIDOR,   # 关 29：火把长廊（boss 前奏）
+}
 
 # 主题印记参数：在地形烘焙的最末段把 9×9 的 grid（每 cell 8px = 72×72 像素）画在视口中心
 const SIGIL_PIXEL := 8
@@ -98,22 +117,24 @@ const TILE_DATA := {
 		"deco_palette": [],
 	},
 	"dirt": {
-		"base": Color("#7a5a3a"),
-		"shade": Color("#6a4d32"),
-		"highlight": Color("#88684a"),
-		"speckle_chance": 0.04,
-		"deco_chance": 0.03,
+		# 土路：黄褐色车辙 + 深浅斑驳（复用现有 pebble deco 表现为路面碎石/踩痕）
+		"base": Color("#8b6a3f"),
+		"shade": Color("#6f5432"),
+		"highlight": Color("#a48358"),
+		"speckle_chance": 0.045,
+		"deco_chance": 0.035,
 		"deco_kind": "pebble",
-		"deco_palette": [Color("#3a2618"), Color("#5a3a22")],
+		"deco_palette": [Color("#5c4326"), Color("#b39067"), Color("#4a3520")],
 	},
 	"stone": {
-		"base": Color("#7a7a82"),
-		"shade": Color("#6e6e76"),
-		"highlight": Color("#88888e"),
-		"speckle_chance": 0.05,
-		"deco_chance": 0.02,
-		"deco_kind": "pebble",
-		"deco_palette": [Color("#4a4a52"), Color("#aaaab2")],
+		# 石板路：冷灰石板 + seam 缝土黄色（进入城郭外围的过渡）
+		"base": Color("#7a7d82"),
+		"shade": Color("#64676c"),
+		"highlight": Color("#949aa0"),
+		"speckle_chance": 0.04,
+		"deco_chance": 0.06,
+		"deco_kind": "seam",
+		"deco_palette": [Color("#8a7a52"), Color("#a89066"), Color("#5c503a")],
 	},
 	"demon_ground": {
 		"base": Color("#150406"),
@@ -152,6 +173,56 @@ const TILE_DATA := {
 		"deco_chance": 0.05,
 		"deco_kind": "pebble",
 		"deco_palette": [Color("#4a3220"), Color("#5e4028"), Color("#7a5430"), Color("#d8b878")],
+	},
+	"village": {
+		# 乡村：浅褐夯土 + 谷穗/稻草 deco
+		"base": Color("#a68858"),
+		"shade": Color("#886f45"),
+		"highlight": Color("#c0a276"),
+		"speckle_chance": 0.055,
+		"deco_chance": 0.05,
+		"deco_kind": "grain",
+		"deco_palette": [Color("#d8b96a"), Color("#b89550"), Color("#7c5a2c")],
+	},
+	"town": {
+		# 城镇：深灰砖 + brick 砖纹（偶发暖橘灯高光 = 商铺灯光）
+		"base": Color("#5b5f66"),
+		"shade": Color("#4a4e54"),
+		"highlight": Color("#7a7f88"),
+		"speckle_chance": 0.045,
+		"deco_chance": 0.055,
+		"deco_kind": "brick",
+		"deco_palette": [Color("#4a4e54"), Color("#6a6e75"), Color("#d8a860")],
+	},
+	"castle": {
+		# 城堡：冷灰大理石 + 蓝紫纹章 crest deco
+		"base": Color("#8890a0"),
+		"shade": Color("#6f7688"),
+		"highlight": Color("#a0a8b8"),
+		"speckle_chance": 0.04,
+		"deco_chance": 0.03,
+		"deco_kind": "crest",
+		"deco_palette": [Color("#5a6a90"), Color("#7080a8"), Color("#a0a8c8")],
+	},
+	"palace": {
+		# 王宫：金红大理石 + 金箔菱格 gilt deco（终章视觉华丽感）
+		"base": Color("#b8967c"),
+		"shade": Color("#9a7860"),
+		"highlight": Color("#d4b898"),
+		"speckle_chance": 0.035,
+		"deco_chance": 0.04,
+		"deco_kind": "gilt",
+		"deco_palette": [Color("#d4a848"), Color("#b88830"), Color("#f0d488")],
+	},
+	"palace_corridor": {
+		# 王宫火把长廊（第 29 关 boss 前奏）：深红地毯 + 火把余烬（ember deco 复用）
+		"base": Color("#4c2c30"),
+		"shade": Color("#3a2028"),
+		"highlight": Color("#683840"),
+		"speckle_chance": 0.05,
+		"deco_chance": 0.045,
+		"deco_kind": "ember",
+		"deco_palette": [Color("#c85030"), Color("#f08040"), Color("#501818")],
 	},
 }
 
@@ -258,16 +329,24 @@ func _pick_tile_type_for(stage_index: int, _col: int, _row: int) -> String:
 	var stage_dict: Dictionary = GameConfig.get_stage(stage_index)
 	if str(stage_dict.get("room_type", "")) == "attr_forge":
 		return TYPE_FORGE_GROUND
-	# Boss 关 → 棕色练兵操场（先于主题判定，因为 boss 关无主题）
+	# Boss 关 → 王宫大厅金红大理石（第 30 关剧情：闯王宫击杀 boss）
 	if str(stage_dict.get("boss_id", "")) != "":
-		return TYPE_PARADE_GROUND
+		return TYPE_PALACE
 	match _current_theme:
 		"demon":
 			return TYPE_DEMON_GROUND
 		"angel":
 			return TYPE_ANGEL_GROUND
-		_:
-			return TYPE_GRASS
+	# 无特殊 override → 按段位映射默认地面（草地→土路→乡村→石板→城镇→城堡→王宫）
+	return _get_segment_terrain(stage_index)
+
+
+func _get_segment_terrain(stage_index: int) -> String:
+	# 第 29 关（idx=28）：boss 前奏，火把长廊
+	if stage_index == 28:
+		return TYPE_PALACE_CORRIDOR
+	var segment := clampi(stage_index / 4, 0, 6)  # 每 4 关一段，第 25 关以后（含）都归段 6
+	return String(SEGMENT_TERRAIN_MAP.get(segment, TYPE_GRASS))
 
 
 func _build_grid(stage_index: int, safe_zone: Dictionary) -> void:
@@ -532,6 +611,48 @@ func _paint_decoration(img: Image, x: int, y: int, data: Dictionary, rng: Random
 			img.fill_rect(Rect2i(x, y + PIXEL, PIXEL, PIXEL), rcol)
 			if palette.size() >= 2:
 				img.fill_rect(Rect2i(x + PIXEL, y + PIXEL, PIXEL, PIXEL), palette[1])
+		"grain":
+			# 乡村谷穗/稻草：3×1 竖秆 + 顶端一颗麦粒
+			var stalk_col: Color = palette[palette.size() - 1]  # 最后一色 = 秆色（深褐）
+			var head_col: Color = palette[rng.randi() % maxi(1, palette.size() - 1)]  # 前面几色 = 穗色
+			img.fill_rect(Rect2i(x, y + PIXEL, PIXEL, PIXEL), stalk_col)
+			img.fill_rect(Rect2i(x, y + PIXEL * 2, PIXEL, PIXEL), stalk_col)
+			img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), head_col)
+		"seam":
+			# 石板缝隙：随机横/竖 2 段短线，缝土色
+			var seam_col: Color = palette[rng.randi() % palette.size()]
+			if rng.randf() < 0.5:
+				img.fill_rect(Rect2i(x, y, PIXEL * 2, PIXEL), seam_col)  # 横缝
+			else:
+				img.fill_rect(Rect2i(x, y, PIXEL, PIXEL * 2), seam_col)  # 竖缝
+		"brick":
+			# 城镇砖纹：2×1 或 1×2 错缝砖块，1/10 概率单点暖橘灯高光
+			var brick_col: Color = palette[rng.randi() % maxi(1, palette.size() - 1)]  # 前几色 = 砖色
+			if rng.randf() < 0.5:
+				img.fill_rect(Rect2i(x, y, PIXEL * 2, PIXEL), brick_col)
+				img.fill_rect(Rect2i(x + PIXEL, y + PIXEL, PIXEL * 2, PIXEL), brick_col)  # 错缝
+			else:
+				img.fill_rect(Rect2i(x, y, PIXEL, PIXEL * 2), brick_col)
+				img.fill_rect(Rect2i(x + PIXEL, y + PIXEL, PIXEL, PIXEL * 2), brick_col)
+			if palette.size() >= 3 and rng.randf() < 0.1:
+				# 暖橘灯高光（palette 末尾 = 灯色 #d8a860）
+				img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), palette[palette.size() - 1])
+		"crest":
+			# 城堡纹章：3 点垂直菱形（中心 + 上下）
+			var crest_col: Color = palette[rng.randi() % palette.size()]
+			img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), crest_col)
+			img.fill_rect(Rect2i(x, y + PIXEL, PIXEL, PIXEL), crest_col)
+			img.fill_rect(Rect2i(x, y - PIXEL, PIXEL, PIXEL), crest_col)
+		"gilt":
+			# 王宫金箔菱格：3×3 十字 + 中心高亮 1 点
+			var gilt_col: Color = palette[rng.randi() % maxi(1, palette.size() - 1)]  # 前几色 = 金色
+			img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), gilt_col)
+			img.fill_rect(Rect2i(x + PIXEL, y, PIXEL, PIXEL), gilt_col)
+			img.fill_rect(Rect2i(x - PIXEL, y, PIXEL, PIXEL), gilt_col)
+			img.fill_rect(Rect2i(x, y + PIXEL, PIXEL, PIXEL), gilt_col)
+			img.fill_rect(Rect2i(x, y - PIXEL, PIXEL, PIXEL), gilt_col)
+			if palette.size() >= 3:
+				img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), palette[palette.size() - 1])  # 中心高亮
 		_:
 			pass
 

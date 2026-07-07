@@ -193,5 +193,17 @@
   "UI_TALENT_MAX_ALL": "All talents maxed",
   "UI_TALENT_LOCKED": "?",
   "UI_TALENT_PITY_HIT": "Pity Guaranteed!",
-  "UI_TALENT_DEBUG_UNLOCK_ALL": "Unlock All"
+  "UI_TALENT_DEBUG_UNLOCK_ALL": "Unlock All",
+
+  "UI_MAIN_SCOUT_BTN": "Scout",
+  "UI_SCOUT_TITLE": "Scout Rewards",
+  "UI_SCOUT_SUBTITLE": "Auto-earn generous rewards",
+  "UI_SCOUT_ELAPSED_LABEL": "Scouted",
+  "UI_SCOUT_HOURLY_FMT": "%d / hour",
+  "UI_SCOUT_ITEM_EMPTY": "No items yet",
+  "UI_SCOUT_HINT_HIGHER": "Higher chapters earn more",
+  "UI_SCOUT_CLAIM_BTN": "Claim",
+  "UI_SCOUT_CLAIM_DISABLED": "Nothing to claim",
+  "UI_SCOUT_CLAIMED_FMT": "+%d gold",
+  "UI_SCOUT_CLOSE_HINT": "Tap blank area to close"
 }

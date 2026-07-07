@@ -1373,6 +1373,9 @@ func _try_finish_stage_clear() -> void:
 		return
 	if summons and summons.has_active_fx():
 		return
+	# 等最后一只怪的死亡动画结束（防止死亡动画播了一半就切场景）
+	if spawner and spawner.has_pending_death_presentation():
+		return
 	pending_stage_clear = false
 	_advance_to_next_stage()
 
@@ -1692,7 +1695,7 @@ func _update_playing(scaled_delta: float, real_delta: float) -> void:
 	if level_overlay and level_overlay.is_phase_fade_active():
 		return
 	var summon_fx_active: bool = summons != null and summons.has_active_fx()
-	if spawner.all_dead() and not spawner.is_spawning() and not combat.is_resolving() and not combat.has_combat_presentation() and player.state == BattlePlayer.State.IDLE and not abilities.has_active_fx() and not summon_fx_active:
+	if spawner.all_dead() and not spawner.has_pending_death_presentation() and not spawner.is_spawning() and not combat.is_resolving() and not combat.has_combat_presentation() and player.state == BattlePlayer.State.IDLE and not abilities.has_active_fx() and not summon_fx_active:
 		pending_stage_clear = true
 		_try_finish_stage_clear()
 

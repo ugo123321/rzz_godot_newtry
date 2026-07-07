@@ -5,7 +5,7 @@
       "name_cn": "铁制短刀",
       "name_en": "Iron Dagger",
       "slot": "weapon",
-      "icon_path": "res://assets/icons/equipment/icon_equip_iron_dagger.svg",
+      "icon_path": "res://assets/ui/icons/equipment/equip_01.png",
       "is_rare": 0,
       "tiers": [
         {
@@ -51,7 +51,7 @@
       "name_cn": "轻布甲",
       "name_en": "Light Cloth Armor",
       "slot": "armor",
-      "icon_path": "res://assets/icons/equipment/icon_equip_light_cloth_armor.svg",
+      "icon_path": "res://assets/ui/icons/equipment/equip_02.png",
       "is_rare": 0,
       "tiers": [
         {
@@ -97,7 +97,7 @@
       "name_cn": "硬木鞋",
       "name_en": "Hard Wood Shoes",
       "slot": "shoes",
-      "icon_path": "res://assets/icons/equipment/icon_equip_hard_wood_shoes.svg",
+      "icon_path": "res://assets/ui/icons/equipment/equip_03.png",
       "is_rare": 0,
       "tiers": [
         {
@@ -143,7 +143,7 @@
       "name_cn": "毛绒帽",
       "name_en": "Fur Hat",
       "slot": "helmet",
-      "icon_path": "res://assets/icons/equipment/icon_equip_fur_hat.svg",
+      "icon_path": "res://assets/ui/icons/equipment/equip_04.png",
       "is_rare": 0,
       "tiers": [
         {
@@ -189,7 +189,7 @@
       "name_cn": "暴风大剑",
       "name_en": "Storm Greatsword",
       "slot": "weapon",
-      "icon_path": "res://assets/icons/equipment/icon_equip_storm_greatsword.svg",
+      "icon_path": "res://assets/ui/icons/equipment/equip_05.png",
       "is_rare": 0,
       "tiers": [
         {
@@ -233,7 +233,7 @@
       "name_cn": "轻灵之靴",
       "name_en": "Nimble Boots",
       "slot": "shoes",
-      "icon_path": "res://assets/icons/equipment/icon_equip_nimble_boots.svg",
+      "icon_path": "res://assets/ui/icons/equipment/equip_06.png",
       "is_rare": 0,
       "tiers": [
         {
@@ -277,7 +277,7 @@
       "name_cn": "丛林甲",
       "name_en": "Jungle Armor",
       "slot": "armor",
-      "icon_path": "res://assets/icons/equipment/icon_equip_jungle_armor.svg",
+      "icon_path": "res://assets/ui/icons/equipment/equip_07.png",
       "is_rare": 0,
       "tiers": [
         {
@@ -321,7 +321,7 @@
       "name_cn": "坚固头盔",
       "name_en": "Sturdy Helmet",
       "slot": "helmet",
-      "icon_path": "res://assets/icons/equipment/icon_equip_sturdy_helmet.svg",
+      "icon_path": "res://assets/ui/icons/equipment/equip_08.png",
       "is_rare": 0,
       "tiers": [
         {

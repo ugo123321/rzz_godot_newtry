@@ -12,6 +12,13 @@ const BTN_PRIMARY_PATH := "res://assets/ui/buttons/btn_primary_9s.png"
 const BAR_FRAME_PATH := "res://assets/ui/panels/bar_frame_9s.png"
 const BAR_FILL_PATH := "res://assets/ui/panels/bar_fill_9s.png"
 
+# 升级卡 PNG icon（skill_XX.png，源自 xlsx E 列 icon 字段）+ 边框
+const UPGRADE_ICON_DIR := "res://assets/ui/icons/upgrades/"
+const REWARD_FRAME_PATH := "res://assets/ui/decorations/deco_frame_32.png"
+# deco_frame_32.png 是 64×64 画布，但可见边框图案只占中间 40×40（外圈 12px 透明留白）。
+# 拉到跟 icon 同尺寸时可见部分会缩小 → 反向放大 1/0.625 让边框可见外沿对齐 icon。
+const REWARD_FRAME_OPAQUE_RATIO := 0.625
+
 # 切片数值见 docs/ui_asset_spec.md § 4
 const DIALOG_MARGIN := 24
 const TOOLTIP_STD_MARGIN := 12
@@ -138,3 +145,59 @@ static func _apply_linear_recursive(node: Node, exclude_keywords: Array) -> void
 			# 父节点被 exclude 时，子节点也整体跳过（比如 PreviewViewport 里所有像素东西）
 			continue
 		_apply_linear_recursive(child, exclude_keywords)
+
+
+# ─── 升级卡 PNG icon + FRAME 边框 ───
+# 数据来源：rewards_v6.json 的 "icon" 字段（由 export_rewards_v6_compact_json.py 从 xlsx E 列导出）。
+# 值形如 "skill_45"（不带扩展名）→ 加载 res://assets/ui/icons/upgrades/skill_45.png
+# 空值 / emoji（如 "💪"）/ 加载失败 → 返回 null，让调用方 fallback 到 PixelCardIcon 程序绘制。
+static func try_load_upgrade_icon(upgrade: Dictionary) -> Texture2D:
+	var icon_key := str(upgrade.get("icon", "")).strip_edges()
+	if icon_key.is_empty() or not icon_key.begins_with("skill_"):
+		return null
+	var path := UPGRADE_ICON_DIR + icon_key + ".png"
+	if not ResourceLoader.exists(path):
+		return null
+	return _load_tex(path)
+
+
+# 组装 "PNG icon + FRAME 边框" 的可复用 Control。
+# 结构：CenterContainer > Control(size × size) > [icon_rect, frame_rect]（两层等大 stack）
+# 返回 null → 调用方走 PixelCardIcon fallback。
+static func build_reward_icon_with_frame(upgrade: Dictionary, size: float) -> Control:
+	var tex := try_load_upgrade_icon(upgrade)
+	if tex == null:
+		return null
+	var box := CenterContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var stack := Control.new()
+	stack.custom_minimum_size = Vector2(size, size)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(stack)
+
+	var icon_rect := TextureRect.new()
+	icon_rect.texture = tex
+	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(icon_rect)
+	icon_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var frame_tex := _load_tex(REWARD_FRAME_PATH)
+	if frame_tex != null:
+		var frame_rect := TextureRect.new()
+		frame_rect.texture = frame_tex
+		frame_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		frame_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		frame_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		frame_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack.add_child(frame_rect)
+		# 边框可见部分只占 PNG 的 62.5%，反向放大让可见边界对齐 icon rect
+		var frame_draw := size / REWARD_FRAME_OPAQUE_RATIO
+		var bleed := (frame_draw - size) * 0.5
+		frame_rect.position = Vector2(-bleed, -bleed)
+		frame_rect.size = Vector2(frame_draw, frame_draw)
+	return box

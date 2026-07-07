@@ -21,7 +21,7 @@ class_name SpecialRuleDispatcher
 
 # Sheet5 SR 索引（46 entry）：见 rewards_v6_compact.xlsx Sheet5
 # 已实现 SR set
-const IMPLEMENTED_SR := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45]
+const IMPLEMENTED_SR := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56]
 
 
 # ============= 工具：迭代 player 所有当前装备的卡，按 sr 过滤 =============
@@ -232,6 +232,47 @@ static func on_rebuild(player: Node) -> void:
 		player.proximity_slow_radius = maxf(player.proximity_slow_radius, _sv(b50, 0, 300.0))
 		player.proximity_slow_max = maxf(player.proximity_slow_max, _sv(b50, 1, 0.5))
 
+	# ===== 追加：sr 51-56 =====
+	# sr=51 psychic_petrify_all：记录石化持续秒（每级 +_sv_per_lv[0]）
+	for b51 in _iter_sr(player, 51):
+		var pd: float = _sv(b51, 0, 1.0) + _sv_per_lv(b51, 0, 0.3) * float(maxi(0, b51.level - 1))
+		player.psychic_petrify_duration = maxf(player.psychic_petrify_duration, pd)
+	# sr=52 periodic_iframe（独角兽）：CD 走 attr 40，持续走 attr 41
+	for b52 in _iter_sr(player, 52):
+		var u_cd: float = 15.0
+		var u_dur: float = 5.0
+		for slot52 in b52.def.get("attrs", []):
+			var aid52 := int(slot52.get("id", 0))
+			if aid52 == 40:
+				u_cd = float(slot52.get("value", 15.0)) + float(slot52.get("per_lv", 0.0)) * float(maxi(0, b52.level - 1))
+			elif aid52 == 41:
+				u_dur = float(slot52.get("value", 5.0)) + float(slot52.get("per_lv", 0.0)) * float(maxi(0, b52.level - 1))
+		player.unicorn_cd = maxf(3.0, u_cd)
+		player.unicorn_duration = maxf(0.5, u_dur)
+		# 首次装备：预热到 CD 秒（避免选卡瞬间就无敌）
+		if player.unicorn_timer <= 0.0:
+			player.unicorn_timer = player.unicorn_cd
+	# sr=53 laser_cannon_basic：普攻改激光炮
+	for b53 in _iter_sr(player, 53):
+		player.laser_cannon_active = true
+		player.laser_cannon_atk_mult = _sv(b53, 0, 3.0)
+		player.laser_cannon_color_key = _sv_str(b53, 1, "white")
+		player.laser_cannon_pierce = _sv(b53, 2, 1.0) >= 0.5
+	# sr=54 melee_basic：普攻改近战
+	for b54 in _iter_sr(player, 54):
+		player.melee_basic_active = true
+		player.melee_basic_atk_bonus = _sv(b54, 0, 0.5)
+		player.melee_range_px = _sv(b54, 1, 60.0)
+	# sr=55 bomb_on_slash_end：炸弹人
+	for b55 in _iter_sr(player, 55):
+		player.bomber_atk_mult = _sv(b55, 0, 3.0) + _sv_per_lv(b55, 0, 0.5) * float(maxi(0, b55.level - 1))
+		player.bomber_fuse_sec = _sv(b55, 1, 2.0)
+		player.bomber_cross_arm_px = _sv(b55, 2, 180.0)
+	# sr=56 orbit_shield：数量已由 attr 46 (shield_orbit_count_add) 累加，读 sv 拿轨道参数
+	for b56 in _iter_sr(player, 56):
+		player.shield_orbit_radius = _sv(b56, 0, 280.0)
+		player.shield_orbit_speed = _sv(b56, 1, 1.5)
+
 
 # 工具：取 sv_per_lv[idx]
 static func _sv_per_lv(b: Dictionary, idx: int, default_v: float = 0.0) -> float:
@@ -353,6 +394,20 @@ static func on_tick(player: Node, delta: float) -> void:
 				if "proximity_slow_pct" in m:
 					m.proximity_slow_pct = pct
 
+	# sr=52 periodic_iframe（独角兽）：定时无敌
+	if float(player.unicorn_cd) > 0.0:
+		player.unicorn_timer = maxf(0.0, float(player.unicorn_timer) - delta)
+		if player.unicorn_timer <= 0.0:
+			player.unicorn_timer = player.unicorn_cd
+			player.invincible_timer = maxf(float(player.invincible_timer), float(player.unicorn_duration))
+	# invincible 时开启彩虹 modulate 标志（真正 modulate 由 player.gd 自绘时读取）
+	player.unicorn_rainbow_active = float(player.unicorn_cd) > 0.0 and float(player.invincible_timer) > 0.0
+
+	# sr=56 orbit_shield：轨道旋转 + 挡敌方子弹检测
+	if int(player.shield_orbit_count) > 0:
+		player.shield_orbit_angle = fmod(float(player.shield_orbit_angle) + float(player.shield_orbit_speed) * delta, TAU)
+		_orbit_shield_tick(player)
+
 
 # sr=3 aura 实际 tick：给范围内每个怪一次性伤害
 static func _aura_tick(player: Node, b: Dictionary) -> void:
@@ -435,6 +490,20 @@ static func on_slash_end(player: Node, abilities: Node, end_pos: Vector2 = Vecto
 		if float(player.scythe_atk_mult) > 0.0 and abilities and abilities.has_method("spawn_v6_demon_scythe"):
 			var pos: Vector2 = end_pos if end_pos.x != INF else player.global_position
 			abilities.spawn_v6_demon_scythe(player, pos, end_ang, float(player.scythe_atk_mult), bool(player.scythe_pierce))
+		# sr=51 念力：全场石化
+		if float(player.psychic_petrify_duration) > 0.0:
+			var battle_p = player.get_tree().get_first_node_in_group("battle") if player.is_inside_tree() else null
+			if battle_p and battle_p.spawner:
+				var dur: float = float(player.psychic_petrify_duration)
+				for m in battle_p.spawner.get_active_monsters():
+					if not is_instance_valid(m) or not bool(m.get("alive")) or bool(m.get("dying")):
+						continue
+					if m.has_method("apply_petrify"):
+						m.apply_petrify(dur)
+		# sr=55 炸弹人：末端埋十字炸弹
+		if float(player.bomber_atk_mult) > 0.0 and abilities and abilities.has_method("spawn_v6_cross_bomb"):
+			var bpos: Vector2 = end_pos if end_pos.x != INF else player.global_position
+			abilities.spawn_v6_cross_bomb(player, bpos, float(player.bomber_atk_mult), float(player.bomber_fuse_sec), float(player.bomber_cross_arm_px))
 	# 注：标记清零放在 player.gd 调用完所有 slash-end 系列后（on_slash_end + on_slash_wave + 闭合爆炸）统一清零
 
 
@@ -888,6 +957,49 @@ static func _sample_path(path: Array, spacing: float) -> Array:
 			out.append(a.lerp(bb, t))
 	out.append(path[path.size() - 1])
 	return out
+
+
+# sr=56 orbit_shield：每帧枚举敌方远程子弹，若距离盾中心 < BLOCK_RADIUS 则 queue_free + 命中粒子
+const SHIELD_BLOCK_RADIUS := 22.0
+
+static func _orbit_shield_tick(player: Node) -> void:
+	var count: int = int(player.shield_orbit_count)
+	if count <= 0:
+		return
+	var battle = player.get_tree().get_first_node_in_group("battle") if player.is_inside_tree() else null
+	if battle == null:
+		return
+	# 敌方远程子弹一般在 group "enemy_projectiles" — 若没有，走 spawner 找 monster_projectiles
+	var projectiles: Array = []
+	if player.get_tree().has_group("enemy_projectiles"):
+		projectiles = player.get_tree().get_nodes_in_group("enemy_projectiles")
+	elif battle.has_node("Projectiles"):
+		var pn = battle.get_node("Projectiles")
+		for c in pn.get_children():
+			if c.is_in_group("enemy_projectiles"):
+				projectiles.append(c)
+	if projectiles.is_empty():
+		return
+	# 计算所有盾的位置
+	var base_ang: float = float(player.shield_orbit_angle)
+	var r: float = float(player.shield_orbit_radius)
+	var origin: Vector2 = player.global_position
+	var shield_positions: Array = []
+	for i in range(count):
+		var a: float = base_ang + TAU * float(i) / float(count)
+		shield_positions.append(origin + Vector2(cos(a), sin(a)) * r)
+	# 检测子弹距任一盾 < BLOCK_RADIUS 则销毁
+	for p in projectiles:
+		if not is_instance_valid(p):
+			continue
+		var ppos: Vector2 = p.global_position
+		for sp in shield_positions:
+			if ppos.distance_to(sp) <= SHIELD_BLOCK_RADIUS:
+				# 命中特效：如 battle 有 combat.spawn_impact_burst 用它，否则简易 particles
+				if battle.combat and battle.combat.has_method("spawn_impact_burst"):
+					battle.combat.spawn_impact_burst(sp, Color(0.75, 0.85, 1.0, 1.0))
+				p.queue_free()
+				break
 
 
 # ============= 未实现 SR 列表（注释，无 handler）=============

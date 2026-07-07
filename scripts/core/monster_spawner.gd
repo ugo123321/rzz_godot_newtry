@@ -220,6 +220,23 @@ func all_dead() -> bool:
 	return true
 
 
+# 是否还有怪物 / boss 正在播放死亡动画（还没走完淡出 / queue_free）
+# stage_clear gate 用：等最后一只怪的死亡动画结束后再切关
+func has_pending_death_presentation() -> bool:
+	if is_instance_valid(boss):
+		var boss_defeated: bool = ("defeated" in boss) and bool(boss.defeated)
+		var boss_fade: float = float(boss.death_fade_timer) if "death_fade_timer" in boss else 0.0
+		if boss_defeated and boss_fade > 0.0:
+			return true
+	for m in monsters:
+		if not is_instance_valid(m):
+			continue
+		# 死亡动画期间：dying==true 且尚未 unregister（_finish_death 会把 dying 置回 false + 移出数组）
+		if ("dying" in m) and bool(m.dying):
+			return true
+	return false
+
+
 func _clear_spawn_schedule() -> void:
 	_spawn_queue.clear()
 	_spawn_timer = 0.0

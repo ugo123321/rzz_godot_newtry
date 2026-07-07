@@ -110,8 +110,8 @@ def parse_effect(text: str) -> tuple[dict, str | None, str]:
     raise ValueError(f"Unknown effect text: {text!r}")
 
 
-def icon_path_for(def_id: str) -> str:
-    return f"res://assets/icons/equipment/icon_equip_{def_id}.svg"
+def icon_path_for(icon_key: str) -> str:
+    return f"res://assets/ui/icons/equipment/{icon_key}.png"
 
 
 def convert():
@@ -136,6 +136,9 @@ def convert():
         slot_key = SLOT_CN_TO_KEY.get(slot_cn)
         if slot_key is None:
             raise ValueError(f"Unknown slot: {slot_cn!r}")
+        icon_key = str(r[3] or "").strip()
+        if not icon_key:
+            raise ValueError(f"{def_id}: missing icon slug in column D")
         quality_cn = str(r[4] or "").strip()
         if quality_cn not in QUALITY_CN_TO_CODE:
             raise ValueError(f"Unknown quality: {quality_cn!r}")
@@ -149,7 +152,7 @@ def convert():
                 "name_cn": name_cn,
                 "name_en": name_en,
                 "slot": slot_key,
-                "icon_path": icon_path_for(def_id),
+                "icon_path": icon_path_for(icon_key),
                 "is_rare": is_rare,
                 "tiers": [None, None, None, None],
             }

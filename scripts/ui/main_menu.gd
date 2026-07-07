@@ -2,6 +2,8 @@ extends Control
 class_name MainMenu
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
+const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
+const ScoutRewardPopupT = preload("res://scripts/ui/scout_reward_popup.gd")
 const LOADING_SCENE := "res://scenes/ui/loading_screen.tscn"
 
 enum Tab {
@@ -100,6 +102,9 @@ var _sky_glow_scroll_layer: Control
 var _sky_glow_tiles: Array[TextureRect] = []
 var _sky_glow_tile_width := 0.0
 var _stage_icon_pulse_material: ShaderMaterial
+var _scout_popup: ScoutRewardPopupT
+var _scout_entry_button: Button
+var _scout_entry_label: Label
 
 
 func _ui_scale() -> float:
@@ -140,6 +145,7 @@ func _ready() -> void:
 	_connect_tab_row_layout()
 	_setup_start_button()
 	_setup_top_bar()
+	_setup_scout_entry()
 	_connect_top_bar_signals()
 	_apply_static_texts()
 	if not EventBus.language_changed.is_connected(_on_language_changed):
@@ -178,6 +184,9 @@ func _apply_static_texts() -> void:
 	var achieve_ph := get_node_or_null("Content/AchievementPanel/Placeholder") as Label
 	if achieve_ph != null:
 		achieve_ph.text = LanguageManager.tr_ui("UI_MAIN_ACHIEVE_PLACEHOLDER")
+	# 侦察入口按钮 label
+	if _scout_entry_label != null:
+		_scout_entry_label.text = LanguageManager.tr_ui("UI_MAIN_SCOUT_BTN")
 
 
 func _process(delta: float) -> void:
@@ -259,9 +268,9 @@ func _apply_default_textures() -> void:
 	if top_money_bg_texture == null:
 		top_money_bg_texture = _load_tex("res://assets/ui/battle/money_bg.png")
 	if top_gold_icon_texture == null:
-		top_gold_icon_texture = _load_tex("res://assets/ui/battle/gold_icon.png")
+		top_gold_icon_texture = _load_tex("res://assets/ui/icons/currency/icon_cur_gold.png")
 	if top_gem_icon_texture == null:
-		top_gem_icon_texture = _load_tex("res://assets/ui/battle/gem_icon.png")
+		top_gem_icon_texture = _load_tex("res://assets/ui/icons/currency/icon_cur_gem.png")
 	if play_button_texture == null:
 		if _start_button != null and _start_button.texture_normal != null:
 			play_button_texture = _start_button.texture_normal
@@ -699,6 +708,76 @@ func _setup_top_bar() -> void:
 		_top_gold_label.text = str(LobbyState.gold)
 	if _top_gem_label != null:
 		_top_gem_label.text = "0"
+
+
+func _setup_scout_entry() -> void:
+	# 侦察入口：作为 StagePanel/StageViewport 的子节点，锚定在 StartButton 上方约 60px。
+	# 全代码构建 —— 不改 tscn，避免场景 diff。
+	var viewport := get_node_or_null("Content/StagePanel/StageViewport") as Control
+	if viewport == null:
+		return
+	var start_wrap := viewport.get_node_or_null("StartButtonWrap") as Control
+	# 主按钮：显示"[图标] 侦察"
+	_scout_entry_button = Button.new()
+	_scout_entry_button.name = "ScoutEntryButton"
+	_scout_entry_button.custom_minimum_size = Vector2(180, 68)
+	_scout_entry_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_scout_entry_button.focus_mode = Control.FOCUS_NONE
+	PixelUi.apply_ui_font(_scout_entry_button)
+	# 用 9-slice 主按钮样式（暖色调，与开始按钮配色一致但更小）
+	UiStyle.apply_primary_button(_scout_entry_button, Color("#8fb078"), 10)
+	viewport.add_child(_scout_entry_button)
+	# 锚定：横向居中，纵向落在 StartButton 上方
+	_scout_entry_button.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_scout_entry_button.anchor_left = 0.5
+	_scout_entry_button.anchor_right = 0.5
+	_scout_entry_button.anchor_top = 1.0
+	_scout_entry_button.anchor_bottom = 1.0
+	_scout_entry_button.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_scout_entry_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_scout_entry_button.offset_left = -90.0
+	_scout_entry_button.offset_right = 90.0
+	# 高度定位：贴在 StartButtonWrap.offset_top 上方 12px
+	var wrap_top := -216.0
+	if start_wrap != null:
+		wrap_top = start_wrap.offset_top
+	_scout_entry_button.offset_top = wrap_top - 80.0
+	_scout_entry_button.offset_bottom = wrap_top - 12.0
+	# 内嵌的中央 label（保留 unique 引用便于 i18n 刷新；不用 Button.text，方便配图标）
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_scout_entry_button.add_child(row)
+	var icon := TextureRect.new()
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(36, 36)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.texture = _load_tex("res://assets/ui/icons/system/icon_detail.png")
+	if icon.texture == null:
+		icon.texture = _load_tex("res://assets/ui/icons/nav/icon_nav_dungeon.png")
+	row.add_child(icon)
+	_scout_entry_label = Label.new()
+	_scout_entry_label.name = "ScoutLabel"
+	_scout_entry_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	PixelUi.apply_ui_font(_scout_entry_label)
+	_scout_entry_label.add_theme_font_size_override("font_size", 26)
+	_scout_entry_label.add_theme_color_override("font_color", Color("#0f2410"))
+	_scout_entry_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_scout_entry_label)
+	_scout_entry_button.pressed.connect(_on_scout_entry_pressed)
+	# Popup 实例：挂在 MainMenu 根节点上，覆盖全屏
+	_scout_popup = ScoutRewardPopupT.new()
+	add_child(_scout_popup)
+	_scout_popup.setup()
+
+
+func _on_scout_entry_pressed() -> void:
+	if _scout_popup == null:
+		return
+	_scout_popup.show_popup()
 
 
 func _connect_top_bar_signals() -> void:

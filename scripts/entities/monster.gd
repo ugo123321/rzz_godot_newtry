@@ -75,6 +75,7 @@ var paralyze_timer := 0.0
 var slow_timer := 0.0
 var slow_pct_active := 0.0
 var proximity_slow_pct := 0.0  # sr=50 无下限术式：每帧由 dispatcher 写入（按到玩家距离线性插值）
+var petrify_timer := 0.0        # sr=51 念力全场石化：>0 时怪物完全定身，anim modulate 变石灰色（视觉优先级最高）
 
 # 水地块：与玩家一致的浅蓝染色 + 移速减速；视觉优先级最低（被所有元素状态压过）
 var on_water_terrain := false
@@ -343,6 +344,14 @@ func is_frozen() -> bool:
 func freeze(duration: float) -> void:
 	# v5 freeze（完全不动）映射到 paralyze；v2 冰减速走 apply_freeze_slow
 	paralyze_timer = maxf(paralyze_timer, duration)
+
+
+# sr=51 念力：全场石化 — 完全定身 + 石灰色 tint（视觉优先级压过雷麻痹）。
+# 用独立 petrify_timer 记录持续时长；paralyze_timer 同时置位保证真的不动。
+func apply_petrify(duration: float) -> void:
+	petrify_timer = maxf(petrify_timer, duration)
+	paralyze_timer = maxf(paralyze_timer, duration)
+	queue_redraw()
 
 
 func take_damage(raw_damage: int, from_pos: Vector2) -> Dictionary:
@@ -815,6 +824,8 @@ func _update_status_effects(delta: float) -> void:
 			slow_pct_active = 0.0
 	if paralyze_timer > 0.0:
 		paralyze_timer = maxf(0.0, paralyze_timer - delta)
+	if petrify_timer > 0.0:
+		petrify_timer = maxf(0.0, petrify_timer - delta)
 	# burn DoT tick
 	_tick_burn(delta)
 	# poison DoT tick
@@ -822,7 +833,7 @@ func _update_status_effects(delta: float) -> void:
 	# 视觉刷新（modulate 由 _apply_status_tint 综合处理）
 	_apply_status_tint()
 	_update_phantom_alpha(delta)
-	if burn_timer > 0.0 or slow_timer > 0.0 or poison_timer > 0.0 or paralyze_timer > 0.0 or _theme != "" or elite_kind != "":
+	if burn_timer > 0.0 or slow_timer > 0.0 or poison_timer > 0.0 or paralyze_timer > 0.0 or petrify_timer > 0.0 or _theme != "" or elite_kind != "":
 		queue_redraw()
 
 
@@ -872,12 +883,16 @@ func _tick_poison(delta: float) -> void:
 			EventBus.monster_killed.emit(self)
 
 
-# 综合 modulate：火 > 麻痹（金黄闪烁）> 毒 > 冰 > 水；仅取最高优先级一种染色
+# 综合 modulate：石化 > 火 > 麻痹（金黄闪烁）> 毒 > 冰 > 水；仅取最高优先级一种染色
 func _apply_status_tint() -> void:
 	var anim_sprite := _get_sprite()
 	if anim_sprite == null:
 		return
 	var base_tint: Color = sprite_tint if sprite_tint != Color.WHITE else Color.WHITE
+	# sr=51 念力石化：优先级最高，覆盖所有其它 tint
+	if petrify_timer > 0.0:
+		anim_sprite.modulate = Color(0.55, 0.55, 0.6, 1.0)
+		return
 	if burn_timer > 0.0:
 		anim_sprite.modulate = base_tint.lerp(Color(1.0, 0.42, 0.36, 1.0), 0.42)
 		return

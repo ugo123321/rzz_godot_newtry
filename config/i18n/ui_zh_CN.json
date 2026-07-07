@@ -193,5 +193,17 @@
   "UI_TALENT_MAX_ALL": "所有天赋已满级",
   "UI_TALENT_LOCKED": "?",
   "UI_TALENT_PITY_HIT": "保底触发！",
-  "UI_TALENT_DEBUG_UNLOCK_ALL": "解锁全部"
+  "UI_TALENT_DEBUG_UNLOCK_ALL": "解锁全部",
+
+  "UI_MAIN_SCOUT_BTN": "侦察",
+  "UI_SCOUT_TITLE": "侦察收益",
+  "UI_SCOUT_SUBTITLE": "自动获取丰富奖励",
+  "UI_SCOUT_ELAPSED_LABEL": "已侦察",
+  "UI_SCOUT_HOURLY_FMT": "%d / 小时",
+  "UI_SCOUT_ITEM_EMPTY": "暂未获得任何道具",
+  "UI_SCOUT_HINT_HIGHER": "章节越高，收益越大",
+  "UI_SCOUT_CLAIM_BTN": "领取",
+  "UI_SCOUT_CLAIM_DISABLED": "暂无可领",
+  "UI_SCOUT_CLAIMED_FMT": "+%d 金币",
+  "UI_SCOUT_CLOSE_HINT": "点击空白处以关闭"
 }

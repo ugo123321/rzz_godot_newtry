@@ -78,9 +78,9 @@ func _draw() -> void:
 	match prefix:
 		"basic":  _draw_basic(card_id, g, pal)
 		"sv":     _draw_heart(g, pal)
-		"bullet": _draw_bullet(g, pal)
+		"bullet": _draw_bullet_variant(card_id, g, pal)
 		"sword":  _draw_sword(g, pal)
-		"trail":  _draw_trail(g, pal)
+		"trail":  _draw_trail_variant(card_id, g, pal)
 		"orb":    _draw_orb(g, pal)
 		"summon": _draw_summon(card_id, g, pal)
 		"combo":  _draw_combo(card_id, g, pal)
@@ -155,10 +155,40 @@ func _draw_basic(card_id: String, g: float, p: Dictionary) -> void:
 		_draw_arrow_down(g, p)
 	elif card_id.find("luck") >= 0 or card_id.find("four_leaf") >= 0:
 		_draw_clover(g, p)
+	elif card_id.find("unicorn") >= 0:
+		_draw_horn(g, p)
 	elif card_id.find("warrior") >= 0 or card_id.find("berserker") >= 0 or card_id.find("demon") >= 0 or card_id.find("tri") >= 0 or card_id.find("breath") >= 0 or card_id.find("giant") >= 0:
 		_draw_fist(g, p)
 	else:
 		_draw_fist(g, p)
+
+
+# 独角兽的角（sr=52 basic_unicorn 用）— 20×22 螺旋角形
+func _draw_horn(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"..........O.........",
+		".........OBO........",
+		"........OBHBO.......",
+		".......OBHHBO.......",
+		"......OBHLLBO.......",
+		"......OBLBBBO.......",
+		".....OBHLLBO........",
+		".....OBLBBO.........",
+		"....OBHLLBO.........",
+		"....OBLBBO..........",
+		"...OBHLLBO..........",
+		"...OBLBBO...........",
+		"..OBHLLBO...........",
+		"..OBLBBO............",
+		".OBHLLBO............",
+		".OBLBBO.............",
+		"OBHLLBO.............",
+		"OBLBBO..............",
+		"OBBBO...............",
+		".OBO................",
+		"..O.................",
+	]
+	_draw_pattern(pattern, 6, 5, g, p)
 
 
 func _draw_fist(g: float, p: Dictionary) -> void:
@@ -301,6 +331,124 @@ func _draw_heart(g: float, p: Dictionary) -> void:
 
 
 # 子弹 / 元素弹：仿照 dagger.svg 的渐变色阶
+func _draw_bullet_variant(card_id: String, g: float, p: Dictionary) -> void:
+	if card_id.find("spider") >= 0:
+		_draw_spider(g, p)
+	elif card_id.find("laser") >= 0:
+		_draw_beam(g, p)
+	elif card_id.find("melee") >= 0:
+		_draw_fist(g, p)
+	else:
+		_draw_bullet(g, p)
+
+
+func _draw_trail_variant(card_id: String, g: float, p: Dictionary) -> void:
+	if card_id.find("psychic") >= 0:
+		_draw_brain(g, p)
+	elif card_id.find("bomber") >= 0:
+		_draw_bomb(g, p)
+	else:
+		_draw_trail(g, p)
+
+
+# 小蜘蛛（16×14）— bullet_spider_man 用
+func _draw_spider(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"O.....O.O.....O.",
+		".O.....O.....O..",
+		"..O...OBO...O...",
+		"...OOOBBBOOO....",
+		"..OBBHHHHHBBO...",
+		".OBHLLBBBLLHBO..",
+		".OBHLLBBBLLHBO..",
+		"..OBHLLLLLLHBO..",
+		"...OBHLLLLHBO...",
+		"....OBHLLHBO....",
+		"...OO.OBB.OO....",
+		"..O....OO....O..",
+		".O..O.....O..O..",
+		"O..O.......O..O.",
+	]
+	_draw_pattern(pattern, 8, 9, g, p)
+
+
+# 大脑（20×18）— trail_psychic 用
+func _draw_brain(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"......OOOOOO........",
+		".....OBBBBBBO.......",
+		"....OBLLLLLBBO......",
+		"...OBLLHHHLLBO......",
+		"..OBLHHLLLHHLBO.....",
+		".OBLHLLLLLLLHBO.....",
+		".OBLLLBBBBBLLLBO....",
+		"OBLLHBLLLLBBLLLBO...",
+		"OBLLLLBLLLLBLLLBO...",
+		"OBLHLHBLLLLBLLLBO...",
+		"OBLLLLBBBBBBLLLBO...",
+		".OBLLLLLLLLLLLLBO...",
+		".OBLLLBBBBBBLLLBO...",
+		"..OBLLLLLLLLLLBO....",
+		"...OBLLHHLLLLBO.....",
+		"....OBLLLLLLBO......",
+		".....OBBBBBBO.......",
+		"......OOOOOO........",
+	]
+	_draw_pattern(pattern, 6, 7, g, p)
+
+
+# 圆形炸弹 + 引信（16×18）— trail_bomber 用
+func _draw_bomb(g: float, p: Dictionary) -> void:
+	var pattern := [
+		"...........O....",
+		"..........OBO...",
+		".........OBHBO..",
+		"........OBHLBO..",
+		"........OBLBO...",
+		".......OOOO.....",
+		"....OOBBBBOOO...",
+		"...OBBBBHHHBBO..",
+		"..OBBBHHHLLHHBO.",
+		"..OBHHLLLLLLHBO.",
+		"..OBHLLLLLLLLBO.",
+		"..OBHLLLLLLLLBO.",
+		"..OBHHLLLLLLHBO.",
+		"...OBBHHHHHHBO..",
+		"....OBBBBBBBO...",
+		".....OOOOOOO....",
+	]
+	_draw_pattern(pattern, 8, 8, g, p)
+
+
+# 激光束（16×22）— bullet_laser_cannon 用
+func _draw_beam(g: float, p: Dictionary) -> void:
+	var pattern := [
+		".....OOOOOO.....",
+		"....OBBBBBBO....",
+		"....OBHLLHBO....",
+		"....OBHLLHBO....",
+		"....OBLLLLBO....",
+		".....OLLLLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		".....OLHHLO.....",
+		"......OHHO......",
+		"......OLLO......",
+	]
+	_draw_pattern(pattern, 8, 5, g, p)
+
+
 func _draw_bullet(g: float, p: Dictionary) -> void:
 	var pattern := [
 		"......O......",
@@ -413,8 +561,37 @@ func _draw_summon(card_id: String, g: float, p: Dictionary) -> void:
 		_draw_flame(g, p)
 	elif card_id.find("thunder") >= 0:
 		_draw_lightning(g, p)
+	elif card_id.find("orbit_shield") >= 0 or card_id.find("shield") >= 0:
+		_draw_shield(g, p)
 	else:
 		_draw_humanoid(g, p)
+
+
+# 简易盾牌（22×22 居中）— sr=56 环绕盾用
+func _draw_shield(g: float, p: Dictionary) -> void:
+	var pattern := [
+		".....OOOOOOOOOO.....",
+		"....OBBBBBBBBBBO....",
+		"...OBHHHLLLLLLBBO...",
+		"..OBHHLLLLLLLLBBO...",
+		"..OBHLLLLLLLLLLBO...",
+		"..OBHLLLLLLLLLLBO...",
+		"..OBLLLLLLLLLLBBO...",
+		"..OBLLLBBBBLLLBBO...",
+		"..OBLLBBBBBBLLBBO...",
+		"..OBLLLBBBBLLLBBO...",
+		"..OBLLLLBBLLLLBBO...",
+		"..OBLLLLLLLLLLBBO...",
+		"..OBLLLLLLLLLLBBO...",
+		"...OBLLLLLLLLBBO....",
+		"....OBLLLLLLBBO.....",
+		".....OBLLLLBBO......",
+		"......OBLLBBO.......",
+		".......OBBBBO.......",
+		"........OBBO........",
+		".........OO.........",
+	]
+	_draw_pattern(pattern, 6, 6, g, p)
 
 
 func _draw_crown(g: float, p: Dictionary) -> void:

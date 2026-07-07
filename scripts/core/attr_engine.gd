@@ -66,6 +66,7 @@ const SCHEMA: Dictionary = {
 	43: {"field": "summon_demon_baby_count", "kind": "passive_int_add"},
 	44: {"field": "summon_angel_baby_count", "kind": "passive_int_add"},
 	45: {"field": "sword_spear_count",       "kind": "passive_int_add"},
+	46: {"field": "shield_orbit_count",      "kind": "passive_int_add"},
 }
 
 

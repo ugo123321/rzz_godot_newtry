@@ -116,6 +116,5 @@ func _draw() -> void:
 	var line_w := maxf(2.0, _scaled(2.0))
 	draw_circle(center, base_r, BASE_FILL)
 	draw_arc(center, base_r, 0.0, TAU, 48, BASE_RING, line_w)
-	draw_line(center, knob, Color(1.0, 1.0, 1.0, 0.28), line_w)
 	draw_circle(knob, knob_r, KNOB_FILL)
 	draw_arc(knob, knob_r, 0.0, TAU, 32, KNOB_RING, line_w)
