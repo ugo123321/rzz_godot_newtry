@@ -1,5 +1,4 @@
 extends Control
-class_name VirtualJoystick
 
 ## 浮动摇杆：在触摸点出现，方向输出恒为归一化向量（固定速率移动）。
 

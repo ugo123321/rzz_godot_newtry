@@ -8,8 +8,8 @@
 [ext_resource type="Texture2D" uid="uid://beanu6i8q6j37" path="res://assets/ui/battle/mission_forest.png" id="6_mission"]
 [ext_resource type="Texture2D" uid="uid://bd3mrpph35vf0" path="res://assets/ui/battle/start_button.png" id="7_start"]
 [ext_resource type="Texture2D" uid="uid://3no6q1s1w2lg" path="res://assets/ui/battle/money_bg.png" id="8_money_bg"]
-[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_cur_gem.png" id="9_1_gem_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="9_gold_icon"]
+[ext_resource type="Texture2D" uid="uid://sbf4ecwcov5t" path="res://assets/ui/icons/currency/icon_cur_gem.png" id="9_1_gem_icon"]
+[ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="9_gold_icon"]
 [ext_resource type="Texture2D" uid="uid://ddi8qdpland64" path="res://assets/ui/bottom/normal_button.png" id="10_tab_normal"]
 [ext_resource type="Texture2D" uid="uid://bq8prrawx0dx0" path="res://assets/ui/icons/nav/icon_nav_gacha.png" id="12_tab_shop"]
 [ext_resource type="Texture2D" uid="uid://cjomdx3kvmxbb" path="res://assets/ui/icons/nav/icon_nav_equipment.png" id="13_tab_equip"]
@@ -82,7 +82,6 @@ vertical_alignment = 1
 [node name="EquipmentPanel" parent="Content" unique_id=161874588 instance=ExtResource("2_equipment")]
 unique_name_in_owner = true
 visible = false
-texture_filter = 2
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -276,8 +275,9 @@ horizontal_alignment = 1
 [node name="ChapterDesc" type="Label" parent="Content/StagePanel/StageViewport" unique_id=1169332738]
 unique_name_in_owner = true
 layout_mode = 0
+offset_left = 12.0
 offset_top = 167.0
-offset_right = 685.0
+offset_right = 697.0
 offset_bottom = 246.0
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -620,7 +620,7 @@ layout_mode = 2
 theme_override_constants/separation = 20
 
 [node name="GoldBar" type="Control" parent="TopBarBg/MarginContainer/TopBar" unique_id=197577220]
-custom_minimum_size = Vector2(138, 31)
+custom_minimum_size = Vector2(180, 45)
 layout_mode = 2
 size_flags_vertical = 4
 
@@ -637,6 +637,7 @@ expand_mode = 1
 
 [node name="Icon" type="TextureRect" parent="TopBarBg/MarginContainer/TopBar/GoldBar" unique_id=1188380432]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
 layout_mode = 1
 anchors_preset = 4
 anchor_top = 0.5
@@ -665,7 +666,7 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 28
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1

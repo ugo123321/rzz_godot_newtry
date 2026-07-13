@@ -8,8 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://d2jqm4ulnf41r" path="res://assets/ui/equipment/information_bg.png" id="6_info_bg"]
 [ext_resource type="Texture2D" uid="uid://bqydu488pwhpf" path="res://assets/ui/icons/system/icon_attack.png" id="7_sword"]
 [ext_resource type="Texture2D" uid="uid://de1rwjnxwv63r" path="res://assets/ui/icons/system/icon_hp.png" id="8_heart"]
-[ext_resource type="Texture2D" uid="uid://bq5hghuh5lpvf" path="res://assets/ui/equipment/decoration01.png" id="9_divider"]
-[ext_resource type="Texture2D" uid="uid://b3bpquhafp0e5" path="res://assets/ui/equipment/Synthesis _button.png" id="10_synth_btn"]
+[ext_resource type="Texture2D" uid="uid://75k5ysf8u1fd" path="res://assets/ui/buttons/btn_brown.png" id="9_1nu6h"]
 [ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="12_spring_scroll"]
 [ext_resource type="PackedScene" uid="uid://cum4btq370jaj" path="res://scenes/ui/bag_slot.tscn" id="13_bag_slot"]
 
@@ -25,7 +24,7 @@ border_width_bottom = 2
 border_color = Color(0.784314, 0.690196, 0.501961, 1)
 
 [node name="EquipmentPanel" type="Control" unique_id=1769657713]
-texture_filter = 1
+texture_filter = 2
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -58,16 +57,26 @@ stretch_mode = 6
 
 [node name="TextureRect" type="TextureRect" parent="Frame" unique_id=1748671009]
 layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -505.0
-offset_bottom = 10.0
+offset_top = 564.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
 texture = SubResource("CompressedTexture2D_hpsfa")
 expand_mode = 1
+
+[node name="BottomColorRect" type="ColorRect" parent="Frame" unique_id=1705514900]
+custom_minimum_size = Vector2(720, 200)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 1080.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+color = Color(0.69, 0.57822, 0.4416, 1)
 
 [node name="RootMargin" type="MarginContainer" parent="Frame" unique_id=890793279]
 unique_name_in_owner = true
@@ -75,21 +84,21 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 88.0
+offset_top = 174.0
 offset_bottom = -5.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_bottom = 15
 
 [node name="BaseRoot" type="VBoxContainer" parent="Frame/RootMargin" unique_id=448167870]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 20
 
 [node name="UpperArea" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1010051058]
 layout_mode = 2
@@ -179,11 +188,14 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="PreviewWrap" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=1184187636]
+[node name="VBoxContainer" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=350524700]
+layout_mode = 2
+
+[node name="PreviewWrap" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer" unique_id=1184187636]
 custom_minimum_size = Vector2(200, 300)
 layout_mode = 2
 
-[node name="PreviewContainer" type="SubViewportContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap" unique_id=673387873]
+[node name="PreviewContainer" type="SubViewportContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap" unique_id=673387873]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -198,18 +210,182 @@ grow_horizontal = 2
 grow_vertical = 2
 stretch = true
 
-[node name="PreviewViewport" type="SubViewport" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap/PreviewContainer" unique_id=1922660392]
+[node name="PreviewViewport" type="SubViewport" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap/PreviewContainer" unique_id=1922660392]
 unique_name_in_owner = true
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(274, 284)
 render_target_update_mode = 4
 
-[node name="PreviewRoot" type="Node2D" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap/PreviewContainer/PreviewViewport" unique_id=676659860]
+[node name="PreviewRoot" type="Node2D" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap/PreviewContainer/PreviewViewport" unique_id=676659860]
 
-[node name="PreviewSprite" type="AnimatedSprite2D" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap/PreviewContainer/PreviewViewport/PreviewRoot" unique_id=223466037]
+[node name="PreviewSprite" type="AnimatedSprite2D" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap/PreviewContainer/PreviewViewport/PreviewRoot" unique_id=223466037]
 unique_name_in_owner = true
+texture_filter = 1
 position = Vector2(135, 145)
+scale = Vector2(5, 5)
+animation = &""
+frame_progress = 0.30857527
+
+[node name="PowerRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer" unique_id=1330220908]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Control2" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=1687578176]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+
+[node name="PowerIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=909644195]
+custom_minimum_size = Vector2(52, 64)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_power")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="BattlePowerLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=997143457]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.909804, 0.470588, 0.12549, 1)
+theme_override_colors/font_outline_color = Color(0.352941, 0.2, 0.062745, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 40
+text = "0"
+horizontal_alignment = 1
+
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=1247059578]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+
+[node name="DetailBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=185588096]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 36)
+layout_mode = 2
+texture_normal = ExtResource("5_detail")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="MarginContainer" type="MarginContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer" unique_id=188857679]
+layout_mode = 2
+
+[node name="StatsBlock" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer" unique_id=2082818038]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="SubStatsRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock" unique_id=1329001179]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="AttackBox" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow" unique_id=763274443]
+custom_minimum_size = Vector2(180, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Bg" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox" unique_id=1148783339]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_info_bg")
+expand_mode = 1
+
+[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox" unique_id=1464853691]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row" unique_id=1011480628]
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("7_sword")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row" unique_id=1524053124]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="AttackLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row" unique_id=5866879]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 36
+text = "0"
+vertical_alignment = 1
+
+[node name="Control2" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row" unique_id=655593659]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow" unique_id=563917549]
+visible = false
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+
+[node name="HpBox" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow" unique_id=390963203]
+custom_minimum_size = Vector2(180, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Bg" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox" unique_id=821645153]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_info_bg")
+expand_mode = 1
+
+[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox" unique_id=1609176204]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row" unique_id=314645903]
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("8_heart")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row" unique_id=1892971904]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="HpLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row" unique_id=7526211]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 36
+text = "0"
+vertical_alignment = 1
+
+[node name="Control2" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row" unique_id=407156889]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
 
 [node name="RightSlots" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=454337851]
 layout_mode = 2
@@ -288,177 +464,8 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="MarginContainer" type="MarginContainer" parent="Frame/RootMargin/BaseRoot/UpperArea" unique_id=188857679]
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot" unique_id=644179113]
 layout_mode = 2
-theme_override_constants/margin_left = 50
-theme_override_constants/margin_right = 50
-
-[node name="StatsBlock" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer" unique_id=2082818038]
-layout_mode = 2
-theme_override_constants/separation = 30
-
-[node name="PowerRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock" unique_id=1330220908]
-layout_mode = 2
-theme_override_constants/separation = 6
-alignment = 1
-
-[node name="PowerIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow" unique_id=909644195]
-custom_minimum_size = Vector2(64, 64)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("4_power")
-expand_mode = 5
-stretch_mode = 5
-
-[node name="BattlePowerLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow" unique_id=997143457]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.909804, 0.470588, 0.12549, 1)
-theme_override_colors/font_outline_color = Color(0.352941, 0.2, 0.062745, 1)
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 40
-text = "0"
-horizontal_alignment = 1
-
-[node name="DetailBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow" unique_id=185588096]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(36, 36)
-layout_mode = 2
-texture_normal = ExtResource("5_detail")
-ignore_texture_size = true
-stretch_mode = 5
-
-[node name="SubStatsRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock" unique_id=1329001179]
-layout_mode = 2
-theme_override_constants/separation = 0
-alignment = 1
-
-[node name="AttackBox" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow" unique_id=763274443]
-custom_minimum_size = Vector2(180, 60)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Bg" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox" unique_id=1148783339]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 22.0
-offset_top = -22.0
-offset_right = -33.0
-offset_bottom = 12.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("6_info_bg")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox" unique_id=1464853691]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = -17.0
-offset_right = -34.0
-offset_bottom = 6.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row" unique_id=1011480628]
-custom_minimum_size = Vector2(52, 52)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("7_sword")
-expand_mode = 5
-stretch_mode = 5
-
-[node name="AttackLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row" unique_id=5866879]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
-theme_override_font_sizes/font_size = 36
-text = "0"
-vertical_alignment = 1
-
-[node name="HpBox" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow" unique_id=390963203]
-custom_minimum_size = Vector2(180, 60)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Bg" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox" unique_id=821645153]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 22.0
-offset_top = -22.0
-offset_right = -33.0
-offset_bottom = 12.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("6_info_bg")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox" unique_id=1609176204]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = -17.0
-offset_right = -34.0
-offset_bottom = 6.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row" unique_id=314645903]
-custom_minimum_size = Vector2(52, 52)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("8_heart")
-expand_mode = 5
-stretch_mode = 5
-
-[node name="HpLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row" unique_id=7526211]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
-theme_override_font_sizes/font_size = 36
-text = "0"
-vertical_alignment = 1
-
-[node name="DividerRow" type="CenterContainer" parent="Frame/RootMargin/BaseRoot" unique_id=531036220]
-layout_mode = 2
-
-[node name="Divider" type="TextureRect" parent="Frame/RootMargin/BaseRoot/DividerRow" unique_id=1093558089]
-custom_minimum_size = Vector2(320, 24)
-layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("9_divider")
-expand_mode = 5
-stretch_mode = 5
-
-[node name="SynthRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1651621832]
-layout_mode = 2
-alignment = 2
-
-[node name="SynthBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=158088466]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 48)
-layout_mode = 2
-texture_normal = ExtResource("10_synth_btn")
-ignore_texture_size = true
-stretch_mode = 0
 
 [node name="BagScroll" type="ScrollContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1704439205]
 unique_name_in_owner = true
@@ -537,6 +544,22 @@ layout_mode = 2
 [node name="BagSlot19" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=116955194 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
 
+[node name="SynthRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1651621832]
+custom_maximum_size = Vector2(800, 70)
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 2
+
+[node name="SynthBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=158088466]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 0)
+custom_maximum_size = Vector2(160, -1)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("9_1nu6h")
+stretch_mode = 0
+
 [node name="InventoryEmptyLabel" type="Label" parent="Frame/RootMargin/BaseRoot" unique_id=219854697]
 unique_name_in_owner = true
 visible = false
@@ -544,6 +567,9 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.415686, 0.352941, 0.282353, 1)
 text = "暂无装备，击败怪物可掉落装备。"
 horizontal_alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="Frame/RootMargin/BaseRoot" unique_id=2065470725]
+layout_mode = 2
 
 [node name="DetailPopup" type="PopupPanel" parent="." unique_id=1781527274]
 unique_name_in_owner = true
@@ -601,8 +627,6 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_font_sizes/normal_font_size = 28
 theme_override_font_sizes/bold_font_size = 28
-theme_override_font_sizes/italic_font_size = 28
-theme_override_font_sizes/bold_italic_font_size = 28
 bbcode_enabled = true
 
 [node name="DetailTipLabel" type="Label" parent="DetailPopup/Margin/VBox" unique_id=170426239]
@@ -650,7 +674,7 @@ offset_right = 480.0
 offset_bottom = 420.0
 autowrap_mode = 3
 
-[connection signal="pressed" from="Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow/DetailBtn" to="." method="_show_attr_popup"]
+[connection signal="pressed" from="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow/DetailBtn" to="." method="_show_attr_popup"]
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SynthBtn" to="." method="_on_synthesis_pressed"]
 [connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnEquip" to="." method="_on_detail_equip"]
 [connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnUnequip" to="." method="_on_detail_unequip"]

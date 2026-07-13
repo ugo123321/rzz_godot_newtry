@@ -79,7 +79,9 @@ func _ready() -> void:
 	# 里显式改回 NEAREST。绝不能在 root 用 NEAREST（会污染 Label 字形 atlas 采样）。
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	if Engine.is_editor_hint():
-		call_deferred("_setup_preview_sprite")
+		# 编辑器不再动态构建预览角色 SpriteFrames —— 避免 4MB 内嵌进 tscn（跟战斗场景一致，
+		# 战斗里 sprite_frames 也不在编辑器预览）。运行时走 _setup_scene_ui → _setup_preview_sprite
+		# 从磁盘 PNG 加载，逻辑跟 player.gd / monster.gd 完全一样。
 		return
 	_setup_scene_ui()
 	_connect_signals()

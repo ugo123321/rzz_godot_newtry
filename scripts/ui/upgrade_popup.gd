@@ -7,6 +7,22 @@ const PixelCardIconT = preload("res://scripts/ui/pixel_card_icon.gd")
 const DescFormatT = preload("res://scripts/utils/desc_format.gd")
 const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 
+# ── 升级卡固定尺寸（配合 panel_upgrade_card_XX.png 200×423 素材）──
+const CARD_SIZE := Vector2(200, 423)
+const CARD_ICON_TOP := 60.0        # icon+FRAME 顶边距 panel 顶 60px（正好压在 banner 下的 V 型装饰上）
+const CARD_ICON_SIZE := 96
+const CARD_PADDING_H := 10.0
+const CARD_PADDING_BOTTOM := 14.0
+
+# 各品质卡背景（v1.3 素材化，200×423 固定尺寸）
+const CARD_BG_PATHS := {
+	"white": preload("res://assets/ui/panels/panel_upgrade_card_white.png"),
+	"blue": preload("res://assets/ui/panels/panel_upgrade_card_blue.png"),
+	"purple": preload("res://assets/ui/panels/panel_upgrade_card_purple.png"),
+	"orange": preload("res://assets/ui/panels/panel_upgrade_card_orange.png"),
+}
+const _CARD_BG_FALLBACK := preload("res://assets/ui/panels/panel_upgrade_card_blue.png")
+
 signal upgrade_picked(index: int)
 
 @onready var panel: Control = $Panel
@@ -28,7 +44,7 @@ func setup(battle_node: Node, manager: UpgradeManager) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_apply_panel_layout()
 	cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	cards.add_theme_constant_override("separation", 14)
+	cards.add_theme_constant_override("separation", 20)
 	_apply_label_font(title_label, 32)
 	_apply_label_font(rarity_label, 22)
 
@@ -113,23 +129,14 @@ func _draw() -> void:
 			draw_rect(Rect2(px, py, sz, sz), Color(tier_color, 0.25 + float(i % 4) * 0.12))
 
 
-func _calc_card_metrics(choice_count: int) -> Dictionary:
-	var vp := get_viewport_rect().size
-	var panel_w := vp.x - 40.0
-	var panel_h := vp.y - 40.0
-	var n := maxi(1, choice_count)
-	var sep := 14.0
-	var inner_pad := 18.0
-	var card_w: float = floor((panel_w - inner_pad * 2.0 - sep * float(n - 1)) / float(n))
-	card_w = clampf(card_w, 140.0, 260.0)
-	var card_h: float = clampf(panel_h * 0.48, 280.0, 520.0)
-	var preview_h: float = clampf(card_h * 0.42, 110.0, 200.0)
+func _calc_card_metrics(_choice_count: int) -> Dictionary:
+	# 固定卡尺寸（200×423 对齐 panel_upgrade_card_XX.png 素材）；choice_count 保留兼容签名
 	return {
-		"card_size": Vector2(card_w, card_h),
-		"preview_h": preview_h,
-		"icon_size": clampf(preview_h * 0.6, ICON_SIZE, 96.0),
-		"name_font": 24 if card_w < 170.0 else 28,
-		"desc_font": 18 if card_w < 170.0 else 22,
+		"card_size": CARD_SIZE,
+		"icon_top": CARD_ICON_TOP,
+		"icon_size": float(CARD_ICON_SIZE),
+		"name_font": 26,
+		"desc_font": 20,
 	}
 
 
@@ -164,29 +171,44 @@ func _rebuild_cards() -> void:
 	var choice_count := upgrade_manager.choices.size()
 	var metrics: Dictionary = _calc_card_metrics(choice_count)
 	var card_size: Vector2 = metrics["card_size"]
-	var preview_h: float = metrics["preview_h"]
+	var icon_top: float = metrics["icon_top"]
 	var icon_size: float = metrics["icon_size"]
 	var name_font: int = metrics["name_font"]
 	var desc_font: int = metrics["desc_font"]
-	var card_glow := float(_fx.get("card_glow", 0.12))
 
 	for i in range(choice_count):
 		var upgrade: Dictionary = upgrade_manager.choices[i]
 		var btn := Button.new()
 		btn.custom_minimum_size = card_size
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.size_flags_stretch_ratio = 1.0
 		btn.text = ""
+		btn.clip_contents = true
 		_apply_label_font(btn, name_font)
 
+		# 品质背景 PNG（当前预览阶段全部 orange，见 CARD_BG_PATHS）
+		var card_rarity := str(upgrade.get("rarity", "blue"))
+		var bg_tex: Texture2D = CARD_BG_PATHS.get(card_rarity, _CARD_BG_FALLBACK)
+		var bg_rect := TextureRect.new()
+		bg_rect.texture = bg_tex
+		bg_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		bg_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		bg_rect.stretch_mode = TextureRect.STRETCH_SCALE
+		bg_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(bg_rect)
+
+		# 内容层：顶部空出 60px 给 banner，两侧 10px、底部 14px 缩进
 		var vbox := VBoxContainer.new()
 		vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		vbox.add_theme_constant_override("separation", 4)
+		vbox.offset_top = icon_top
+		vbox.offset_bottom = -CARD_PADDING_BOTTOM
+		vbox.offset_left = CARD_PADDING_H
+		vbox.offset_right = -CARD_PADDING_H
+		vbox.add_theme_constant_override("separation", 6)
 		vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		btn.add_child(vbox)
 
 		var icon_box := _create_icon_widget(upgrade, icon_size)
-		icon_box.custom_minimum_size = Vector2(0, preview_h)
+		icon_box.custom_minimum_size = Vector2(0, icon_size)
 		vbox.add_child(icon_box)
 
 		var stack := 0
@@ -199,6 +221,8 @@ func _rebuild_cards() -> void:
 		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_label_font(name_label, name_font)
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# 卡背景是奶油色，name 用深棕高对比
+		name_label.modulate = Color(0.24, 0.15, 0.08)
 		vbox.add_child(name_label)
 
 		var desc_label := RichTextLabel.new()
@@ -218,42 +242,18 @@ func _rebuild_cards() -> void:
 		desc_label.add_theme_font_size_override("italic_font_size", desc_font)
 		desc_label.add_theme_font_size_override("bold_italic_font_size", desc_font)
 		desc_label.add_theme_font_size_override("mono_font_size", desc_font)
-		desc_label.modulate = Color(0.82, 0.82, 0.82)
+		# 奶油底 → desc 用中棕
+		desc_label.modulate = Color(0.36, 0.25, 0.15)
 		desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		vbox.add_child(desc_label)
 
-		var card_rarity := str(upgrade.get("rarity", "blue"))
-		var card_fx: Dictionary = GameConfig.get_upgrade_fx(card_rarity)
-		var rarity_color := Color(str(card_fx.get("color_hex", "#ffffff")))
-		var card_card_glow := float(card_fx.get("card_glow", card_glow))
-		name_label.modulate = rarity_color
-		desc_label.modulate = rarity_color.lerp(Color(1, 1, 1), 0.55)
-		# 卡片整体染色：背景在深色基底上向 rarity_color 偏，rarity 越高偏色越浓
-		var bg_tint_strength := float({
-			"white": 0.08,
-			"blue": 0.18,
-			"purple": 0.28,
-			"orange": 0.38,
-		}.get(card_rarity, 0.18))
-		var base_dark := Color(0.10, 0.10, 0.18)
-		var bg_color := base_dark.lerp(rarity_color, bg_tint_strength)
-		bg_color.a = 0.96
-		var border_w := int({"white": 2, "blue": 3, "purple": 4, "orange": 5}.get(card_rarity, 3))
-		var style := StyleBoxFlat.new()
-		style.bg_color = bg_color
-		style.border_color = rarity_color
-		style.set_border_width_all(border_w)
-		style.set_corner_radius_all(6)
-		style.shadow_color = Color(rarity_color, clampf(0.35 + card_card_glow * 0.6, 0.2, 0.95))
-		style.shadow_size = int(6 + card_card_glow * 14)
-		btn.add_theme_stylebox_override("normal", style)
-		# hover/pressed 更亮，强化反馈
-		var hover_style := style.duplicate() as StyleBoxFlat
-		hover_style.bg_color = base_dark.lerp(rarity_color, minf(1.0, bg_tint_strength + 0.10))
-		hover_style.bg_color.a = 0.96
-		btn.add_theme_stylebox_override("hover", hover_style)
-		btn.add_theme_stylebox_override("pressed", hover_style)
+		# 让 Button 自身透明 —— 品质外观全部走 bg PNG
+		var empty := StyleBoxEmpty.new()
+		btn.add_theme_stylebox_override("normal", empty)
+		btn.add_theme_stylebox_override("hover", empty)
+		btn.add_theme_stylebox_override("pressed", empty)
+		btn.add_theme_stylebox_override("focus", empty)
 		btn.modulate.a = 0.0
 
 		var idx := i

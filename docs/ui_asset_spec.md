@@ -1,6 +1,13 @@
-# UI 素材规范 v1.2
+# UI 素材规范 v1.3
 
 > 给策划 / 美术看的 Photoshop 出图工作流。**每张图的完整放置路径都写在表格里**，照着 PS 出图，按路径丢文件，程序端接入。
+
+**v1.3 改动**（2026-07-09）
+
+- 升级奖励卡改为 **每品质一张固定尺寸 PNG 背景**（`panel_upgrade_card_{white,blue,purple,orange}.png` 200×423），程序端从 `StyleBoxFlat` 品质染色切到 TextureRect + 素材图
+- 已交付 `panel_upgrade_card_orange.png`（LEGENDARY 版），white/blue/purple 待补齐前程序端**临时用 orange 顶替所有 4 档**便于策划预览效果
+- 卡片 icon+FRAME 顶边固定在 panel y=60（正好压在标题 banner 下方），icon 尺寸 96×96
+- upgrade_popup.gd 里删掉了旧的 rarity-based StyleBoxFlat（背景 tint + 描边 + 阴影），品质外观完全由 PNG 承载
 
 **v1.2 改动**（2026-07-07）
 
@@ -47,6 +54,8 @@ assets/ui/
 │   ├── themed/          ← 主题关专属（恶魔 6 + 天使 6）
 │   ├── system/          ← 系统操作（暂停、关闭、设置、返回、菜单）
 │   └── status/          ← buff / debuff 状态图标（本期预留，先不出图）
+├── animations/          ← 运行时动画资源（Lottie JSON / SpriteFrames tres 等）
+│   └── lottie/          ← Lottie 矢量动画 JSON（loading / 弹窗过场）
 ├── decorations/         ← 不拉伸的装饰元素（花纹、勋章、星星）
 ├── backgrounds/         ← 全屏背景图（720×1280 起跳）
 └── Fonts/               ← 现有字体，保持原样
@@ -67,6 +76,7 @@ assets/ui/
 | 系统图标（无类别前缀，只有 `icon_pause` / `icon_close` / `icon_settings` / `icon_back` / `icon_menu` / `icon_power` / `icon_attack` / `icon_hp` / `icon_detail`） | `assets/ui/icons/system/` | `icon_pause.png` |
 | `deco_` | `assets/ui/decorations/` | `deco_star_gold.png` |
 | `bg_` | `assets/ui/backgrounds/` | `bg_main_menu.png` |
+| Lottie JSON | `assets/ui/animations/lottie/` | `loading_hero.json` |
 
 **现有 `battle/`、`bottom/`、`equipment/`、`equipment_synthesis/` 目录暂时保留**，旧图后续由我做迁移替换。
 
@@ -124,6 +134,51 @@ assets/ui/
 | 弹窗标题栏（可选） | 240 × 40 | 24/24/0/24 | `assets/ui/panels/panel_dialog_header_9s.png` |
 
 主题色（红 / 金 / 蓝）靠运行时 `modulate` 染色，**不出多张**。
+
+**升级奖励卡背景**（每品质一张固定尺寸 PNG，**不 9-slice**）：
+
+| 文件 | 设计尺寸 | 完整路径 | 状态 |
+| --- | --- | --- | --- |
+| `panel_upgrade_card_white.png` | 200 × 423 | `assets/ui/panels/panel_upgrade_card_white.png` | ✅ 已交付 |
+| `panel_upgrade_card_blue.png` | 200 × 423 | `assets/ui/panels/panel_upgrade_card_blue.png` | ✅ 已交付 |
+| `panel_upgrade_card_purple.png` | 200 × 423 | `assets/ui/panels/panel_upgrade_card_purple.png` | ✅ 已交付 |
+| `panel_upgrade_card_orange.png` | 200 × 423 | `assets/ui/panels/panel_upgrade_card_orange.png` | ✅ 已交付（LEGENDARY banner） |
+
+**为什么每品质一张 vs 白模染色**：策划希望各品质有独立视觉差（例如橙色带 LEGENDARY banner + 星辉，紫色带魔法纹，白色最朴素）——"除了颜色还有别的不同" → 触发 § 6 规范的多图判定。
+
+**内部结构（PS 出图时的安全区）**：
+
+```
++-------------------------+   ← 200 × 423
+|      顶部 banner         |   y = 0~55
+|   （品质标识 + 装饰）     |
+|                         |
+|   icon+FRAME 区（60~156）|  ← 程序运行时叠 skill_XX + FRAME（96×96），压在 y=60 起点
+|                         |
+|                         |
+|-------------------------|
+|     name label 区        |  ← Label 居中，字号 26pt，深棕色 (0.24, 0.15, 0.08)
+|-------------------------|
+|                         |
+|                         |
+|      desc 区 (240 高)    |  ← RichTextLabel，字号 20pt，中棕色 (0.36, 0.25, 0.15)
+|                         |
+|                         |
+|-------------------------|
+|      底部装饰边          |  y = ~410~423
++-------------------------+
+```
+
+**硬规则**：
+- 中央文字区（大约 y=160~410）**不写文字 / 不放深色装饰**，避免抢文字识别度
+- name 区（大约 y=160~200）背景要素净
+- icon 区（大约 y=60~156）允许华丽装饰（水晶 / 光晕 / 图腾），但不要把 96×96 中心区域压得太重
+- 顶部 banner 可以带品质标识（"COMMON" / "RARE" / "EPIC" / "LEGENDARY"），程序端**不会**再叠 rarity 副标题（待所有 4 张齐后决定是否隐藏卡外的 rarity_label）
+- 四角装饰**随品质升级增强**：white 最朴素、blue 描边、purple 加宝石、orange 加光晕 + 星辉
+
+**接入位**：
+- 代码：`scripts/ui/upgrade_popup.gd:CARD_BG_PATHS` 字典按 rarity 键映射到 preload 常量
+- Godot import：`filter = true`（LINEAR）+ `mipmaps/generate = true`（示例见 `panel_upgrade_card_orange.png.import`）
 
 ### 4.3 按钮
 
@@ -331,6 +386,15 @@ green:  Color(0.30, 0.85, 0.40, 1.0)   # 绿 — 确认
 20. **全屏背景 —— 只补缺失的场景，主菜单已完成**：详见 § 12 说明；主菜单 `bg_main.png` 用户认可保留，只补 `bg_battle_result.png`（战斗结算） / `bg_pause.png`（暂停覆盖）等未交付场景
 21. **装饰元素** — `deco_star_gold.png` / `deco_ribbon.png` 等，配合奖励 / 结算界面
 
+### 第 5 批 — 升级奖励卡背景（✅ 已交付，v1.3 新增）
+
+22. `assets/ui/panels/panel_upgrade_card_orange.png` 200×423 — LEGENDARY 版 ✅
+23. `assets/ui/panels/panel_upgrade_card_purple.png` 200×423 — EPIC ✅
+24. `assets/ui/panels/panel_upgrade_card_blue.png` 200×423 — RARE ✅
+25. `assets/ui/panels/panel_upgrade_card_white.png` 200×423 — COMMON ✅
+
+**当前状态**：4 张品质卡背景已全部到位，`CARD_BG_PATHS` 字典按 rarity 各自映射；`.import` 4 张都开 `mipmaps/generate = true`。
+
 ---
 
 ## § 10. 常见坑提醒
@@ -357,33 +421,28 @@ assets/ui/
 │   ├── panel_dialog_9s.png         ✅
 │   ├── panel_tooltip_std_9s.png    ✅
 │   ├── panel_card_9s.png           ✅ (卡片背景)
+│   ├── panel_upgrade_card_white.png   ✅ (升级卡 COMMON, 200×423, v1.3)
+│   ├── panel_upgrade_card_blue.png    ✅ (升级卡 RARE, 200×423, v1.3)
+│   ├── panel_upgrade_card_purple.png  ✅ (升级卡 EPIC, 200×423, v1.3)
+│   ├── panel_upgrade_card_orange.png  ✅ (升级卡 LEGENDARY, 200×423, v1.3)
 │   ├── bar_frame_9s.png            ✅
 │   └── bar_fill_9s.png             ✅
 ├── buttons/
 │   └── btn_primary_9s.png          ✅
+├── backgrounds/
+│   └── bg_loading.png              ⚠️ 已 orphan（用户改走全屏 Lottie 方案，不再作为 loading 底图；文件保留可作其他场景背景）
 ├── decorations/
 │   ├── deco_frame_32.png           ✅ (升级卡 / 主题关 icon 边框，62.5% opaque)
 │   └── award_text_decoration.png   ✅ (奖励标题装饰)
 └── icons/
     ├── nav/                        ✅ 底部选项卡（5 张，均带 mipmap 抗锯齿）
-    │   ├── icon_nav_gacha.png      ✅
-    │   ├── icon_nav_equipment.png  ✅
-    │   ├── icon_nav_battle.png     ✅
-    │   ├── icon_nav_dungeon.png    ✅
-    │   └── icon_nav_achievement.png ✅
-    ├── system/                     ✅ 系统操作 + 装备属性
-    │   ├── icon_pause.png              ✅
-    │   ├── icon_settings.png           ✅
-    │   ├── icon_close.png              ✅
-    │   ├── icon_back.png               ✅
-    │   ├── icon_power.png              ✅ (装备页战力，带 mipmap)
-    │   ├── icon_attack.png             ✅ (装备页攻击，带 mipmap)
-    │   ├── icon_hp.png                 ✅ (装备页生命，带 mipmap)
-    │   └── icon_detail.png             ✅ (装备页详情按钮，带 mipmap)
-    ├── upgrades/                   ✅ 117 张手绘升级卡 icon
-    │   └── skill_01.png ~ skill_117.png
-    └── equipment/                  ✅ 8 张手绘装备 icon（4 品质共享）
-        └── equip_01.png ~ equip_08.png
+    │   └── icon_nav_*.png × 5
+    ├── system/                     ✅ 系统操作 + 装备属性 8 张
+    ├── currency/                   ✅ 主菜单顶栏 + 战斗 HUD 通用金币 / 宝石（策划不做矿石）
+    │   ├── icon_cur_gold.png       ✅
+    │   └── icon_cur_gem.png        ✅
+    ├── upgrades/                   ✅ 117 张手绘升级卡 icon (skill_01 ~ skill_117)
+    └── equipment/                  ✅ 8 张手绘装备 icon (equip_01 ~ equip_08，4 品质共享)
 ```
 
 **接入层已就绪**：
@@ -412,6 +471,7 @@ assets/ui/
 | 优先级 | 交付物 | 张数 | 影响面 | 工作量 |
 | --- | --- | --- | --- | --- |
 | ~~**P0**~~ | ~~货币图标（gold / gem）~~ | ~~2 张 64×64~~ | ~~主菜单顶栏 / 转盘 / 装备强化~~ | ~~✅ 已交付~~ |
+| ~~**P0'**~~ | ~~升级卡背景 4 张 white/blue/purple/orange~~ | ~~4 张 200×423~~ | ~~升级 3 选 1 弹窗每关必弹~~ | ~~✅ 已交付（2026-07-09）~~ |
 | **P1** | 次按钮 + 圆按钮 + tab 按钮 3 张 9-slice | 3 张 | 装备详情"卸下"、pause_menu"debug"、语言切换 tab 层级区分 | 中 |
 | **P2** | 战斗结算背景 `bg_battle_result.png` | 1 张 720×1280 | 每关必见 | 中（1 张背景）|
 | **P3** | 暂停背景 + 抽卡背景 | 2 张 720×1280 | 玩家经常看到 | 中大 |
@@ -419,11 +479,12 @@ assets/ui/
 | **P5** | status/ buff-debuff icons | ~10 张 32×32 | 战斗内燃烧 / 冰冻 / 中毒等状态图标化 | 中 |
 
 **建议路径**：P2 → P1 → P3 → P4 → P5。
+
 - P2 立刻做（战斗结算是玩家每关必见）
 - P1 层级区分做完后 UI 呼吸感强一大截
 - P3 / P4 / P5 属于打磨阶段
 
 ---
 
-**版本**：v1.2（2026-07-07）
-**约定基准**：720×1280 竖屏 / 高清现代风 / 9-slice 单图 / 3 档 tooltip / 系统图标走 `icons/system/`
+**版本**：v1.3（2026-07-09）
+**约定基准**：720×1280 竖屏 / 高清现代风 / 9-slice 单图 / 3 档 tooltip / 系统图标走 `icons/system/` / 升级卡背景 200×423 固定 4 张

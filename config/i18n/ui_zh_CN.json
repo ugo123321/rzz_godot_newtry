@@ -45,6 +45,7 @@
   "UI_EQUIP_TIP_NO_GOLD": "金币不足，无法升级。",
   "UI_EQUIP_NO_FX_PLACEHOLDER": "（暂无，穿戴稀有及以上装备可激活）",
   "UI_EQUIP_DETAILS_FMT": "攻击力: %d（装备加成 %+d）\n最大生命: %d（装备加成 %+d）\n暴击率: %.1f%%（装备加成 %+0.1f%%）\n战斗力: %d\n\n当前装备特效：\n%s\n\n说明：战斗力会随装备等级与品质提升。装备品质越高，解锁并叠加更多技能。",
+  "UI_EQUIP_DETAILS_TITLE": "详细属性",
 
   "UI_UPGRADE_TITLE": "升级！选择一个强化",
   "UI_RARITY_FALLBACK": "普通",
@@ -153,6 +154,11 @@
   "UI_LOADING_FAILED": "加载失败，请重试",
   "UI_LOADING_DEFAULT_CHAPTER": "冒险",
   "UI_LOADING_CHAPTER_STAGE_FMT": "%s · %s",
+  "UI_LOADING_TIP_01": "小心飞行怪，它们不受地面减速影响。",
+  "UI_LOADING_TIP_02": "精英怪掉落装备概率更高，遇到别绕。",
+  "UI_LOADING_TIP_03": "元素叠加会互相触发：火 + 雷、冰 + 毒都有奇效。",
+  "UI_LOADING_TIP_04": "低血量时特定被动会激活，试试翻身局。",
+  "UI_LOADING_TIP_05": "站在树旁攒气力，主动技能才是硬输出。",
 
   "UI_MAIN_START": "开始",
   "UI_MAIN_DRAW": "抽奖",
@@ -168,6 +174,9 @@
   "UI_EQUIP_WEAR": "穿戴",
   "UI_EQUIP_UNEQUIP": "卸下",
   "UI_EQUIP_UPGRADE_BTN": "升级",
+  "UI_EQUIP_SPEED": "移速",
+  "UI_EQUIP_BACK": "返回",
+  "UI_EQUIP_SYNTHESIZE": "合成",
 
   "UI_SYNTH_TITLE": "合成",
   "UI_SYNTH_SUCCESS": "合成成功",

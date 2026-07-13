@@ -45,6 +45,7 @@
   "UI_EQUIP_TIP_NO_GOLD": "Not enough coins to upgrade.",
   "UI_EQUIP_NO_FX_PLACEHOLDER": "(None — wear rare or higher equipment to unlock)",
   "UI_EQUIP_DETAILS_FMT": "Attack: %d (gear %+d)\nMax HP: %d (gear %+d)\nCrit: %.1f%% (gear %+0.1f%%)\nPower: %d\n\nCurrent Equipment Effects:\n%s\n\nNote: Power grows with gear level and rarity. Higher rarity unlocks more stacked skills.",
+  "UI_EQUIP_DETAILS_TITLE": "Character Details",
 
   "UI_UPGRADE_TITLE": "Level Up! Choose an Upgrade",
   "UI_RARITY_FALLBACK": "Common",
@@ -153,6 +154,11 @@
   "UI_LOADING_FAILED": "Load failed, please retry",
   "UI_LOADING_DEFAULT_CHAPTER": "Adventure",
   "UI_LOADING_CHAPTER_STAGE_FMT": "%s · %s",
+  "UI_LOADING_TIP_01": "Watch out for flyers — ground slows don't touch them.",
+  "UI_LOADING_TIP_02": "Elites have higher gear drop rates. Don't skip them.",
+  "UI_LOADING_TIP_03": "Elements synergize: fire + thunder, ice + poison hit hard.",
+  "UI_LOADING_TIP_04": "Low-HP passives activate below thresholds. Comeback plays exist.",
+  "UI_LOADING_TIP_05": "Stand near trees to regen ki — actives are your real burst.",
 
   "UI_MAIN_START": "Start",
   "UI_MAIN_DRAW": "Draw",
@@ -168,6 +174,9 @@
   "UI_EQUIP_WEAR": "Equip",
   "UI_EQUIP_UNEQUIP": "Unequip",
   "UI_EQUIP_UPGRADE_BTN": "Upgrade",
+  "UI_EQUIP_SPEED": "Speed",
+  "UI_EQUIP_BACK": "Back",
+  "UI_EQUIP_SYNTHESIZE": "Synthesize",
 
   "UI_SYNTH_TITLE": "Synthesize",
   "UI_SYNTH_SUCCESS": "Synthesize Success",

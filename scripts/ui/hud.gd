@@ -94,7 +94,7 @@ func _sync_exp_from_battle() -> void:
 
 
 func _load_coin_icon() -> void:
-	var path := "res://assets/icons/equipment/icon_coin_pixel.svg"
+	var path := "res://assets/ui/icons/currency/icon_cur_gold.png"
 	if ResourceLoader.exists(path):
 		_coin_icon = load(path) as Texture2D
 
