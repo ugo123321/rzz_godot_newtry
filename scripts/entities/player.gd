@@ -1138,6 +1138,19 @@ func apply_upgrade(upgrade: Dictionary) -> void:
 		trigger_dispatcher.fire_on_pickup()
 
 
+## 进入战斗时调用：把已装备技能石的"技能部分"作为升级奖励一次性授予玩家
+## （等同普通升级奖励；元素衍生状态由 Sheet4 element_effects 自动应用，不在此重写）。
+## 属性部分由 _rebuild_upgrades 的 skill_stone affix 求和段处理，不在此重复。
+func apply_equipped_skill_stones() -> void:
+	if LobbyState == null:
+		return
+	for stone in LobbyState.get_equipped_skill_stones():
+		var skill_id := str(stone.get("skill_id", ""))
+		if skill_id.is_empty():
+			continue
+		apply_upgrade({"id": skill_id, "level": 1})
+
+
 # 返回当前普攻子弹视觉类型（后获得的"换形态"卡胜出）：
 #   "spirit"      → 元气弹（蓝白能量球，由 bullet_spirit_bomb 触发）
 #   "blood_blade" → 血飞刀（红刃匕首，由 demon_blood_blade 触发）
@@ -1342,6 +1355,14 @@ func _rebuild_upgrades() -> void:
 	# 装备（equipments.json）% 加成也进 total_pct，一起在下面一次性 apply（不复利）
 	ki_max_pct_total += equip_max_ki_pct
 	ki_regen_pct_total += equip_ki_regen_pct
+	# 技能石属性词条（已装备 3 块 affix 求和）——纯加法，与 forge/equip 同层
+	var _ss_totals: Dictionary = LobbyState.get_skill_stone_affix_totals() if LobbyState != null else {}
+	atk_pct_total += float(_ss_totals.get("atk_pct", 0.0))
+	max_hp_pct_total += float(_ss_totals.get("max_hp_pct", 0.0))
+	ki_max_pct_total += float(_ss_totals.get("ki_max_pct", 0.0))
+	ki_regen_pct_total += float(_ss_totals.get("ki_regen_pct", 0.0))
+	move_speed_pct_total += float(_ss_totals.get("move_speed_pct", 0.0))
+	crit_rate += float(_ss_totals.get("crit_rate", 0.0))
 
 	# v6 attr 累加 -> 实际生效字段
 	attack_speed_mult = 1.0 + atk_speed_pct_total
@@ -1365,6 +1386,10 @@ func _rebuild_upgrades() -> void:
 		var eq_crit_dmg_pct2 := float(equip.get("crit_damage", 0.0))
 		if eq_crit_dmg_pct2 != 0.0:
 			crit_damage += crit_damage * eq_crit_dmg_pct2
+		# 技能石暴击伤害词条（乘法，与装备 crit_damage 同写法，不复利）
+		var ss_crit_dmg_pct := float(LobbyState.get_skill_stone_affix_totals().get("crit_damage", 0.0))
+		if ss_crit_dmg_pct != 0.0:
+			crit_damage += crit_damage * ss_crit_dmg_pct
 		# 装备 flag（tree_x2 由 battle.gd 直接读；这里只处理玩家自身 flag）
 		var flags: Dictionary = LobbyState.get_active_equipment_flags()
 		apply_equipment_flags(flags)

@@ -17,6 +17,9 @@
 [ext_resource type="Texture2D" uid="uid://dg6om53cw415s" path="res://assets/ui/icons/nav/icon_nav_dungeon.png" id="15_tab_dungeon"]
 [ext_resource type="Texture2D" uid="uid://coe7umg708wxr" path="res://assets/ui/icons/nav/icon_nav_achievement.png" id="16_tab_book"]
 [ext_resource type="PackedScene" uid="uid://cb6wm6ifww2tv" path="res://scenes/ui/talent_cards_panel.tscn" id="17_talent_panel"]
+[ext_resource type="PackedScene" uid="uid://dlxbn1sl1yrmi" path="res://scenes/ui/lucky_spin_panel.tscn" id="18_lucky_spin"]
+[ext_resource type="PackedScene" uid="uid://scoutpopup01" path="res://scenes/ui/scout_reward_popup.tscn" id="19_scout_popup"]
+[ext_resource type="Texture2D" uid="uid://dfsd7vuuv3n1l" path="res://assets/ui/icons/system/icon_detail.png" id="20_scout_icon"]
 
 [node name="MainMenu" type="Control" unique_id=230988136]
 custom_minimum_size = Vector2(720, 1280)
@@ -65,19 +68,12 @@ theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = -20
 
-[node name="GachaPanel" type="CenterContainer" parent="Content" unique_id=367837152]
+[node name="GachaPanel" parent="Content" unique_id=453598787 instance=ExtResource("18_lucky_spin")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-
-[node name="Placeholder" type="Label" parent="Content/GachaPanel" unique_id=524451780]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "抽奖功能
-敬请期待"
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="EquipmentPanel" parent="Content" unique_id=161874588 instance=ExtResource("2_equipment")]
 unique_name_in_owner = true
@@ -201,6 +197,7 @@ ignore_texture_size = true
 stretch_mode = 5
 
 [node name="StartButtonWrap" type="MarginContainer" parent="Content/StagePanel/StageViewport" unique_id=1442269505]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
@@ -237,6 +234,51 @@ theme_override_font_sizes/font_size = 40
 text = "开始"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="ScoutEntryButton" type="Button" parent="Content/StagePanel/StageViewport" unique_id=990001101]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 68)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -90.0
+offset_top = -296.0
+offset_right = 90.0
+offset_bottom = -228.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_default_cursor_shape = 2
+focus_mode = 0
+
+[node name="Row" type="HBoxContainer" parent="Content/StagePanel/StageViewport/ScoutEntryButton" unique_id=990001102]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Content/StagePanel/StageViewport/ScoutEntryButton/Row" unique_id=990001103]
+layout_mode = 2
+custom_minimum_size = Vector2(36, 36)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("20_scout_icon")
+
+[node name="ScoutLabel" type="Label" parent="Content/StagePanel/StageViewport/ScoutEntryButton/Row" unique_id=990001104]
+layout_mode = 2
+vertical_alignment = 1
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.059, 0.141, 0.063, 1)
+theme_override_font_sizes/font_size = 26
+text = "侦察"
 
 [node name="ChapterLine" type="TextureRect" parent="Content/StagePanel/StageViewport" unique_id=1220847887]
 unique_name_in_owner = true
@@ -719,3 +761,13 @@ theme_override_font_sizes/font_size = 16
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="ScoutRewardPopup" parent="." instance=ExtResource("19_scout_popup")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

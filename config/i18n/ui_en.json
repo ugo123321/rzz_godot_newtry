@@ -214,5 +214,29 @@
   "UI_SCOUT_CLAIM_BTN": "Claim",
   "UI_SCOUT_CLAIM_DISABLED": "Nothing to claim",
   "UI_SCOUT_CLAIMED_FMT": "+%d gold",
-  "UI_SCOUT_CLOSE_HINT": "Tap blank area to close"
+  "UI_SCOUT_CLOSE_HINT": "Tap blank area to close",
+
+  "UI_SKILL_STONE_TITLE": "Skill Stone",
+  "UI_SKILL_STONE_AFFIX_TOTAL": "Total Affix Bonus",
+  "UI_SKILL_STONE_EQUIPPED_SKILLS": "Equipped Skills",
+  "UI_SKILL_STONE_DECOMPOSE": "Decompose",
+  "UI_SKILL_STONE_CANCEL": "Cancel",
+  "UI_SKILL_STONE_CLOSE": "Close",
+  "UI_SKILL_STONE_DECOMPOSE_FMT": "Decompose (%d Gold)",
+  "UI_SKILL_STONE_MULTI_SELECT_HINT": "Tap stones to decompose, then confirm",
+  "UI_SKILL_STONE_DECOMPOSE_OK_FMT": "Decomposed! Gained %d gold",
+  "UI_SKILL_STONE_NO_AFFIX": "(no affixes)",
+  "UI_SKILL_STONE_NO_STONE_EQUIPPED": "(no skill stone equipped)",
+  "UI_SKILL_STONE_EQUIP": "Equip",
+  "UI_SKILL_STONE_UNEQUIP": "Unequip",
+  "UI_SKILL_STONE_EQUIP_OK": "Skill stone equipped",
+  "UI_SKILL_STONE_UNEQUIP_OK": "Skill stone unequipped",
+  "UI_SKILL_STONE_EQUIP_FAIL": "Equip failed (no empty slot)",
+
+  "UI_MAIN_LUCKY_SPIN": "Lucky Spin",
+  "UI_LUCKY_SPIN_TITLE": "Lucky Spin",
+  "UI_LUCKY_SPIN_TIP": "Spend gold to spin for gold rewards",
+  "UI_LUCKY_SPIN_NO_GOLD": "Not enough gold",
+  "UI_LUCKY_SPIN_SPINNING": "Spinning...",
+  "UI_LUCKY_SPIN_RESULT_FMT": "Gained %d gold"
 }

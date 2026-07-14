@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwhei5th6styu"
-path="res://.godot/imported/bg_loading.png-193817b51e57daa87f3f8c6899384048.ctex"
+uid="uid://bpd5qg7jsuea2"
+path="res://.godot/imported/deco_lucky_spine.png-68e28c9d827e8d2fca7abe0c5892f933.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/backgrounds/bg_loading.png"
-dest_files=["res://.godot/imported/bg_loading.png-193817b51e57daa87f3f8c6899384048.ctex"]
+source_file="res://assets/ui/decorations/deco_lucky_spine.png"
+dest_files=["res://.godot/imported/deco_lucky_spine.png-68e28c9d827e8d2fca7abe0c5892f933.ctex"]
 
 [params]
 

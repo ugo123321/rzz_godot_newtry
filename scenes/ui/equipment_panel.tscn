@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://75k5ysf8u1fd" path="res://assets/ui/buttons/btn_brown.png" id="9_1nu6h"]
 [ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="12_spring_scroll"]
 [ext_resource type="PackedScene" uid="uid://cum4btq370jaj" path="res://scenes/ui/bag_slot.tscn" id="13_bag_slot"]
+[ext_resource type="Texture2D" uid="uid://bvl27najm1ci0" path="res://assets/ui/icons/system/skill_stone_icon.png" id="14_ss_icon"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_hpsfa"]
 load_path = "res://.godot/imported/small_bg.png-e3d49fedff66e0cd06d87351020374cd.ctex"
@@ -32,7 +33,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
-preview_sprite_scale = 5.0
+preview_sprite_scale = 7.0
 
 [node name="Frame" type="Control" parent="." unique_id=339340348]
 layout_mode = 1
@@ -126,6 +127,7 @@ stretch_mode = 0
 
 [node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots/SlotWeapon" unique_id=2064202253]
 visible = false
+texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -150,6 +152,7 @@ stretch_mode = 0
 
 [node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots/SlotArmor" unique_id=1206333992]
 visible = false
+texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -174,6 +177,7 @@ stretch_mode = 0
 
 [node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots/SlotShoes" unique_id=1327588292]
 visible = false
+texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -202,10 +206,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -139.0
-offset_top = -139.0
-offset_right = 135.0
-offset_bottom = 145.0
+offset_left = -134.5
+offset_top = -92.0
+offset_right = 139.5
+offset_bottom = 192.0
 grow_horizontal = 2
 grow_vertical = 2
 stretch = true
@@ -402,6 +406,7 @@ stretch_mode = 0
 
 [node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots/SlotHelmet" unique_id=876051145]
 visible = false
+texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -426,6 +431,7 @@ stretch_mode = 0
 
 [node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots/SlotNecklace" unique_id=1586186504]
 visible = false
+texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -450,6 +456,7 @@ stretch_mode = 0
 
 [node name="ItemIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots/SlotRing" unique_id=864418871]
 visible = false
+texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -549,6 +556,34 @@ custom_maximum_size = Vector2(800, 70)
 layout_mode = 2
 theme_override_constants/separation = 0
 alignment = 2
+
+[node name="SkillStoneBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=1180100220]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 0)
+custom_maximum_size = Vector2(160, -1)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("9_1nu6h")
+stretch_mode = 0
+
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn" unique_id=1299022110]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -22.0
+offset_top = -22.0
+offset_right = 22.0
+offset_bottom = 22.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("14_ss_icon")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="SynthBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=158088466]
 unique_name_in_owner = true
@@ -675,6 +710,7 @@ offset_bottom = 420.0
 autowrap_mode = 3
 
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow/DetailBtn" to="." method="_show_attr_popup"]
+[connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn" to="." method="_on_skill_stone_pressed"]
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SynthBtn" to="." method="_on_synthesis_pressed"]
 [connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnEquip" to="." method="_on_detail_equip"]
 [connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnUnequip" to="." method="_on_detail_unequip"]

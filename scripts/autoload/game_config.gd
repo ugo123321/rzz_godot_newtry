@@ -17,6 +17,9 @@ var tuning: Dictionary = {}
 var asset_mapping: Array = []
 var bosses: Dictionary = {}
 var buff_orbs: Dictionary = {}
+# 技能石系统：config/json/skill_stones.json（rules + affix_display + stones 三段）
+var skill_stones_config: Dictionary = {}
+var skill_stones_by_id: Dictionary = {}
 
 
 func _ready() -> void:
@@ -55,6 +58,10 @@ func reload() -> void:
 	asset_mapping = _load_array("asset_mapping")
 	bosses = _load_dict("bosses")
 	buff_orbs = _load_dict("buff_orbs")
+	skill_stones_config = _load_dict("skill_stones")
+	skill_stones_by_id = {}
+	for s in skill_stones_config.get("stones", []):
+		skill_stones_by_id[str(s.get("skill_id", ""))] = s
 
 
 func get_tuning(key: String, default_value = null):
@@ -115,6 +122,20 @@ func get_stage(index: int) -> Dictionary:
 
 func get_upgrade(id: String) -> Dictionary:
 	return upgrades_by_id.get(id, {})
+
+
+# ---- 技能石配置 ----
+func get_skill_stone_config() -> Dictionary:
+	return skill_stones_config
+
+func get_skill_stone_rules() -> Dictionary:
+	return skill_stones_config.get("rules", {})
+
+func get_skill_stone_def(skill_id: String) -> Dictionary:
+	return skill_stones_by_id.get(skill_id, {})
+
+func get_skill_stone_affix_display() -> Dictionary:
+	return skill_stones_config.get("affix_display", {})
 
 
 ## 升级特效是否在怪物图层下方绘制（1=下方，0=上方）。

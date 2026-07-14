@@ -37,6 +37,8 @@ const MAIN_SCENE := "res://scenes/main.tscn"
 var state := GameState.MENU
 var time_scale := 1.0
 var pending_stage_clear := false
+# boss 关技能石掉落防重发：记录已发过的 stage_index
+var _boss_skill_stone_dropped_stage_index := -1
 
 @onready var player: BattlePlayer = $Entities/Player
 @onready var monster_container: Node2D = $Entities/Monsters
@@ -427,6 +429,8 @@ func _begin_from_lobby() -> void:
 	_themed_stage_overrides.clear()
 	experience.reset()
 	player.reset_for_new_run()
+	# 技能石：技能部分作为升级奖励一次性授予（属性部分由 _rebuild_upgrades 处理）
+	player.apply_equipped_skill_stones()
 	if fail_animator:
 		fail_animator.reset()
 	if level_overlay:
@@ -1320,6 +1324,10 @@ func _on_monster_killed(monster: Node) -> void:
 	var dropped := LobbyState.try_drop_random_equipment()
 	if not dropped.is_empty() and equipment_drop_fx and is_instance_valid(monster):
 		equipment_drop_fx.spawn(dropped, monster.global_position)
+	# 技能石掉落（小怪 1%，规则见 skill_stones.json rules.small_drop_rate）
+	var ss_drop := LobbyState.roll_skill_stone_drop(false)
+	if not ss_drop.is_empty() and equipment_drop_fx and is_instance_valid(monster):
+		equipment_drop_fx.spawn(ss_drop, monster.global_position)
 
 
 func _on_upgrade_picked(_index: int) -> void:
@@ -1377,7 +1385,25 @@ func _try_finish_stage_clear() -> void:
 	if spawner and spawner.has_pending_death_presentation():
 		return
 	pending_stage_clear = false
+	# boss 关技能石掉落（100%）：在切关前发，FX 落在 boss 位置
+	_maybe_drop_boss_skill_stone()
 	_advance_to_next_stage()
+
+
+func _maybe_drop_boss_skill_stone() -> void:
+	if _boss_skill_stone_dropped_stage_index == stage_index:
+		return
+	var stage := GameConfig.get_stage(stage_index)
+	if str(stage.get("boss_id", "")) == "":
+		return
+	_boss_skill_stone_dropped_stage_index = stage_index
+	var ss := LobbyState.roll_skill_stone_drop(true)
+	if ss.is_empty() or equipment_drop_fx == null:
+		return
+	var pos: Vector2 = player.global_position if player != null else Vector2.ZERO
+	if spawner != null and is_instance_valid(spawner.boss):
+		pos = spawner.boss.global_position
+	equipment_drop_fx.spawn(ss, pos)
 
 
 func _advance_to_next_stage() -> void:

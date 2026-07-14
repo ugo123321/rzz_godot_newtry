@@ -214,5 +214,29 @@
   "UI_SCOUT_CLAIM_BTN": "领取",
   "UI_SCOUT_CLAIM_DISABLED": "暂无可领",
   "UI_SCOUT_CLAIMED_FMT": "+%d 金币",
-  "UI_SCOUT_CLOSE_HINT": "点击空白处以关闭"
+  "UI_SCOUT_CLOSE_HINT": "点击空白处以关闭",
+
+  "UI_SKILL_STONE_TITLE": "技能石",
+  "UI_SKILL_STONE_AFFIX_TOTAL": "词条总加成",
+  "UI_SKILL_STONE_EQUIPPED_SKILLS": "已装备技能",
+  "UI_SKILL_STONE_DECOMPOSE": "分解",
+  "UI_SKILL_STONE_CANCEL": "取消",
+  "UI_SKILL_STONE_CLOSE": "关闭",
+  "UI_SKILL_STONE_DECOMPOSE_FMT": "分解（%d 金币）",
+  "UI_SKILL_STONE_MULTI_SELECT_HINT": "点选要分解的技能石，再点确认",
+  "UI_SKILL_STONE_DECOMPOSE_OK_FMT": "分解成功，获得 %d 金币",
+  "UI_SKILL_STONE_NO_AFFIX": "（无属性词条）",
+  "UI_SKILL_STONE_NO_STONE_EQUIPPED": "（未装备技能石）",
+  "UI_SKILL_STONE_EQUIP": "装备",
+  "UI_SKILL_STONE_UNEQUIP": "卸下",
+  "UI_SKILL_STONE_EQUIP_OK": "已装备技能石",
+  "UI_SKILL_STONE_UNEQUIP_OK": "已卸下技能石",
+  "UI_SKILL_STONE_EQUIP_FAIL": "装备失败（无空槽）",
+
+  "UI_MAIN_LUCKY_SPIN": "幸运转盘",
+  "UI_LUCKY_SPIN_TITLE": "幸运转盘",
+  "UI_LUCKY_SPIN_TIP": "消耗金币旋转，赢取金币奖励",
+  "UI_LUCKY_SPIN_NO_GOLD": "金币不足",
+  "UI_LUCKY_SPIN_SPINNING": "旋转中……",
+  "UI_LUCKY_SPIN_RESULT_FMT": "获得 %d 金币"
 }

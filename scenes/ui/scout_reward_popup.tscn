@@ -1,0 +1,170 @@
+[gd_scene format=3 uid="uid://scoutpopup01"]
+
+[ext_resource type="Script" uid="uid://bsv2uamlvds34" path="res://scripts/ui/scout_reward_popup.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="2_gold_icon"]
+
+[node name="ScoutRewardPopup" type="Control"]
+script = ExtResource("1_script")
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+visible = true
+
+[node name="Overlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.65)
+
+[node name="Panel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+custom_minimum_size = Vector2(420, 560)
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="TitleLabel" type="Label" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.231, 0.149, 0.071, 1)
+theme_override_font_sizes/font_size = 32
+text = "侦察收益"
+
+[node name="SubtitleLabel" type="Label" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.478, 0.353, 0.165, 1)
+theme_override_font_sizes/font_size = 18
+text = "自动获取丰富奖励"
+
+[node name="ElapsedLabel" type="Label" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.173, 0.11, 0.039, 1)
+theme_override_font_sizes/font_size = 24
+text = "已侦察  00:00:00"
+
+[node name="HourlyRow" type="HBoxContainer" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="HourlyIcon" type="TextureRect" parent="Panel/VBox/HourlyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(36, 36)
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("2_gold_icon")
+
+[node name="HourlyLabel" type="Label" parent="Panel/VBox/HourlyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.173, 0.11, 0.039, 1)
+theme_override_font_sizes/font_size = 22
+text = "0 / 小时"
+
+[node name="ItemSlot" type="PanelContainer" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 200)
+
+[node name="ItemCenter" type="CenterContainer" parent="Panel/VBox/ItemSlot"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ItemEmptyLabel" type="Label" parent="Panel/VBox/ItemSlot/ItemCenter"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.478, 0.353, 0.165, 1)
+theme_override_font_sizes/font_size = 22
+text = "暂未获得任何道具"
+
+[node name="HintLabel" type="Label" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.541, 0.329, 0.094, 1)
+theme_override_font_sizes/font_size = 18
+text = "章节越高，收益越大"
+
+[node name="ClaimRow" type="CenterContainer" parent="Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ClaimButton" type="Button" parent="Panel/VBox/ClaimRow"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(220, 60)
+theme_override_colors/font_color = Color(0.231, 0.149, 0.071, 1)
+theme_override_font_sizes/font_size = 26
+text = "领取"
+
+[node name="CloseHintLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -60.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 0.72)
+theme_override_font_sizes/font_size = 16
+text = "点击空白处以关闭"
+
+[node name="ClaimedFloatLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.965, 0.753, 0.302, 1)
+theme_override_colors/font_outline_color = Color(0.231, 0.149, 0.071, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 28
+text = "+0 金币"

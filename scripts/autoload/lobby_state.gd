@@ -38,6 +38,14 @@ var equipment_inventory: Array[Dictionary] = []
 var equipped_by_slot: Dictionary = {}
 var _next_item_uid := 1
 
+# ─── 技能石系统（no-savedata 分支，仅会话内存）─────────────────────
+# 每块 stone: {uid:int, skill_id:String, quality:int(0-3), affixes:Array[{stat_key,value}]}
+# skill 部分 = 进入战斗自动 apply_upgrade(skill_id)（等同一次升级奖励）；
+# 属性部分 = affixes 求和进 player 的 *_pct_total（crit_damage 走乘法）。
+var skill_stone_inventory: Array[Dictionary] = []
+var skill_stone_equipped: Array[int] = [-1, -1, -1]
+var _next_skill_stone_uid := 1
+
 # Chapter-scoped tower persistence (build house phases accumulate within a chapter)
 var chapter_active_id: int = 0  # 0 = no active chapter
 var chapter_tower_height: float = 0.0
@@ -905,3 +913,310 @@ func get_player_preview_attributes() -> Dictionary:
 
 func _calc_battle_power(attack: float, hp: int, crit_rate: float, item_power: int) -> int:
 	return int(round(attack * 3.2 + float(hp) * 1.1 + crit_rate * 100.0 + float(item_power)))
+
+
+# ════════════════════════════════════════════════════════════════
+# 技能石系统
+# ════════════════════════════════════════════════════════════════
+
+const RARITY_TO_QUALITY := {
+	"white": 0,
+	"blue": 1,
+	"purple": 2,
+	"orange": 3,
+}
+
+const QUALITY_TO_RARITY := ["white", "blue", "purple", "orange"]
+
+
+func _ss_rule(key: String, default_value = null):
+	var rules: Dictionary = GameConfig.get_skill_stone_rules()
+	return rules.get(key, default_value)
+
+
+func _ensure_skill_stone_slots() -> void:
+	var count := int(_ss_rule("equipped_slot_count", 3))
+	if count < 1:
+		count = 1
+	while skill_stone_equipped.size() < count:
+		skill_stone_equipped.append(-1)
+	while skill_stone_equipped.size() > count:
+		skill_stone_equipped.pop_back()
+
+
+func rarity_to_quality(rarity: String) -> int:
+	return int(RARITY_TO_QUALITY.get(rarity, QUALITY_COMMON))
+
+
+## 返回该品质下的可选技能石 def 列表（已 enabled 且 rarity 匹配；来自 GameConfig）。
+func get_skill_stone_pool(quality: int) -> Array:
+	var out: Array = []
+	var rarity_key := str(QUALITY_TO_RARITY[clampi(quality, 0, QUALITY_TO_RARITY.size() - 1)])
+	var cfg: Dictionary = GameConfig.get_skill_stone_config()
+	var stones = cfg.get("stones", [])
+	if typeof(stones) != TYPE_ARRAY:
+		return out
+	for s in stones:
+		if typeof(s) != TYPE_DICTIONARY:
+			continue
+		if str(s.get("rarity", "")) == rarity_key:
+			out.append(s)
+	return out
+
+
+## 掷一次掉落。返回 stone dict（含 fx 需要的 icon_path / quality）；未掉落返回 {}。
+func roll_skill_stone_drop(is_boss: bool) -> Dictionary:
+	var rate := float(_ss_rule("boss_drop_rate" if is_boss else "small_drop_rate", 1.0 if is_boss else 0.01))
+	if randf() > rate:
+		return {}
+	var quality := _roll_skill_stone_quality()
+	var pool := get_skill_stone_pool(quality)
+	if pool.is_empty():
+		# 兜底：放宽到全池
+		pool = GameConfig.get_skill_stone_config().get("stones", [])
+	if pool.is_empty():
+		return {}
+	var def: Dictionary = pool[randi() % pool.size()]
+	var skill_id := str(def.get("skill_id", ""))
+	if skill_id.is_empty():
+		return {}
+	var affixes := _roll_skill_stone_affixes(quality)
+	var stone := add_skill_stone(skill_id, quality, affixes)
+	if stone.is_empty():
+		return {}
+	# 给 fx 用：附带 icon_path + quality（fx._get_equipment_icon 优先读 icon_path）
+	stone["icon_path"] = get_skill_stone_icon_path(stone)
+	return stone
+
+
+func _roll_skill_stone_quality() -> int:
+	var w := float(_ss_rule("rarity_white", 0.50))
+	var b := float(_ss_rule("rarity_blue", 0.30))
+	var p := float(_ss_rule("rarity_purple", 0.15))
+	var o := float(_ss_rule("rarity_orange", 0.05))
+	var total := w + b + p + o
+	if total <= 0.0:
+		return QUALITY_COMMON
+	var roll := randf() * total
+	if roll < w:
+		return QUALITY_COMMON
+	if roll < w + b:
+		return QUALITY_RARE
+	if roll < w + b + p:
+		return QUALITY_EPIC
+	return QUALITY_LEGENDARY
+
+
+func _roll_skill_stone_affixes(quality: int) -> Array:
+	var rarity_key := str(QUALITY_TO_RARITY[clampi(quality, 0, QUALITY_TO_RARITY.size() - 1)])
+	var count := int(_ss_rule("affix_count_%s" % rarity_key, 0))
+	var stat_pool: Array = _ss_rule("affix_stats", [])
+	if typeof(stat_pool) != TYPE_ARRAY or stat_pool.is_empty() or count <= 0:
+		return []
+	# 不放回采样 count 个不同 stat_key
+	var available: Array = []
+	for s in stat_pool:
+		available.append(str(s))
+	available.shuffle()
+	count = mini(count, available.size())
+	var lo := float(_ss_rule("affix_min", -0.10))
+	var hi := float(_ss_rule("affix_max", 0.10))
+	var out: Array = []
+	for i in range(count):
+		var v := randf_range(lo, hi)
+		# 保留两位小数，便于展示
+		v = round(v * 100.0) / 100.0
+		out.append({"stat_key": available[i], "value": v})
+	return out
+
+
+## 新增一块技能石到背包。affixes: [{stat_key, value}]。
+func add_skill_stone(skill_id: String, quality: int, affixes: Array) -> Dictionary:
+	var stone: Dictionary = {
+		"uid": _next_skill_stone_uid,
+		"skill_id": skill_id,
+		"quality": clampi(quality, QUALITY_COMMON, QUALITY_LEGENDARY),
+		"affixes": affixes.duplicate(true),
+	}
+	_next_skill_stone_uid += 1
+	skill_stone_inventory.append(stone)
+	_emit_skill_stones_changed()
+	return stone.duplicate(true)
+
+
+func _find_skill_stone_index(uid: int) -> int:
+	for i in range(skill_stone_inventory.size()):
+		if int(skill_stone_inventory[i].get("uid", -1)) == uid:
+			return i
+	return -1
+
+
+func get_skill_stone_by_uid(uid: int) -> Dictionary:
+	var idx := _find_skill_stone_index(uid)
+	if idx < 0:
+		return {}
+	return skill_stone_inventory[idx].duplicate(true)
+
+
+func is_skill_stone_equipped(uid: int) -> bool:
+	_ensure_skill_stone_slots()
+	for v in skill_stone_equipped:
+		if int(v) == uid:
+			return true
+	return false
+
+
+## 装备到指定槽；slot=-1 自动找第一个空槽。返回槽号，失败返回 -1。
+func equip_skill_stone(uid: int, slot: int = -1) -> int:
+	_ensure_skill_stone_slots()
+	if _find_skill_stone_index(uid) < 0:
+		return -1
+	if is_skill_stone_equipped(uid):
+		return -1
+	if slot < 0:
+		for i in range(skill_stone_equipped.size()):
+			if int(skill_stone_equipped[i]) < 0:
+				slot = i
+				break
+	if slot < 0 or slot >= skill_stone_equipped.size():
+		return -1
+	if int(skill_stone_equipped[slot]) >= 0:
+		return -1
+	skill_stone_equipped[slot] = uid
+	_emit_skill_stones_changed()
+	return slot
+
+
+func unequip_skill_stone(slot: int) -> bool:
+	_ensure_skill_stone_slots()
+	if slot < 0 or slot >= skill_stone_equipped.size():
+		return false
+	if int(skill_stone_equipped[slot]) < 0:
+		return false
+	skill_stone_equipped[slot] = -1
+	_emit_skill_stones_changed()
+	return true
+
+
+## 分解多块。仅未装备的允许；返回总金币（已 add_gold）。失败返回 -1。
+func decompose_skill_stones(uids: Array) -> int:
+	var parsed: Array[int] = []
+	for raw in uids:
+		var uid := int(raw)
+		if uid < 0:
+			continue
+		if parsed.has(uid):
+			continue
+		if _find_skill_stone_index(uid) < 0:
+			continue
+		if is_skill_stone_equipped(uid):
+			continue
+		parsed.append(uid)
+	if parsed.is_empty():
+		return -1
+	var total := 0
+	for uid in parsed:
+		var idx := _find_skill_stone_index(uid)
+		if idx < 0:
+			continue
+		var stone: Dictionary = skill_stone_inventory[idx]
+		total += get_skill_stone_decompose_gold(stone)
+		skill_stone_inventory.remove_at(idx)
+	if total > 0:
+		add_gold(total)
+	_emit_skill_stones_changed()
+	return total
+
+
+## 背包未装备的技能石（按 quality 降序 + uid）。
+func get_skill_stone_inventory_sorted() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for stone in skill_stone_inventory:
+		var uid := int(stone.get("uid", -1))
+		if is_skill_stone_equipped(uid):
+			continue
+		out.append(stone.duplicate(true))
+	out.sort_custom(_sort_skill_stone)
+	return out
+
+
+func _sort_skill_stone(a: Dictionary, b: Dictionary) -> bool:
+	var qa := int(a.get("quality", 0))
+	var qb := int(b.get("quality", 0))
+	if qa != qb:
+		return qa > qb
+	return int(a.get("uid", 0)) < int(b.get("uid", 0))
+
+
+func get_equipped_skill_stones() -> Array[Dictionary]:
+	_ensure_skill_stone_slots()
+	var out: Array[Dictionary] = []
+	for v in skill_stone_equipped:
+		var uid := int(v)
+		if uid < 0:
+			continue
+		var stone := get_skill_stone_by_uid(uid)
+		if stone.is_empty():
+			continue
+		out.append(stone)
+	return out
+
+
+## 3 个已装备技能石 affixes 求和 → {stat_key: sum_value}。
+func get_skill_stone_affix_totals() -> Dictionary:
+	var totals: Dictionary = {}
+	for stone in get_equipped_skill_stones():
+		var affixes = stone.get("affixes", [])
+		if typeof(affixes) != TYPE_ARRAY:
+			continue
+		for a in affixes:
+			if typeof(a) != TYPE_DICTIONARY:
+				continue
+			var key := str(a.get("stat_key", ""))
+			if key.is_empty():
+				continue
+			var v := float(a.get("value", 0.0))
+			totals[key] = float(totals.get(key, 0.0)) + v
+	return totals
+
+
+func get_skill_stone_def(skill_id: String) -> Dictionary:
+	return GameConfig.get_skill_stone_def(skill_id)
+
+
+func get_skill_stone_name(stone: Dictionary) -> String:
+	var def := get_skill_stone_def(str(stone.get("skill_id", "")))
+	if def.is_empty():
+		return str(stone.get("skill_id", ""))
+	# 配置表字段：name_cn / name_en → localize
+	var name := LanguageManager.localize_field(def, "name_en", "name_cn")
+	if name == "":
+		name = str(def.get("name_cn", ""))
+	return name
+
+
+func get_skill_stone_icon_path(stone: Dictionary) -> String:
+	var def := get_skill_stone_def(str(stone.get("skill_id", "")))
+	var icon := str(def.get("icon", ""))
+	if icon.is_empty() or not icon.begins_with("skill_"):
+		return ""
+	return "res://assets/ui/icons/upgrades/" + icon + ".png"
+
+
+func get_skill_stone_desc(stone: Dictionary) -> String:
+	var def := get_skill_stone_def(str(stone.get("skill_id", "")))
+	return LanguageManager.localize_field(def, "desc_cn_game_en", "desc_cn_game")
+
+
+func get_skill_stone_decompose_gold(stone: Dictionary) -> int:
+	var def := get_skill_stone_def(str(stone.get("skill_id", "")))
+	var v = def.get("decompose_gold", null)
+	if v != null:
+		return maxi(0, int(v))
+	return maxi(0, int(_ss_rule("decompose_gold_default", 5)))
+
+
+func _emit_skill_stones_changed() -> void:
+	if EventBus:
+		EventBus.skill_stones_changed.emit()
+

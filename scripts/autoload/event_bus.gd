@@ -21,3 +21,4 @@ signal forge_session_complete(rarity: String, stacked_count: int)
 signal language_changed(lang: String)
 signal talent_changed(id: String, old_level: int, new_level: int)
 signal scout_claimed(gold: int)
+signal skill_stones_changed

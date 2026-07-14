@@ -83,6 +83,11 @@ const DEFAULT_TAB := Tab.STAGE
 @onready var _chapter_label: Label = %ChapterName
 @onready var _chapter_desc: Label = %ChapterDesc
 @onready var _start_button: TextureButton = %StartButton
+# 开始按钮包在 MarginContainer 里，MarginContainer 强制铺满子节点 → tween 按钮自身 position 无效。
+# 飞入动效改 tween 这个 Wrap（它挂在 Control 父下，position 可自由位移）。
+# 用 get_node 兜底，避免节点没勾 unique_name 时 % 解析失败回退成按钮本身。
+@onready var _start_button_wrap: Control = get_node_or_null("%StartButtonWrap")
+
 @onready var _chapter_prev: TextureButton = %ChapterPrev
 @onready var _chapter_next: TextureButton = %ChapterNext
 @onready var _stage_viewport: Control = %StageViewport
@@ -102,9 +107,17 @@ var _sky_glow_scroll_layer: Control
 var _sky_glow_tiles: Array[TextureRect] = []
 var _sky_glow_tile_width := 0.0
 var _stage_icon_pulse_material: ShaderMaterial
-var _scout_popup: ScoutRewardPopupT
-var _scout_entry_button: Button
-var _scout_entry_label: Label
+@onready var _scout_popup: ScoutRewardPopupT = %ScoutRewardPopup
+@onready var _scout_entry_button: Button = %ScoutEntryButton
+@onready var _scout_entry_label: Label = %ScoutEntryButton/Row/ScoutLabel
+
+# 关卡界面进场动效：所有元素错峰出发、同一时刻归位（duration = TOTAL - delay）。
+const STAGE_INTRO_STEP := 0.05          # 相邻元素出发间隔（错峰节奏）
+const STAGE_INTRO_OFFSET := 320.0       # 飞入起点偏移量（上飞入负方向 / 下飞入正方向）
+const STAGE_INTRO_TOTAL := 0.50         # 总归位时长：所有元素都在此时刻同时归位
+const STAGE_INTRO_MIN_DUR := 0.18       # 单元素最短飞入时长（保险，避免末尾 duration 过小）
+var _stage_intro_playing := false
+var _stage_intro_orig_pos: Dictionary = {}   # 记录元素原始 position，飞入后归位用
 
 
 func _ui_scale() -> float:
@@ -151,6 +164,17 @@ func _ready() -> void:
 	if not EventBus.language_changed.is_connected(_on_language_changed):
 		EventBus.language_changed.connect(_on_language_changed)
 	_refresh_chapter_display()
+	# 关卡界面进场动效：每次切到关卡 tab 都播（挂 StagePanel 可见性变化）
+	var stage_panel: Control = _panels[Tab.STAGE] if not _panels.is_empty() and _panels.size() > Tab.STAGE else null
+	if stage_panel != null and not stage_panel.visibility_changed.is_connected(_on_stage_panel_visibility):
+		stage_panel.visibility_changed.connect(_on_stage_panel_visibility)
+	_on_stage_panel_visibility()   # 首次若已可见则播
+
+
+func _on_stage_panel_visibility() -> void:
+	var stage_panel: Control = _panels[Tab.STAGE] if not _panels.is_empty() and _panels.size() > Tab.STAGE else null
+	if stage_panel != null and stage_panel.visible and not _stage_intro_playing:
+		call_deferred("_play_stage_intro")
 
 
 func _on_language_changed(_lang: String) -> void:
@@ -159,8 +183,8 @@ func _on_language_changed(_lang: String) -> void:
 
 
 func _apply_static_texts() -> void:
-	# 底部 5 个 tab label：抽奖 / 装备 / Battle / 副本 / 图鉴
-	const TAB_KEYS := ["UI_MAIN_DRAW", "UI_MAIN_EQUIPMENT", "", "UI_MAIN_DUNGEONS", "UI_MAIN_GALLERY"]
+	# 底部 5 个 tab label：幸运转盘 / 装备 / Battle / 副本 / 图鉴
+	const TAB_KEYS := ["UI_MAIN_LUCKY_SPIN", "UI_MAIN_EQUIPMENT", "", "UI_MAIN_DUNGEONS", "UI_MAIN_GALLERY"]
 	for i in _tab_labels.size():
 		if i >= TAB_KEYS.size():
 			continue
@@ -585,6 +609,71 @@ func _update_start_button_scale() -> void:
 		_start_button.modulate = Color.WHITE
 
 
+func _play_stage_intro() -> void:
+	if _stage_viewport == null:
+		return
+	# 收集所有飞入项：mover=位移载体，fadee=淡入目标（null=不淡入，纯位移），from_bottom=飞入方向。
+	# 开始按钮包在 MarginContainer 里 → 位移载体用它的 Wrap；开始按钮去掉淡入 → fadee=null。
+	var items: Array = []
+	for c in [_chapter_label, _chapter_desc, _stage_icon]:
+		if c != null:
+			items.append({"mover": c, "fadee": c, "from_bottom": false})
+	if _chapter_prev != null:
+		items.append({"mover": _chapter_prev, "fadee": _chapter_prev, "from_bottom": true})
+	if _chapter_next != null:
+		items.append({"mover": _chapter_next, "fadee": _chapter_next, "from_bottom": true})
+	if _scout_entry_button != null:
+		items.append({"mover": _scout_entry_button, "fadee": _scout_entry_button, "from_bottom": true})
+	if _start_button != null:
+		var wrap: Control = _start_button_wrap if _start_button_wrap != null else _start_button
+		items.append({"mover": wrap, "fadee": null, "from_bottom": true})
+	if items.is_empty():
+		return
+	_stage_intro_playing = true
+	# 记录每个位移载体原始 position（飞入结束后原样归位，避免位置错乱）
+	_stage_intro_orig_pos.clear()
+	for it in items:
+		var m: Control = it["mover"]
+		_stage_intro_orig_pos[m] = m.position
+	# 起点：位移方向偏移 + 淡入目标透明（不淡入的保持原样）
+	for it in items:
+		var m: Control = it["mover"]
+		if it["from_bottom"]:
+			m.position.y += STAGE_INTRO_OFFSET
+		else:
+			m.position.y -= STAGE_INTRO_OFFSET
+		var fadee: Control = it["fadee"]
+		if fadee != null:
+			fadee.modulate.a = 0.0
+	# 错峰出发、同时归位：第 i 个 delay = STEP*i，duration = TOTAL - delay → 都在 TOTAL 时刻归位。
+	var tw := create_tween()
+	tw.set_parallel(true)
+	var idx := 0
+	for it in items:
+		var m: Control = it["mover"]
+		var delay := STAGE_INTRO_STEP * float(idx)
+		var dur := maxf(STAGE_INTRO_MIN_DUR, STAGE_INTRO_TOTAL - delay)
+		var end_y: float = (_stage_intro_orig_pos[m] as Vector2).y
+		tw.tween_property(m, "position:y", end_y, dur).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		var fadee: Control = it["fadee"]
+		if fadee != null:
+			tw.parallel().tween_property(fadee, "modulate:a", 1.0, dur * 0.7).set_delay(delay)
+		idx += 1
+	# 所有元素在 TOTAL 时刻同时归位，callback 此时触发
+	tw.chain().tween_callback(Callable(self, "_on_stage_intro_done"))
+
+
+func _on_stage_intro_done() -> void:
+	_stage_intro_playing = false
+	# 归位到记录的原始 position（而非 0），防止位置错乱
+	for c in _stage_intro_orig_pos.keys():
+		if is_instance_valid(c):
+			(c as Control).position = (_stage_intro_orig_pos[c] as Vector2)
+			(c as Control).modulate.a = 1.0
+	if _start_button != null:
+		_update_start_button_scale()   # 恢复开始按钮的 modulate（WHITE / 按下态）
+
+
 func _animate_stage_panel(delta: float) -> void:
 	if _panels.is_empty() or not _panels[Tab.STAGE].visible:
 		return
@@ -711,67 +800,23 @@ func _setup_top_bar() -> void:
 
 
 func _setup_scout_entry() -> void:
-	# 侦察入口：作为 StagePanel/StageViewport 的子节点，锚定在 StartButton 上方约 60px。
-	# 全代码构建 —— 不改 tscn，避免场景 diff。
-	var viewport := get_node_or_null("Content/StagePanel/StageViewport") as Control
-	if viewport == null:
+	# 侦察入口：节点结构已在 main_menu.tscn（ScoutEntryButton + Row/Icon/ScoutLabel，
+	# ScoutRewardPopup 实例挂在根节点下）。本函数只套程序化 stylebox / 字体 + 连信号 + 兜底图标。
+	if _scout_entry_button == null:
 		return
-	var start_wrap := viewport.get_node_or_null("StartButtonWrap") as Control
-	# 主按钮：显示"[图标] 侦察"
-	_scout_entry_button = Button.new()
-	_scout_entry_button.name = "ScoutEntryButton"
-	_scout_entry_button.custom_minimum_size = Vector2(180, 68)
-	_scout_entry_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_scout_entry_button.focus_mode = Control.FOCUS_NONE
-	PixelUi.apply_ui_font(_scout_entry_button)
 	# 用 9-slice 主按钮样式（暖色调，与开始按钮配色一致但更小）
 	UiStyle.apply_primary_button(_scout_entry_button, Color("#8fb078"), 10)
-	viewport.add_child(_scout_entry_button)
-	# 锚定：横向居中，纵向落在 StartButton 上方
-	_scout_entry_button.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_scout_entry_button.anchor_left = 0.5
-	_scout_entry_button.anchor_right = 0.5
-	_scout_entry_button.anchor_top = 1.0
-	_scout_entry_button.anchor_bottom = 1.0
-	_scout_entry_button.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_scout_entry_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_scout_entry_button.offset_left = -90.0
-	_scout_entry_button.offset_right = 90.0
-	# 高度定位：贴在 StartButtonWrap.offset_top 上方 12px
-	var wrap_top := -216.0
-	if start_wrap != null:
-		wrap_top = start_wrap.offset_top
-	_scout_entry_button.offset_top = wrap_top - 80.0
-	_scout_entry_button.offset_bottom = wrap_top - 12.0
-	# 内嵌的中央 label（保留 unique 引用便于 i18n 刷新；不用 Button.text，方便配图标）
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 8)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_scout_entry_button.add_child(row)
-	var icon := TextureRect.new()
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.custom_minimum_size = Vector2(36, 36)
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.texture = _load_tex("res://assets/ui/icons/system/icon_detail.png")
-	if icon.texture == null:
+	PixelUi.apply_ui_font(_scout_entry_button)
+	# 图标兜底：.tscn 里已配 icon_detail，缺图时退回 dungeon 图标
+	var icon := _scout_entry_button.get_node_or_null("Row/Icon") as TextureRect
+	if icon != null and icon.texture == null:
 		icon.texture = _load_tex("res://assets/ui/icons/nav/icon_nav_dungeon.png")
-	row.add_child(icon)
-	_scout_entry_label = Label.new()
-	_scout_entry_label.name = "ScoutLabel"
-	_scout_entry_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	PixelUi.apply_ui_font(_scout_entry_label)
-	_scout_entry_label.add_theme_font_size_override("font_size", 26)
-	_scout_entry_label.add_theme_color_override("font_color", Color("#0f2410"))
-	_scout_entry_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_scout_entry_label)
+	if _scout_entry_label != null:
+		PixelUi.apply_ui_font(_scout_entry_label)
 	_scout_entry_button.pressed.connect(_on_scout_entry_pressed)
-	# Popup 实例：挂在 MainMenu 根节点上，覆盖全屏
-	_scout_popup = ScoutRewardPopupT.new()
-	add_child(_scout_popup)
-	_scout_popup.setup()
+	# Popup：已在场景里实例化，这里只初始化（套样式 + 连信号 + 文案）
+	if _scout_popup != null:
+		_scout_popup.setup()
 
 
 func _on_scout_entry_pressed() -> void:

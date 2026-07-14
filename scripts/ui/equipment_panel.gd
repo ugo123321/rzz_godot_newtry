@@ -5,6 +5,7 @@ class_name EquipmentPanelView
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 const SYNTHESIS_PANEL_SCENE := preload("res://scenes/ui/synthesis_panel.tscn")
+const SKILL_STONE_PANEL_SCENE := preload("res://scenes/ui/skill_stone_panel.tscn")
 const ICON_CLOSE_PATH := "res://assets/ui/icons/system/icon_close.png"
 const ICON_BACK_PATH := "res://assets/ui/icons/system/icon_back.png"
 
@@ -42,10 +43,10 @@ const SLOT_BUTTON_NODES := {
 @onready var _main_vbox: VBoxContainer = $Frame/RootMargin/BaseRoot
 @onready var _inventory_grid: GridContainer = $Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid
 @onready var _inventory_empty_label: Label = $Frame/RootMargin/BaseRoot/InventoryEmptyLabel
-@onready var _battle_power_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/PowerRow/BattlePowerLabel
-@onready var _attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row/AttackLabel
-@onready var _hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row/HpLabel
-@onready var _preview_viewport: SubViewport = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/PreviewWrap/PreviewContainer/PreviewViewport
+@onready var _battle_power_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow/BattlePowerLabel
+@onready var _attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row/AttackLabel
+@onready var _hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row/HpLabel
+@onready var _preview_viewport: SubViewport = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap/PreviewContainer/PreviewViewport
 @onready var _preview_sprite: AnimatedSprite2D = %PreviewSprite
 
 @onready var _detail_popup: PopupPanel = $DetailPopup
@@ -68,6 +69,12 @@ var _slot_buttons: Dictionary = {}
 
 var _bag_slot_uids: Array[int] = []
 
+# 进场动效：每个槽/格子/按钮逐个依次淡入显形
+var _intro_playing := false
+const INTRO_STEP := 0.018      # 每个元素错峰间隔（秒）
+const INTRO_DURATION := 0.22   # 单元素显形时长（秒）
+const INTRO_SCALE_FROM := 0.82 # 起始缩放（缩小更明显，回弹放大归位）
+
 
 func _should_fill_parent() -> bool:
 	var parent_node := get_parent()
@@ -88,11 +95,101 @@ func _ready() -> void:
 	_apply_static_texts()
 	_refresh_all()
 	set_process(true)
+	# 进场动效：每次面板可见时所有区块快速依次淡入显形
+	visibility_changed.connect(_on_visibility_changed)
+	_on_visibility_changed()   # 首次若已可见则立即播
 
 
 func _on_language_changed(_lang: String) -> void:
 	_apply_static_texts()
 	_refresh_all()
+
+
+# ─── 进场动效：所有区块快速依次淡入显形 ───────────────────
+func _on_visibility_changed() -> void:
+	if visible and not Engine.is_editor_hint():
+		call_deferred("_play_intro")
+
+
+func _play_intro() -> void:
+	if _main_vbox == null:
+		return
+	# 收集要"依次显形"的细粒度元素，按视觉从上到下排列
+	var elems: Array[Control] = []
+	# 1) 人物预览
+	if _preview_sprite != null and _preview_sprite.get_parent() is Control:
+		elems.append(_preview_sprite.get_parent() as Control)
+	# 2) 6 个装备槽（按显示顺序：weapon→helmet→necklace→ring→armor→shoes）
+	for slot_key in SLOT_ORDER:
+		var btn := _slot_buttons.get(slot_key, null) as Control
+		if btn != null and btn.visible:
+			elems.append(btn)
+	# 3) 战力 / 攻击 / 生命 数值（StatsBlock 下的数值 Label）
+	for lbl_path in [
+		"Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/PowerRow",
+		"Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow",
+	]:
+		var block := get_node_or_null(lbl_path) as Control
+		if block != null and block.visible:
+			elems.append(block)
+	# 4) 背包格子（InventoryGrid 的子节点，按网格顺序）
+	if _inventory_grid != null:
+		for c in _inventory_grid.get_children():
+			if c is Control and c.visible:
+				elems.append(c as Control)
+	# 5) 合成 / 技能石 按钮（SynthRow 的子节点）
+	var synth_row := get_node_or_null("Frame/RootMargin/BaseRoot/SynthRow") as Container
+	if synth_row != null:
+		for c in synth_row.get_children():
+			if c is Control and c.visible:
+				elems.append(c as Control)
+	if elems.is_empty():
+		return
+	_intro_playing = true
+	# 起点：透明 + 轻微缩小（绕中心）
+	for c in elems:
+		c.modulate.a = 0.0
+		c.pivot_offset = c.size * 0.5
+		c.scale = Vector2(INTRO_SCALE_FROM, INTRO_SCALE_FROM)
+	# 逐个错峰淡入 + 回弹归位（全页从上到下依次显形）
+	var tw := create_tween()
+	tw.set_parallel(true)
+	for i in range(elems.size()):
+		var c: Control = elems[i]
+		var delay := INTRO_STEP * float(i)
+		tw.tween_property(c, "modulate:a", 1.0, INTRO_DURATION).set_delay(delay) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(c, "scale", Vector2.ONE, INTRO_DURATION).set_delay(delay) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_callback(Callable(self, "_on_intro_done"))
+
+
+func _on_intro_done() -> void:
+	_intro_playing = false
+	# 收尾：归位 scale/alpha，防止残留缩放造成视觉偏移
+	_reset_intro_visuals(_slot_buttons.values())
+	if _inventory_grid != null:
+		_reset_intro_visuals(_inventory_grid.get_children())
+	var synth_row := get_node_or_null("Frame/RootMargin/BaseRoot/SynthRow") as Container
+	if synth_row != null:
+		_reset_intro_visuals(synth_row.get_children())
+	if _preview_sprite != null and _preview_sprite.get_parent() is Control:
+		_reset_intro_visuals([_preview_sprite.get_parent()])
+	for lbl_path in [
+		"Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/PowerRow",
+		"Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow",
+	]:
+		var block := get_node_or_null(lbl_path) as Control
+		if block != null:
+			_reset_intro_visuals([block])
+
+
+func _reset_intro_visuals(nodes: Array) -> void:
+	for c in nodes:
+		if c is Control:
+			var ctrl := c as Control
+			ctrl.scale = Vector2.ONE
+			ctrl.modulate.a = 1.0
 
 
 func _apply_static_texts() -> void:
@@ -211,13 +308,21 @@ func _setup_preview_sprite() -> void:
 	if not Engine.is_editor_hint():
 		folder = str(GameConfig.get_player_value("character_folder", "Swordsman"))
 		prefix = str(GameConfig.get_player_value("sprite_prefix", "Swordsman"))
-	sprite.sprite_frames = SpriteHelper.build_character_frames(folder, prefix)
+	var frames := SpriteHelper.build_character_frames(folder, prefix)
+	# 先把 animation 指到 frames 里存在的名字，再赋 sprite_frames，避免 AnimatedSprite2D
+	# 拿默认空串 animation 校验时报 "There is no animation with name ''"。
+	var pick_anim := ""
+	if frames != null:
+		if frames.has_animation(SpriteHelper.ANIM_WALK):
+			pick_anim = SpriteHelper.ANIM_WALK
+		elif frames.has_animation(SpriteHelper.ANIM_IDLE):
+			pick_anim = SpriteHelper.ANIM_IDLE
+	if pick_anim != "":
+		sprite.animation = pick_anim
+	sprite.sprite_frames = frames
 	SpriteHelper.apply_pixel_art(sprite)
-	if sprite.sprite_frames != null:
-		if sprite.sprite_frames.has_animation(SpriteHelper.ANIM_WALK):
-			sprite.play(SpriteHelper.ANIM_WALK)
-		elif sprite.sprite_frames.has_animation(SpriteHelper.ANIM_IDLE):
-			sprite.play(SpriteHelper.ANIM_IDLE)
+	if frames != null and pick_anim != "":
+		sprite.play(pick_anim)
 	_apply_preview_sprite_scale()
 	if not Engine.is_editor_hint():
 		_preview_state = "walk"
@@ -270,6 +375,22 @@ func _on_synthesis_pressed() -> void:
 		_detail_popup.hide()
 	_current_detail_uid = -1
 	var panel := SYNTHESIS_PANEL_SCENE.instantiate() as Control
+	if panel == null:
+		return
+	host.add_child(panel)
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	if panel.has_signal("closed"):
+		panel.connect("closed", _refresh_all)
+
+
+func _on_skill_stone_pressed() -> void:
+	var host := _synthesis_overlay_host()
+	if host == null:
+		return
+	if _detail_popup != null:
+		_detail_popup.hide()
+	_current_detail_uid = -1
+	var panel := SKILL_STONE_PANEL_SCENE.instantiate() as Control
 	if panel == null:
 		return
 	host.add_child(panel)

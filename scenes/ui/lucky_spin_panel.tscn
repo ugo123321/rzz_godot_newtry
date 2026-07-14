@@ -1,0 +1,331 @@
+[gd_scene format=3 uid="uid://dlxbn1sl1yrmi"]
+
+[ext_resource type="Script" uid="uid://b2qf3y24cdav3" path="res://scripts/ui/lucky_spin_panel.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://cwu7oyvy74gvu" path="res://assets/ui/panels/lucky_spin.png" id="2_wheel"]
+[ext_resource type="Texture2D" uid="uid://bpd5qg7jsuea2" path="res://assets/ui/decorations/deco_lucky_spine.png" id="3_deco"]
+[ext_resource type="Texture2D" uid="uid://cr8nkfq8dkii7" path="res://assets/ui/decorations/deco_needle.png" id="4_needle"]
+[ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="5_gold"]
+
+[node name="LuckySpinPanel" type="Control" unique_id=1701175268]
+texture_filter = 1
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Bg" type="ColorRect" parent="." unique_id=1094546122]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.09, 0.14, 1)
+
+[node name="FloatLayer" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="." unique_id=683996632]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 56.0
+offset_right = 200.0
+offset_bottom = 104.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.95, 0.85, 0.5, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 32
+text = "幸运转盘"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WheelWrap" type="Control" parent="." unique_id=785662749]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -240.0
+offset_right = 280.0
+offset_bottom = 320.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Decoration" type="TextureRect" parent="WheelWrap" unique_id=1917403590]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -329.0
+offset_top = -325.0
+offset_right = 321.0
+offset_bottom = 325.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_transform_enabled = true
+mouse_filter = 2
+texture = ExtResource("3_deco")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Wheel" type="Control" parent="WheelWrap" unique_id=741004407]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="WheelTex" type="TextureRect" parent="WheelWrap/Wheel" unique_id=183113054]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_wheel")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Slots" type="Control" parent="WheelWrap/Wheel" unique_id=1457479441]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_transform_enabled = true
+mouse_filter = 2
+
+[node name="Slot0" type="VBoxContainer" parent="WheelWrap/Wheel/Slots" unique_id=2079208564]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -40.0
+offset_top = -35.0
+offset_right = 40.0
+offset_bottom = 35.0
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="WheelWrap/Wheel/Slots/Slot0" unique_id=522380422]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("5_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Amount" type="Label" parent="WheelWrap/Wheel/Slots/Slot0" unique_id=1784280932]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "10"
+horizontal_alignment = 1
+
+[node name="Slot1" type="VBoxContainer" parent="WheelWrap/Wheel/Slots" unique_id=377275874]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 100.0
+offset_top = -35.0
+offset_right = 180.0
+offset_bottom = 35.0
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="WheelWrap/Wheel/Slots/Slot1" unique_id=1728874283]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("5_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Amount" type="Label" parent="WheelWrap/Wheel/Slots/Slot1" unique_id=1631357393]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "20"
+horizontal_alignment = 1
+
+[node name="Slot2" type="VBoxContainer" parent="WheelWrap/Wheel/Slots" unique_id=1994149285]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 140.0
+offset_top = 120.0
+offset_right = 220.0
+offset_bottom = 190.0
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="WheelWrap/Wheel/Slots/Slot2" unique_id=240764453]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("5_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Amount" type="Label" parent="WheelWrap/Wheel/Slots/Slot2" unique_id=577282392]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "30"
+horizontal_alignment = 1
+
+[node name="Slot3" type="VBoxContainer" parent="WheelWrap/Wheel/Slots" unique_id=116718379]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -40.0
+offset_top = 200.0
+offset_right = 40.0
+offset_bottom = 270.0
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="WheelWrap/Wheel/Slots/Slot3" unique_id=1965041897]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("5_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Amount" type="Label" parent="WheelWrap/Wheel/Slots/Slot3" unique_id=545914266]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "40"
+horizontal_alignment = 1
+
+[node name="Slot4" type="VBoxContainer" parent="WheelWrap/Wheel/Slots" unique_id=516124225]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -220.0
+offset_top = 120.0
+offset_right = -140.0
+offset_bottom = 190.0
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="WheelWrap/Wheel/Slots/Slot4" unique_id=1144425844]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("5_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Amount" type="Label" parent="WheelWrap/Wheel/Slots/Slot4" unique_id=751907820]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "50"
+horizontal_alignment = 1
+
+[node name="Slot5" type="VBoxContainer" parent="WheelWrap/Wheel/Slots" unique_id=1947941962]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -180.0
+offset_top = -35.0
+offset_right = -100.0
+offset_bottom = 35.0
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="WheelWrap/Wheel/Slots/Slot5" unique_id=1327271986]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("5_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Amount" type="Label" parent="WheelWrap/Wheel/Slots/Slot5" unique_id=1167257887]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "60"
+horizontal_alignment = 1
+
+[node name="Pointer" type="TextureRect" parent="WheelWrap" unique_id=1847474586]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -28.0
+offset_top = -36.0
+offset_right = 28.0
+offset_bottom = 40.0
+grow_horizontal = 2
+mouse_filter = 2
+texture = ExtResource("4_needle")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResultLabel" type="Label" parent="." unique_id=1359462837]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 900.0
+offset_right = 200.0
+offset_bottom = 950.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.95, 0.85, 0.5, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpinBtn" type="Button" parent="." unique_id=1727586665]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -110.0
+offset_top = 980.0
+offset_right = 110.0
+offset_bottom = 1064.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 22
+text = "10"
+icon = ExtResource("5_gold")
+expand_icon = true

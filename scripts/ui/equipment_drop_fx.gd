@@ -93,7 +93,10 @@ func _draw() -> void:
 
 
 func _get_equipment_icon(item: Dictionary) -> Texture2D:
-	var path := LobbyState.get_item_icon_path(item)
+	# 优先读 item 顶层 icon_path（技能石掉落直接带 reward icon 路径）；否则回落装备 def。
+	var path := str(item.get("icon_path", ""))
+	if path.is_empty():
+		path = LobbyState.get_item_icon_path(item)
 	if path.is_empty():
 		return null
 	if _icon_cache.has(path):
