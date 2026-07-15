@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/ui/synthesis_panel.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://dtkajjsg4elof" path="res://assets/ui/equipment_synthesis/full_bg.png" id="2_full_bg"]
-[ext_resource type="Texture2D" uid="uid://fgfncosu22k4" path="res://assets/ui/equipment_synthesis/small_bg.png" id="3_small_bg"]
-[ext_resource type="Texture2D" uid="uid://dywmj410bf5d" path="res://assets/ui/equipment_synthesis/decoration01.png" id="4_deco1"]
-[ext_resource type="Texture2D" uid="uid://c1jgnqk74e184" path="res://assets/ui/equipment_synthesis/equipment_slot02.png" id="5_slot"]
-[ext_resource type="Texture2D" uid="uid://crexxfa1jyvki" path="res://assets/ui/equipment_synthesis/decoration02.png" id="6_deco2"]
-[ext_resource type="Texture2D" uid="uid://bossausv18w87" path="res://assets/ui/equipment_synthesis/Synthesis _button_ok.png" id="7_synth_btn"]
-[ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="8_spring"]
-[ext_resource type="Texture2D" uid="uid://78ospbgqn2wa" path="res://assets/ui/equipment_synthesis/buttom_bar.png" id="9_bottom_bar"]
-[ext_resource type="Texture2D" uid="uid://bsspdds8nwdgr" path="res://assets/ui/equipment_synthesis/back_button.png" id="10_back"]
+[ext_resource type="Texture2D" uid="uid://bjd175crfnki4" path="res://assets/ui/equipment_skills/skills_bg.png" id="3_skills_bg"]
+[ext_resource type="Texture2D" uid="uid://b4gm0omo0qhg0" path="res://assets/ui/icons/system/icon_synthesis.png" id="4_title_icon"]
+[ext_resource type="Texture2D" uid="uid://dv30osu0fjlyh" path="res://assets/ui/decorations/deco_line.png" id="5_deco_line"]
+[ext_resource type="Texture2D" uid="uid://cye3isj0kqtbf" path="res://assets/ui/decorations/deco_path.png" id="6_deco_path"]
+[ext_resource type="Texture2D" uid="uid://bmyhbobc6j0or" path="res://assets/ui/equipment/synthesis_slot.png" id="7_slot"]
+[ext_resource type="Texture2D" uid="uid://1c0adedyeuyp" path="res://assets/ui/decorations/deco_line02.png" id="8_deco_line02"]
+[ext_resource type="Texture2D" uid="uid://cg1g2n0td1mhj" path="res://assets/ui/buttons/btn_dismantle.png" id="9_compose_btn"]
+[ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="10_spring"]
+[ext_resource type="Texture2D" uid="uid://78ospbgqn2wa" path="res://assets/ui/equipment_synthesis/buttom_bar.png" id="11_bottom_bar"]
+[ext_resource type="Texture2D" uid="uid://bsspdds8nwdgr" path="res://assets/ui/equipment_synthesis/back_button.png" id="12_back"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
 bg_color = Color(0.16, 0.1, 0.03, 0.9)
@@ -45,180 +47,192 @@ texture = ExtResource("2_full_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="HeaderBoard" type="TextureRect" parent="."]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 135.0
-grow_horizontal = 2
+[node name="TopBg" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 720.0
+offset_bottom = 124.0
 mouse_filter = 2
-texture = ExtResource("3_small_bg")
+texture = ExtResource("3_skills_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Title" type="Label" parent="HeaderBoard"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="TitleIcon" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 299.0
+offset_top = 50.0
+offset_right = 338.0
+offset_bottom = 98.0
+mouse_filter = 2
+texture = ExtResource("4_title_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 345.0
+offset_top = 50.0
+offset_right = 505.0
+offset_bottom = 105.0
 theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
-theme_override_font_sizes/font_size = 38
+theme_override_font_sizes/font_size = 30
 text = "合成"
-horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Decoration01" type="TextureRect" parent="."]
+[node name="DecoLine" type="TextureRect" parent="."]
 layout_mode = 0
 offset_left = 43.0
-offset_top = 150.0
-offset_right = 677.0
-offset_bottom = 174.0
+offset_top = 122.0
+offset_right = 678.0
+offset_bottom = 144.0
 mouse_filter = 2
-texture = ExtResource("4_deco1")
+texture = ExtResource("5_deco_line")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SynthPathDeco" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 209.0
+offset_top = 257.0
+offset_right = 510.0
+offset_bottom = 417.0
+mouse_filter = 2
+texture = ExtResource("6_deco_path")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="TargetSlot" type="TextureButton" parent="."]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 305.0
-offset_top = 195.0
-offset_right = 415.0
-offset_bottom = 305.0
-texture_normal = ExtResource("5_slot")
+offset_left = 306.0
+offset_top = 182.0
+offset_right = 413.0
+offset_bottom = 289.0
+texture_normal = ExtResource("7_slot")
 ignore_texture_size = true
 stretch_mode = 0
 
 [node name="ItemIcon" type="TextureRect" parent="TargetSlot"]
 visible = false
+texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = -18.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Decoration02" type="TextureRect" parent="."]
-layout_mode = 0
-offset_left = 48.0
-offset_top = 345.0
-offset_right = 671.0
-offset_bottom = 354.0
-mouse_filter = 2
-texture = ExtResource("6_deco2")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="MaterialRow" type="HBoxContainer" parent="."]
-layout_mode = 0
-offset_left = 165.0
-offset_top = 400.0
-offset_right = 555.0
-offset_bottom = 510.0
-theme_override_constants/separation = 30
-alignment = 1
-
-[node name="MaterialSlot0" type="TextureButton" parent="MaterialRow"]
+[node name="MaterialSlot0" type="TextureButton" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 110)
-layout_mode = 2
-texture_normal = ExtResource("5_slot")
+layout_mode = 0
+offset_left = 163.0
+offset_top = 390.0
+offset_right = 270.0
+offset_bottom = 497.0
+texture_normal = ExtResource("7_slot")
 ignore_texture_size = true
 stretch_mode = 0
 
-[node name="ItemIcon" type="TextureRect" parent="MaterialRow/MaterialSlot0"]
+[node name="ItemIcon" type="TextureRect" parent="MaterialSlot0"]
 visible = false
+texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = -18.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="MaterialSlot1" type="TextureButton" parent="MaterialRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 110)
-layout_mode = 2
-texture_normal = ExtResource("5_slot")
-ignore_texture_size = true
-stretch_mode = 0
-
-[node name="ItemIcon" type="TextureRect" parent="MaterialRow/MaterialSlot1"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = -18.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="MaterialSlot2" type="TextureButton" parent="MaterialRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 110)
-layout_mode = 2
-texture_normal = ExtResource("5_slot")
-ignore_texture_size = true
-stretch_mode = 0
-
-[node name="ItemIcon" type="TextureRect" parent="MaterialRow/MaterialSlot2"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = -18.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="ComposeButton" type="TextureButton" parent="."]
+[node name="MaterialSlot1" type="TextureButton" parent="."]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 253.0
+offset_left = 306.0
+offset_top = 390.0
+offset_right = 413.0
+offset_bottom = 497.0
+texture_normal = ExtResource("7_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="MaterialSlot1"]
+visible = false
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MaterialSlot2" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 450.0
+offset_top = 390.0
+offset_right = 557.0
+offset_bottom = 497.0
+texture_normal = ExtResource("7_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="ItemIcon" type="TextureRect" parent="MaterialSlot2"]
+visible = false
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DecoLine02" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 43.0
 offset_top = 545.0
-offset_right = 466.0
-offset_bottom = 625.0
-texture_normal = ExtResource("7_synth_btn")
-ignore_texture_size = true
-stretch_mode = 0
+offset_right = 678.0
+offset_bottom = 554.0
+mouse_filter = 2
+texture = ExtResource("8_deco_line02")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="BagScroll" type="ScrollContainer" parent="."]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 648.0
+offset_top = 570.0
 offset_right = 696.0
-offset_bottom = 1158.0
+offset_bottom = 1030.0
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 3
-script = ExtResource("8_spring")
+script = ExtResource("10_spring")
 
 [node name="BagGrid" type="GridContainer" parent="BagScroll"]
 unique_name_in_owner = true
@@ -229,6 +243,42 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 5
 
+[node name="BottomBoard" type="TextureRect" parent="."]
+layout_mode = 0
+offset_top = 1034.0
+offset_right = 720.0
+offset_bottom = 1280.0
+mouse_filter = 2
+texture = ExtResource("3_skills_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ComposeButton" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 261.0
+offset_top = 1066.0
+offset_right = 459.0
+offset_bottom = 1132.0
+texture_normal = ExtResource("9_compose_btn")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="ComposeButton"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 22
+text = "合成"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="BottomBar" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 12
@@ -238,7 +288,8 @@ anchor_bottom = 1.0
 offset_top = -112.0
 grow_horizontal = 2
 grow_vertical = 0
-texture = ExtResource("9_bottom_bar")
+mouse_filter = 2
+texture = ExtResource("11_bottom_bar")
 expand_mode = 1
 stretch_mode = 6
 
@@ -249,7 +300,7 @@ offset_left = 24.0
 offset_top = 16.0
 offset_right = 81.0
 offset_bottom = 96.0
-texture_normal = ExtResource("10_back")
+texture_normal = ExtResource("12_back")
 ignore_texture_size = true
 stretch_mode = 0
 

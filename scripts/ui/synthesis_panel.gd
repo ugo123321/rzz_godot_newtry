@@ -9,6 +9,11 @@ const BAG_COLUMNS := 5
 const BAG_VISIBLE_ROWS := 4
 const BAG_BASE_SLOTS := BAG_COLUMNS * BAG_VISIBLE_ROWS
 
+# 进场淡入（参考 skill_stone_panel / equipment_panel）
+const INTRO_STEP := 0.018      # 每个元素错峰间隔（秒）
+const INTRO_DURATION := 0.22   # 单元素显形时长（秒）
+const INTRO_SCALE_FROM := 0.82
+
 signal closed
 
 @onready var _target_slot: TextureButton = %TargetSlot
@@ -31,6 +36,8 @@ var _bag_slot_uids: Array[int] = []
 var _toast_timer := 0.0
 var _toast_duration := 1.9
 var _toast_base_top := 150.0
+
+var _intro_playing := false
 
 
 func _ready() -> void:
@@ -56,6 +63,9 @@ func _ready() -> void:
 	_reset_state()
 	_refresh_synthesis_view()
 	set_process(true)
+	# 进场动效：每次面板可见时所有区块快速依次淡入显形
+	visibility_changed.connect(_on_visibility_changed)
+	_on_visibility_changed()   # 首次若已可见则立即播
 
 
 func _on_language_changed(_lang: String) -> void:
@@ -63,10 +73,57 @@ func _on_language_changed(_lang: String) -> void:
 	_refresh_synthesis_view()
 
 
+# ─── 进场动效：所有区块快速依次淡入显形（参考 skill_stone_panel）──
+func _on_visibility_changed() -> void:
+	if visible and not Engine.is_editor_hint():
+		call_deferred("_play_intro")
+
+
+func _play_intro() -> void:
+	# 收集要"依次显形"的元素，按视觉从上到下排列（不含底部 HUD BottomBar）
+	var elems: Array[Control] = []
+	for p in [
+		"TitleIcon", "Title", "DecoLine",
+		"TargetSlot", "SynthPathDeco",
+		"MaterialSlot0", "MaterialSlot1", "MaterialSlot2",
+		"DecoLine02",
+		"BagScroll", "ComposeButton",
+	]:
+		var c := get_node_or_null(p) as Control
+		if c != null and c.visible:
+			elems.append(c)
+	if elems.is_empty():
+		return
+	_intro_playing = true
+	# 起点：透明 + 轻微缩小（绕中心）
+	for c in elems:
+		c.modulate.a = 0.0
+		c.pivot_offset = c.size * 0.5
+		c.scale = Vector2(INTRO_SCALE_FROM, INTRO_SCALE_FROM)
+	# 逐个错峰淡入 + 回弹归位
+	var tw := create_tween()
+	tw.set_parallel(true)
+	for i in range(elems.size()):
+		var c: Control = elems[i]
+		var delay := INTRO_STEP * float(i)
+		tw.tween_property(c, "modulate:a", 1.0, INTRO_DURATION).set_delay(delay) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(c, "scale", Vector2.ONE, INTRO_DURATION).set_delay(delay) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_callback(Callable(self, "_on_intro_done"))
+
+
+func _on_intro_done() -> void:
+	_intro_playing = false
+
+
 func _apply_static_texts() -> void:
-	var title := get_node_or_null("HeaderBoard/Title") as Label
+	var title := get_node_or_null("%Title") as Label
 	if title != null:
 		title.text = LanguageManager.tr_ui("UI_SYNTH_TITLE")
+	var compose_label := get_node_or_null("%ComposeButton/Label") as Label
+	if compose_label != null:
+		compose_label.text = LanguageManager.tr_ui("UI_SYNTH_TITLE")
 	if _toast != null:
 		# Toast 默认文本回到"合成成功"占位，实际使用时仍由 _show_synth_toast 覆盖
 		_toast.text = LanguageManager.tr_ui("UI_SYNTH_SUCCESS")
