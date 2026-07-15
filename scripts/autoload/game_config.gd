@@ -25,6 +25,7 @@ var skill_stones_by_id: Dictionary = {}
 func _ready() -> void:
 	reload()
 	_apply_frame_settings() # after reload so target_fps from tuning applies
+	PixelUiHelper.install_project_default_font()
 
 
 func _apply_frame_settings() -> void:

@@ -21,8 +21,40 @@ const SLOT_ORDER := [
 const INVENTORY_COLUMNS := 5
 const INVENTORY_VISIBLE_ROWS := 4
 const INVENTORY_BASE_SLOTS := INVENTORY_COLUMNS * INVENTORY_VISIBLE_ROWS
-const INVENTORY_SLOT_TEX := preload("res://assets/ui/equipment/equipment_slot02.png")
 const BAG_SLOT_SCENE := preload("res://scenes/ui/bag_slot.tscn")
+# 空槽框图（有装备时由 SlotBg 子节点按品质铺背景盖住，空槽露出此框）
+const BAG_SLOT_TEX := preload("res://assets/ui/equipment/equipment_slot02.png")
+const EQUIP_SLOT_TEX := preload("res://assets/ui/equipment/equipment_slot01.png")
+
+# 槽位品质背景（替代旧的 QualityBg ColorRect + self_modulate 染色逻辑）
+# key = quality 整数：0 白 / 1 蓝 / 2 紫 / 3 橙
+const SLOT_BG_TEX := {
+	0: preload("res://assets/ui/equipment/slot_bg_white.png"),
+	1: preload("res://assets/ui/equipment/slot_bg_blue.png"),
+	2: preload("res://assets/ui/equipment/slot_bg_purple.png"),
+	3: preload("res://assets/ui/equipment/slot_bg_orange.png"),
+}
+# 部位 icon（左上角小图）—— slot_key → sort_icon 贴图
+const SORT_ICON_TEX := {
+	"weapon": preload("res://assets/ui/equipment/sort_icon_sord.png"),
+	"helmet": preload("res://assets/ui/equipment/sort_icon_helmet.png"),
+	"necklace": preload("res://assets/ui/equipment/sort_icon_neckless.png"),
+	"ring": preload("res://assets/ui/equipment/sort_icon_ring.png"),
+	"armor": preload("res://assets/ui/equipment/sort_icon_armor.png"),
+	"shoes": preload("res://assets/ui/equipment/sort_icon_boot.png"),
+}
+const SORT_BG_TEX := preload("res://assets/ui/equipment/sort_bg.png")
+const SORT_BADGE_SIZE := 33   # sort_bg 33×33
+const SORT_ICON_INNER := 20   # sort_icon 20×20，居中放在 sort_bg 内
+const LEVEL_FONT_SIZE := 18
+# 装备槽(107×107) / 背包槽(126×126) 内 部位徽章 与 等级文字 相对槽位左上角偏移（来自 PS）
+# 部位徽章 33×33 在槽左上角，再往右下偏 (4,4) 不贴边；icon 居中落在徽章内 (10.5,10.5)
+# 装备：等级文字 (62,78)
+const _EQUIP_SORT_OFFSET := Vector2(4, 4)
+const _EQUIP_LEVEL_OFFSET := Vector2(62, 78)
+# 背包：等级文字 (77,92)
+const _BAG_SORT_OFFSET := Vector2(4, 4)
+const _BAG_LEVEL_OFFSET := Vector2(77, 92)
 
 ## 装备页主角预览缩放（与战斗 sprite_scale 独立）。选 EquipmentPanel 根节点调节；步进 0.1。
 @export_range(0.5, 8.0, 0.1, "or_greater") var preview_sprite_scale: float = 2.0:
@@ -340,6 +372,8 @@ func _bind_slot_buttons() -> void:
 		if btn == null:
 			continue
 		_slot_buttons[slot] = btn
+		# 装备槽：恢复空槽框图；有装备时 SlotBg 子节点按品质铺背景盖住
+		btn.texture_normal = EQUIP_SLOT_TEX
 		btn.pressed.connect(_on_slot_pressed.bind(slot))
 
 
@@ -408,6 +442,9 @@ func _apply_pixel_filter_tree(root: Node) -> void:
 func _should_keep_ci_nearest(node: Node) -> bool:
 	var n := str(node.name)
 	if n == "ItemIcon" or n == "PreviewSprite" or n == "PreviewViewport" or n == "PreviewContainer":
+		return true
+	# 装备格子新增的像素贴图：品质背景 SlotBg、部位徽章 SortIconBg/SortIcon 也走 NEAREST
+	if n == "SlotBg" or n == "SortIconBg" or n == "SortIcon":
 		return true
 	return false
 
@@ -478,50 +515,124 @@ func _refresh_slots() -> void:
 			if icon_rect != null:
 				icon_rect.visible = false
 				icon_rect.texture = null
-			_apply_quality_visual(btn, 0, false)
+			_apply_slot_visual(btn, 0, false, slot, 0, false)
 			continue
 		var quality := int(item.get("quality", 0))
 		var icon := _get_item_icon(item)
 		if icon_rect != null:
 			icon_rect.texture = icon
 			icon_rect.visible = icon != null
-		# slot 边框（self_modulate）+ icon 后底色（QualityBg）双重品质提示
-		_apply_quality_visual(btn, quality, true)
+		_apply_slot_visual(btn, quality, true, slot, int(item.get("level", 1)), false)
 
 
-# 保证按钮内有一个 QualityBg ColorRect，作为 ItemIcon 的背景板；返回它。
-# 首次创建时插在最前（索引 0）→ 位于 button 纹理之上、ItemIcon 之下。
-func _ensure_quality_bg(btn: TextureButton) -> ColorRect:
-	var bg := btn.get_node_or_null("QualityBg") as ColorRect
-	if bg == null:
-		bg = ColorRect.new()
-		bg.name = "QualityBg"
+# 在槽位内确保四个子节点：SlotBg（品质背景，铺底）/ SortIconBg+SortIcon（左上角部位徽章）/ LevelLabel（右下角等级）
+# 首次创建时插在最底（索引 0）→ ItemIcon 在其之上；SortIconBg/LevelLabel 后加 → 叠在物品图标之上做角标
+func _ensure_slot_parts(btn: TextureButton) -> void:
+	if btn.get_node_or_null("SlotBg") == null:
+		var bg := TextureRect.new()
+		bg.name = "SlotBg"
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-		# 收边给 slot 边框留可视区
-		bg.offset_left = 6
-		bg.offset_top = 6
-		bg.offset_right = -6
-		bg.offset_bottom = -6
-		bg.color = Color(1, 1, 1, 0)
+		bg.offset_left = 0
+		bg.offset_top = 0
+		bg.offset_right = 0
+		bg.offset_bottom = 0
+		bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		bg.stretch_mode = TextureRect.STRETCH_SCALE
+		bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		bg.texture = SLOT_BG_TEX[0]
 		btn.add_child(bg)
 		btn.move_child(bg, 0)  # 索引 0 → 最底
-	return bg
+	if btn.get_node_or_null("SortIconBg") == null:
+		var sbg := TextureRect.new()
+		sbg.name = "SortIconBg"
+		sbg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sbg.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		sbg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sbg.stretch_mode = TextureRect.STRETCH_SCALE
+		sbg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		sbg.texture = SORT_BG_TEX
+		sbg.custom_minimum_size = Vector2(SORT_BADGE_SIZE, SORT_BADGE_SIZE)
+		sbg.size = Vector2(SORT_BADGE_SIZE, SORT_BADGE_SIZE)
+		btn.add_child(sbg)
+		# 部位 icon 居中嵌在 sort_bg 内（20×20 在 33×33 中心）
+		var icon := TextureRect.new()
+		icon.name = "SortIcon"
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.set_anchors_preset(Control.PRESET_CENTER)
+		var half := SORT_ICON_INNER * 0.5
+		icon.offset_left = -half
+		icon.offset_top = -half
+		icon.offset_right = half
+		icon.offset_bottom = half
+		sbg.add_child(icon)
+	if btn.get_node_or_null("LevelLabel") == null:
+		var lbl := Label.new()
+		lbl.name = "LevelLabel"
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lbl.add_theme_font_size_override("font_size", LEVEL_FONT_SIZE)
+		lbl.add_theme_color_override("font_color", Color.WHITE)
+		lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		lbl.add_theme_constant_override("outline_size", 3)
+		# 黑色投影 shadow（右下偏移 2px，加粗投影）
+		lbl.add_theme_color_override("font_shadow_color", Color.BLACK)
+		lbl.add_theme_constant_override("shadow_outline_size", 4)
+		lbl.add_theme_constant_override("shadow_offset_x", 2)
+		lbl.add_theme_constant_override("shadow_offset_y", 2)
+		lbl.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		btn.add_child(lbl)
 
 
-# 统一：slot 边框 self_modulate + icon 后底色 QualityBg；空槽两者都关。
-func _apply_quality_visual(btn: TextureButton, quality: int, has_item: bool) -> void:
-	var bg := _ensure_quality_bg(btn)
-	if not has_item:
-		bg.visible = false
-		btn.self_modulate = Color.WHITE
-		return
-	var color := LobbyState.get_quality_color(quality)
-	btn.self_modulate = color
-	bg.visible = true
-	var bg_color := color
-	bg_color.a = 0.72  # 保证颜色鲜明又能透一点 slot 花纹
-	bg.color = bg_color
+# 统一：按品质切 SlotBg 贴图 + 设部位 icon + 显示等级；空槽用白底、无部位徽章/无等级
+# is_bag：背包槽(true) 与装备槽(false) 的部位徽章/等级文字偏移不同
+func _apply_slot_visual(btn: TextureButton, quality: int, has_item: bool,
+		slot_key: String, level: int, is_bag: bool) -> void:
+	_ensure_slot_parts(btn)
+	var slot_bg := btn.get_node_or_null("SlotBg") as TextureRect
+	var sort_bg_rect := btn.get_node_or_null("SortIconBg") as TextureRect
+	var sort_icon: TextureRect = null
+	if sort_bg_rect != null:
+		sort_icon = sort_bg_rect.get_node_or_null("SortIcon") as TextureRect
+	var level_lbl := btn.get_node_or_null("LevelLabel") as Label
+	var sort_offset := _BAG_SORT_OFFSET if is_bag else _EQUIP_SORT_OFFSET
+	var level_offset := _BAG_LEVEL_OFFSET if is_bag else _EQUIP_LEVEL_OFFSET
+	# 旧品质染色逻辑已删除——不再用 self_modulate 染槽框
+	btn.self_modulate = Color.WHITE
+	# 品质背景：仅有装备时显示（盖住根空槽框）；空槽不显示，露出原空槽框图
+	var q := quality if has_item else 0
+	if slot_bg != null:
+		slot_bg.texture = SLOT_BG_TEX.get(q, SLOT_BG_TEX[0])
+		slot_bg.visible = has_item
+	# 部位徽章：仅有装备时显示（装备槽固定部位 / 背包槽取物品 slot）；空槽不显示
+	var show_sort := slot_key != "" and has_item
+	if sort_bg_rect != null:
+		sort_bg_rect.visible = show_sort
+		if show_sort:
+			sort_bg_rect.offset_left = sort_offset.x
+			sort_bg_rect.offset_top = sort_offset.y
+			sort_bg_rect.offset_right = sort_offset.x + SORT_BADGE_SIZE
+			sort_bg_rect.offset_bottom = sort_offset.y + SORT_BADGE_SIZE
+			if sort_icon != null:
+				sort_icon.texture = SORT_ICON_TEX.get(slot_key, null)
+				sort_icon.visible = sort_icon.texture != null
+	# 等级文字：右下角，仅物品存在时显示
+	if level_lbl != null:
+		if has_item and level > 0:
+			level_lbl.text = "LV.%d" % level
+			level_lbl.visible = true
+			# 文字基线锚在偏移点，向右下扩展（grow END）
+			level_lbl.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			level_lbl.offset_left = level_offset.x
+			level_lbl.offset_top = level_offset.y
+			level_lbl.offset_right = level_offset.x
+			level_lbl.offset_bottom = level_offset.y
+			level_lbl.grow_horizontal = Control.GROW_DIRECTION_END
+			level_lbl.grow_vertical = Control.GROW_DIRECTION_END
+		else:
+			level_lbl.visible = false
 
 
 func _refresh_attributes() -> void:
@@ -549,7 +660,8 @@ func _setup_inventory_slots() -> void:
 		var btn := _inventory_grid.get_child(i) as TextureButton
 		if btn == null:
 			continue
-		btn.texture_normal = INVENTORY_SLOT_TEX
+		# 背包槽：恢复空槽框图；有装备时 SlotBg 子节点按品质铺背景盖住
+		btn.texture_normal = BAG_SLOT_TEX
 		btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		btn.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -567,6 +679,8 @@ func _ensure_inventory_slot_count(count: int) -> void:
 		if btn == null:
 			break
 		btn.name = "BagSlot%02d" % index
+		# 背包槽：恢复空槽框图；有装备时 SlotBg 子节点按品质铺背景盖住
+		btn.texture_normal = BAG_SLOT_TEX
 		btn.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		btn.pressed.connect(_on_bag_slot_pressed.bind(index))
 		_inventory_grid.add_child(btn)
@@ -584,7 +698,8 @@ func _apply_item_to_bag_slot(btn: TextureButton, item: Dictionary, uid: int) -> 
 	if icon_rect != null:
 		icon_rect.texture = icon
 		icon_rect.visible = icon != null
-	_apply_quality_visual(btn, int(item.get("quality", 0)), true)
+	_apply_slot_visual(btn, int(item.get("quality", 0)), true,
+			str(item.get("slot", "")), int(item.get("level", 1)), true)
 	btn.set_meta("bag_uid", uid)
 
 
@@ -593,7 +708,7 @@ func _apply_empty_bag_slot(btn: TextureButton) -> void:
 	if icon_rect != null:
 		icon_rect.texture = null
 		icon_rect.visible = false
-	_apply_quality_visual(btn, 0, false)
+	_apply_slot_visual(btn, 0, false, "", 0, true)
 	btn.set_meta("bag_uid", -1)
 
 

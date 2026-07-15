@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://de1rwjnxwv63r" path="res://assets/ui/icons/system/icon_hp.png" id="8_heart"]
 [ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="12_spring_scroll"]
 [ext_resource type="PackedScene" uid="uid://cum4btq370jaj" path="res://scenes/ui/bag_slot.tscn" id="13_bag_slot"]
+[ext_resource type="Texture2D" uid="uid://c424ehk33sjuy" path="res://assets/ui/equipment/equipment_slot02.png" id="15_np2w0"]
 [ext_resource type="Texture2D" uid="uid://4gj31hqixnrg" path="res://assets/ui/icons/system/icon_speed.png" id="15_speed"]
 [ext_resource type="Texture2D" uid="uid://nvyy5264wiww" path="res://assets/ui/icons/system/icon_bg.png" id="17_icon_bg"]
 [ext_resource type="Texture2D" uid="uid://dv30osu0fjlyh" path="res://assets/ui/decorations/deco_line.png" id="18_deco_line"]
@@ -722,63 +723,83 @@ columns = 5
 
 [node name="BagSlot00" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=638964466 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot01" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1097343133 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot02" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=162191553 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot03" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=772079420 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot04" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=750889729 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot05" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=491495044 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot06" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1673276895 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot07" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=853934668 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot08" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1842724198 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot09" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=549610650 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot10" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1492394767 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot11" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=836869822 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot12" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=232205730 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot13" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=594768640 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot14" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=250167505 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot15" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=2005779038 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot16" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=362808599 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot17" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=1524015401 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot18" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=807435611 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="BagSlot19" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=116955194 instance=ExtResource("13_bag_slot")]
 layout_mode = 2
+texture_normal = ExtResource("15_np2w0")
 
 [node name="SynthRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1651621832]
 custom_maximum_size = Vector2(800, 50)

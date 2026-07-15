@@ -44,7 +44,7 @@ enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg")
 
 [gui]
 
-theme/default_font="res://assets/ui/Fonts/NotoSansSC-Regular.otf"
+theme/default_font="res://assets/ui/Fonts/ltavocado-bold.ttf"
 
 [input_devices]
 

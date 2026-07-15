@@ -1,12 +1,21 @@
 extends RefCounted
 class_name PixelUiHelper
 
-const UI_FONT_PATH := "res://assets/ui/Fonts/NotoSansSC-Regular.otf"
+const UI_FONT_PATH := "res://assets/ui/Fonts/ltavocado-bold.ttf"
+const CJK_FALLBACK_PATH := "res://assets/ui/Fonts/LXGW975YuanSC-500W.ttf"
 const EXP_BAR_HEIGHT := 18.0
 const PIXEL_FONT_BASE := 8
 const TITLE_FONT_BASE := 11
 
 static var _ui_font: Font
+static var _cjk_fallback: Font
+
+
+static func _load_cjk_fallback() -> Font:
+	if not ResourceLoader.exists(CJK_FALLBACK_PATH):
+		return null
+	var loaded := load(CJK_FALLBACK_PATH)
+	return loaded as Font if loaded is Font else null
 
 
 static func _load_ui_font() -> Font:
@@ -16,6 +25,11 @@ static func _load_ui_font() -> Font:
 	if loaded is FontFile:
 		var font := (loaded as FontFile).duplicate(true) as FontFile
 		font.modulate_color_glyphs = true
+		# ltavocado 只含拉丁/数字字形，中文走 LXGW 回退
+		if _cjk_fallback == null:
+			_cjk_fallback = _load_cjk_fallback()
+		if _cjk_fallback != null:
+			font.fallbacks = [_cjk_fallback]
 		font.clear_cache()
 		return font
 	return loaded as Font
@@ -35,6 +49,17 @@ static func get_ui_font(_use_title: bool = false) -> Font:
 
 static func get_cjk_font() -> Font:
 	return get_ui_font()
+
+
+# 在最早运行的 autoload 里调用一次：把项目主题默认字体换成
+# ltavocado-bold + LXGW 中文回退，覆盖未显式 apply_ui_font 的控件
+static func install_project_default_font() -> void:
+	var font := get_ui_font()
+	if font == null:
+		return
+	var theme := ThemeDB.get_project_theme()
+	if theme != null:
+		theme.default_font = font
 
 
 static func apply_ui_font(control: Control) -> void:
