@@ -571,7 +571,11 @@ func _ensure_inventory_slot_count(count: int) -> void:
 		btn.pressed.connect(_on_bag_slot_pressed.bind(index))
 		_inventory_grid.add_child(btn)
 	while _inventory_grid.get_child_count() > count:
-		_inventory_grid.get_child(_inventory_grid.get_child_count() - 1).queue_free()
+		var extra := _inventory_grid.get_child(_inventory_grid.get_child_count() - 1)
+		# remove_child 立即摘除（get_child_count 同步下降），
+		# queue_free 延迟到帧末——只 queue_free 不 remove_child 会死循环。
+		_inventory_grid.remove_child(extra)
+		extra.queue_free()
 
 
 func _apply_item_to_bag_slot(btn: TextureButton, item: Dictionary, uid: int) -> void:

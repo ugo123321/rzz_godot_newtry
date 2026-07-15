@@ -326,7 +326,12 @@ func _ensure_bag_slot_count(count: int) -> void:
 		btn.pressed.connect(_on_bag_slot_pressed.bind(index))
 		_bag_grid.add_child(btn)
 	while _bag_grid.get_child_count() > count:
-		_bag_grid.get_child(_bag_grid.get_child_count() - 1).queue_free()
+		var extra := _bag_grid.get_child(_bag_grid.get_child_count() - 1)
+		# remove_child 立即从父节点摘除（get_child_count 同步下降），
+		# queue_free 延迟到帧末真正释放——避免在信号/绘制途中 free 出问题。
+		# 之前只 queue_free 不 remove_child，get_child_count 不变 → 死循环。
+		_bag_grid.remove_child(extra)
+		extra.queue_free()
 
 
 func _refresh_info_panel() -> void:
@@ -355,9 +360,11 @@ func _format_affix_value(value: float) -> String:
 
 
 func _format_affix_line(stat_key: String, value: float) -> String:
+	# 属性词条：直接写出具体百分比数值（带颜色），不走升级奖励的三角箭头渲染
 	var pct := int(round(value * 100.0))
 	var sign := "+" if pct >= 0 else "-"
-	return "%s %s%d%%" % [_affix_name(stat_key), sign, abs(pct)]
+	var color := "#22ee44" if pct >= 0 else "#ff2a2a"
+	return "%s [color=%s]%s%d%%[/color]" % [_affix_name(stat_key), color, sign, abs(pct)]
 
 
 func _affix_name(stat_key: String) -> String:
@@ -566,7 +573,7 @@ func _open_detail(uid: int, slot: int) -> void:
 	# 技能描述（= 对应升级奖励的游戏内描述）
 	if _detail_skill_rt != null:
 		DescFormat.apply_to_rich_text(_detail_skill_rt, LobbyState.get_skill_stone_desc(stone), 16, false)
-	# 属性词条
+	# 属性词条：直接显示具体百分比数值（带颜色），不走升级奖励的三角箭头渲染
 	if _detail_affix_rt != null:
 		var affixes = stone.get("affixes", [])
 		var lines: Array[String] = []
@@ -576,7 +583,8 @@ func _open_detail(uid: int, slot: int) -> void:
 					continue
 				lines.append(_format_affix_line(str(a.get("stat_key", "")), float(a.get("value", 0.0))))
 		var txt := "\n".join(lines) if not lines.is_empty() else LanguageManager.tr_ui("UI_SKILL_STONE_NO_AFFIX")
-		DescFormat.apply_to_rich_text(_detail_affix_rt, txt, 16, false)
+		# bbcode_enabled = true，直接赋 text 让 [color] 标签解析；不用 DescFormat 避免把 +X% 转成箭头
+		_detail_affix_rt.text = txt
 	_refresh_detail_action_text()
 	_detail_popup.popup_centered(Vector2i(440, 360))
 

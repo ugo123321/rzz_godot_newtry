@@ -229,7 +229,11 @@ func _ensure_bag_slot_count(count: int) -> void:
 		btn.pressed.connect(_on_bag_slot_pressed.bind(index))
 		_bag_grid.add_child(btn)
 	while _bag_grid.get_child_count() > count:
-		_bag_grid.get_child(_bag_grid.get_child_count() - 1).queue_free()
+		var extra := _bag_grid.get_child(_bag_grid.get_child_count() - 1)
+		# remove_child 立即摘除（get_child_count 同步下降），
+		# queue_free 延迟到帧末——只 queue_free 不 remove_child 会死循环。
+		_bag_grid.remove_child(extra)
+		extra.queue_free()
 
 
 func _refresh_synthesis_bag() -> void:

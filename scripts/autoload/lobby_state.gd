@@ -78,6 +78,22 @@ func _ready() -> void:
 	_ensure_slot_state()
 	_scout_last_settle_unix = int(Time.get_unix_time_from_system())
 	call_deferred("_emit_all_state")
+	_grant_test_items()
+
+
+# 测试用：debug 构建启动时赠送 15 件随机装备 + 15 块随机技能石，供合成 / 技能石 / 装备页调试。
+# release 导出不会触发。本分支 no-savedata，每次启动游戏 = 一次新会话。
+func _grant_test_items() -> void:
+	if not OS.is_debug_build():
+		return
+	var keys := equipment_defs.keys()
+	if not keys.is_empty():
+		for i in 15:
+			var def_id := str(keys[randi() % keys.size()])
+			var q := i % (QUALITY_LEGENDARY + 1)  # 0,1,2,3 循环 → 各品质约 4 件，便于测合成
+			add_equipment(def_id, q, 1)
+	for i in 15:
+		roll_skill_stone_drop(true)   # boss 掉率，随机品质 + 词缀
 
 
 func _load_equipment_defs() -> void:
