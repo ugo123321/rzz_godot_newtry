@@ -14,12 +14,11 @@
     "affix_max": 0.10,
     "decompose_gold_default": 5,
     "equipped_slot_count": 3,
-    "affix_stats": ["atk_pct", "max_hp_pct", "ki_max_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
+    "affix_stats": ["atk_pct", "max_hp_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
   },
   "affix_display": {
     "atk_pct": { "name_cn": "攻击力", "name_en": "ATK" },
     "max_hp_pct": { "name_cn": "生命", "name_en": "HP" },
-    "ki_max_pct": { "name_cn": "气力上限", "name_en": "Max Stamina" },
     "ki_regen_pct": { "name_cn": "气力回复速度", "name_en": "Stamina Regen" },
     "crit_rate": { "name_cn": "暴击率", "name_en": "Crit Rate" },
     "crit_damage": { "name_cn": "暴击伤害", "name_en": "Crit Damage" },

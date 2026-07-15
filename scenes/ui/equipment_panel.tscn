@@ -8,10 +8,13 @@
 [ext_resource type="Texture2D" uid="uid://d2jqm4ulnf41r" path="res://assets/ui/equipment/information_bg.png" id="6_info_bg"]
 [ext_resource type="Texture2D" uid="uid://bqydu488pwhpf" path="res://assets/ui/icons/system/icon_attack.png" id="7_sword"]
 [ext_resource type="Texture2D" uid="uid://de1rwjnxwv63r" path="res://assets/ui/icons/system/icon_hp.png" id="8_heart"]
-[ext_resource type="Texture2D" uid="uid://75k5ysf8u1fd" path="res://assets/ui/buttons/btn_brown.png" id="9_1nu6h"]
 [ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="12_spring_scroll"]
 [ext_resource type="PackedScene" uid="uid://cum4btq370jaj" path="res://scenes/ui/bag_slot.tscn" id="13_bag_slot"]
-[ext_resource type="Texture2D" uid="uid://bvl27najm1ci0" path="res://assets/ui/icons/system/skill_stone_icon.png" id="14_ss_icon"]
+[ext_resource type="Texture2D" uid="uid://4gj31hqixnrg" path="res://assets/ui/icons/system/icon_speed.png" id="15_speed"]
+[ext_resource type="Texture2D" uid="uid://nvyy5264wiww" path="res://assets/ui/icons/system/icon_bg.png" id="17_icon_bg"]
+[ext_resource type="Texture2D" uid="uid://dv30osu0fjlyh" path="res://assets/ui/decorations/deco_line.png" id="18_deco_line"]
+[ext_resource type="Texture2D" uid="uid://cctv7df2ybypv" path="res://assets/ui/panels/top_bg.png" id="19_top_bg"]
+[ext_resource type="Texture2D" uid="uid://byj4bey4r4rya" path="res://assets/ui/buttons/btn_dismantle02.png" id="20_disman02"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_hpsfa"]
 load_path = "res://.godot/imported/small_bg.png-e3d49fedff66e0cd06d87351020374cd.ctex"
@@ -56,70 +59,91 @@ texture = ExtResource("2_full_bg")
 expand_mode = 3
 stretch_mode = 6
 
+[node name="TopBg" type="TextureRect" parent="Frame" unique_id=916852500]
+layout_mode = 1
+offset_right = 720.0
+offset_bottom = 124.0
+mouse_filter = 2
+texture = ExtResource("19_top_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TopDecoLine" type="TextureRect" parent="Frame" unique_id=916852501]
+layout_mode = 1
+offset_left = 44.0
+offset_top = 109.0
+offset_right = 676.0
+offset_bottom = 130.0
+mouse_filter = 2
+texture = ExtResource("18_deco_line")
+expand_mode = 1
+stretch_mode = 5
+
 [node name="TextureRect" type="TextureRect" parent="Frame" unique_id=1748671009]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 564.0
+offset_top = 589.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = SubResource("CompressedTexture2D_hpsfa")
 expand_mode = 1
 
 [node name="BottomColorRect" type="ColorRect" parent="Frame" unique_id=1705514900]
-custom_minimum_size = Vector2(720, 200)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 1080.0
+offset_top = 1021.0
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 4
-color = Color(0.69, 0.57822, 0.4416, 1)
+color = Color(0.687528, 0.5753857, 0.4655844, 1)
 
-[node name="RootMargin" type="MarginContainer" parent="Frame" unique_id=890793279]
+[node name="RootMargin" type="Control" parent="Frame" unique_id=890793279]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 174.0
+offset_top = 155.0
 offset_bottom = -5.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 0
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 15
+mouse_filter = 2
 
 [node name="BaseRoot" type="VBoxContainer" parent="Frame/RootMargin" unique_id=448167870]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_right = -20.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/separation = 20
 
 [node name="UpperArea" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1010051058]
 layout_mode = 2
 size_flags_vertical = 0
-theme_override_constants/separation = 10
+theme_override_constants/separation = 14
 
 [node name="CharacterRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea" unique_id=858623758]
 layout_mode = 2
-theme_override_constants/separation = 60
+theme_override_constants/separation = 106
 alignment = 1
 
 [node name="LeftSlots" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=2050259587]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
+theme_override_constants/separation = 26
 
 [node name="SlotWeapon" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots" unique_id=634181386]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 120)
+custom_minimum_size = Vector2(107, 107)
 layout_mode = 2
 texture_normal = ExtResource("3_equip_slot")
 ignore_texture_size = true
@@ -144,7 +168,7 @@ stretch_mode = 5
 
 [node name="SlotArmor" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots" unique_id=1006209893]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 120)
+custom_minimum_size = Vector2(107, 107)
 layout_mode = 2
 texture_normal = ExtResource("3_equip_slot")
 ignore_texture_size = true
@@ -169,7 +193,7 @@ stretch_mode = 5
 
 [node name="SlotShoes" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/LeftSlots" unique_id=542862201]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 120)
+custom_minimum_size = Vector2(107, 107)
 layout_mode = 2
 texture_normal = ExtResource("3_equip_slot")
 ignore_texture_size = true
@@ -196,7 +220,7 @@ stretch_mode = 5
 layout_mode = 2
 
 [node name="PreviewWrap" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer" unique_id=1184187636]
-custom_minimum_size = Vector2(200, 300)
+custom_minimum_size = Vector2(192, 271)
 layout_mode = 2
 
 [node name="PreviewContainer" type="SubViewportContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap" unique_id=673387873]
@@ -206,10 +230,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -134.5
-offset_top = -92.0
-offset_right = 139.5
-offset_bottom = 192.0
+offset_left = -136.5
+offset_top = -90.0
+offset_right = 137.5
+offset_bottom = 194.0
 grow_horizontal = 2
 grow_vertical = 2
 stretch = true
@@ -231,18 +255,20 @@ scale = Vector2(5, 5)
 animation = &""
 frame_progress = 0.30857527
 
-[node name="PowerRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer" unique_id=1330220908]
+[node name="PowerGap" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer" unique_id=118418740]
+custom_minimum_size = Vector2(0, 66)
 layout_mode = 2
-theme_override_constants/separation = 10
-alignment = 1
+mouse_filter = 2
 
-[node name="Control2" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=1687578176]
-custom_minimum_size = Vector2(50, 0)
+[node name="PowerRow" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer" unique_id=1330220908]
+custom_minimum_size = Vector2(192, 44)
 layout_mode = 2
 
 [node name="PowerIcon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=909644195]
-custom_minimum_size = Vector2(52, 64)
-layout_mode = 2
+layout_mode = 1
+offset_left = 18.0
+offset_right = 62.0
+offset_bottom = 44.0
 mouse_filter = 2
 texture = ExtResource("4_power")
 expand_mode = 5
@@ -250,22 +276,37 @@ stretch_mode = 5
 
 [node name="BattlePowerLabel" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=997143457]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -80.0
+offset_top = -18.0
+offset_right = 80.0
+offset_bottom = 18.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_colors/font_color = Color(0.909804, 0.470588, 0.12549, 1)
 theme_override_colors/font_outline_color = Color(0.352941, 0.2, 0.062745, 1)
 theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 40
+theme_override_font_sizes/font_size = 28
 text = "0"
 horizontal_alignment = 1
-
-[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=1247059578]
-custom_minimum_size = Vector2(10, 0)
-layout_mode = 2
+vertical_alignment = 1
 
 [node name="DetailBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow" unique_id=185588096]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(52, 36)
-layout_mode = 2
+custom_minimum_size = Vector2(44, 40)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -44.0
+offset_top = 2.0
+offset_bottom = 42.0
+grow_horizontal = 0
 texture_normal = ExtResource("5_detail")
 ignore_texture_size = true
 stretch_mode = 5
@@ -393,12 +434,11 @@ layout_mode = 2
 
 [node name="RightSlots" type="VBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow" unique_id=454337851]
 layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
+theme_override_constants/separation = 26
 
 [node name="SlotHelmet" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots" unique_id=47639150]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 120)
+custom_minimum_size = Vector2(107, 107)
 layout_mode = 2
 texture_normal = ExtResource("3_equip_slot")
 ignore_texture_size = true
@@ -423,7 +463,7 @@ stretch_mode = 5
 
 [node name="SlotNecklace" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots" unique_id=1418437364]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 120)
+custom_minimum_size = Vector2(107, 107)
 layout_mode = 2
 texture_normal = ExtResource("3_equip_slot")
 ignore_texture_size = true
@@ -448,7 +488,7 @@ stretch_mode = 5
 
 [node name="SlotRing" type="TextureButton" parent="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/RightSlots" unique_id=783815904]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 120)
+custom_minimum_size = Vector2(107, 107)
 layout_mode = 2
 texture_normal = ExtResource("3_equip_slot")
 ignore_texture_size = true
@@ -471,8 +511,197 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot" unique_id=644179113]
+[node name="StatCapsuleRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea" unique_id=1099334771]
+unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="AttackCapsule" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow" unique_id=2011444502]
+custom_minimum_size = Vector2(193, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Bg" type="NinePatchRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule" unique_id=411547821]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("17_icon_bg")
+patch_margin_left = 12
+patch_margin_top = 12
+patch_margin_right = 12
+patch_margin_bottom = 12
+
+[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule" unique_id=1402520018]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 2.0
+offset_right = -4.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Row" unique_id=1603318900]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("7_sword")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Row" unique_id=82018455]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+
+[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Row" unique_id=1431289598]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0.25, 0.16, 0.07, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+text = "0"
+vertical_alignment = 1
+
+[node name="HpCapsule" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow" unique_id=1270289332]
+custom_minimum_size = Vector2(193, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Bg" type="NinePatchRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule" unique_id=1801551458]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("17_icon_bg")
+patch_margin_left = 12
+patch_margin_top = 12
+patch_margin_right = 12
+patch_margin_bottom = 12
+
+[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule" unique_id=1854514885]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 2.0
+offset_right = -4.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Row" unique_id=1852270401]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("8_heart")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Row" unique_id=1750266890]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+
+[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Row" unique_id=1692844177]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0.07, 0.22, 0.13, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+text = "0"
+vertical_alignment = 1
+
+[node name="SpeedCapsule" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow" unique_id=1144561937]
+custom_minimum_size = Vector2(193, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Bg" type="NinePatchRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule" unique_id=748812979]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("17_icon_bg")
+patch_margin_left = 12
+patch_margin_top = 12
+patch_margin_right = 12
+patch_margin_bottom = 12
+
+[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule" unique_id=2034585684]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 2.0
+offset_right = -4.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Row" unique_id=1505189618]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("15_speed")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Row" unique_id=1705785868]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+
+[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Row" unique_id=1927931247]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.16, 0.25, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+text = "0"
+vertical_alignment = 1
+
+[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot" unique_id=644179113]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+
+[node name="DecoLine" type="TextureRect" parent="Frame/RootMargin/BaseRoot/Control" unique_id=644179114]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -9.0
+offset_right = 280.0
+offset_bottom = 9.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("18_deco_line")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="BagScroll" type="ScrollContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1704439205]
 unique_name_in_owner = true
@@ -487,8 +716,8 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 15
 columns = 5
 
 [node name="BagSlot00" parent="Frame/RootMargin/BaseRoot/BagScroll/InventoryGrid" unique_id=638964466 instance=ExtResource("13_bag_slot")]
@@ -552,48 +781,58 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="SynthRow" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot" unique_id=1651621832]
-custom_maximum_size = Vector2(800, 70)
+custom_maximum_size = Vector2(800, 50)
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 20
 alignment = 2
 
 [node name="SkillStoneBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=1180100220]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 0)
-custom_maximum_size = Vector2(160, -1)
+custom_minimum_size = Vector2(150, 50)
+custom_maximum_size = Vector2(140, -1)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("9_1nu6h")
+texture_normal = ExtResource("20_disman02")
+ignore_texture_size = true
 stretch_mode = 0
 
-[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn" unique_id=1299022110]
+[node name="Label" type="Label" parent="Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn" unique_id=1299022110]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -22.0
-offset_top = -22.0
-offset_right = 22.0
-offset_bottom = 22.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("14_ss_icon")
-expand_mode = 1
-stretch_mode = 5
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 26
+text = "技能石"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="SynthBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=158088466]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 0)
-custom_maximum_size = Vector2(160, -1)
+custom_minimum_size = Vector2(150, 50)
+custom_maximum_size = Vector2(140, -1)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("9_1nu6h")
+texture_normal = ExtResource("20_disman02")
+ignore_texture_size = true
 stretch_mode = 0
+
+[node name="Label" type="Label" parent="Frame/RootMargin/BaseRoot/SynthRow/SynthBtn" unique_id=1580884660]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 26
+text = "合成"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="InventoryEmptyLabel" type="Label" parent="Frame/RootMargin/BaseRoot" unique_id=219854697]
 unique_name_in_owner = true

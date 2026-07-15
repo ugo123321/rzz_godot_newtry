@@ -128,7 +128,6 @@ def export():
         for stat_key, cn, en in [
             ("atk_pct", "攻击力", "ATK"),
             ("max_hp_pct", "生命", "HP"),
-            ("ki_max_pct", "气力上限", "Max Stamina"),
             ("ki_regen_pct", "气力回复速度", "Stamina Regen"),
             ("crit_rate", "暴击率", "Crit Rate"),
             ("crit_damage", "暴击伤害", "Crit Damage"),

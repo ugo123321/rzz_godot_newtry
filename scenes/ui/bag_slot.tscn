@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://c424ehk33sjuy" path="res://assets/ui/equipment/equipment_slot02.png" id="1_inv_slot"]
 
 [node name="BagSlot" type="TextureButton" unique_id=1470510064]
-custom_minimum_size = Vector2(130, 130)
+custom_minimum_size = Vector2(126, 126)
 texture_normal = ExtResource("1_inv_slot")
 ignore_texture_size = true
 stretch_mode = 0

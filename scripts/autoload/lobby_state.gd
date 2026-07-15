@@ -892,10 +892,12 @@ func get_player_preview_attributes() -> Dictionary:
 	var base_attack := float(GameConfig.get_player_value("base_attack", 95))
 	var base_hp := int(GameConfig.get_player_value("base_hp", 100))
 	var base_crit := float(GameConfig.get_player_value("base_crit_rate", 0.08))
+	var base_move_speed := float(GameConfig.get_player_value("move_speed", 60))
 	var equip := get_equipment_totals()
 	var final_attack := base_attack + float(equip.get("attack", 0.0))
 	var final_hp := base_hp + int(equip.get("max_hp", 0))
 	var final_crit := base_crit + float(equip.get("crit_rate", 0.0))
+	var final_move_speed := base_move_speed + float(equip.get("move_speed", 0.0))
 	var power := _calc_battle_power(final_attack, final_hp, final_crit, int(equip.get("item_power", 0)))
 	return {
 		"base_attack": base_attack,
@@ -904,9 +906,11 @@ func get_player_preview_attributes() -> Dictionary:
 		"equip_attack": float(equip.get("attack", 0.0)),
 		"equip_hp": int(equip.get("max_hp", 0)),
 		"equip_crit_rate": float(equip.get("crit_rate", 0.0)),
+		"equip_move_speed": float(equip.get("move_speed", 0.0)),
 		"attack": final_attack,
 		"hp": final_hp,
 		"crit_rate": final_crit,
+		"move_speed": final_move_speed,
 		"battle_power": power,
 	}
 

@@ -10,6 +10,17 @@ const BAG_COLUMNS := 5
 const BAG_VISIBLE_ROWS := 4
 const BAG_BASE_SLOTS := BAG_COLUMNS * BAG_VISIBLE_ROWS
 const EQUIP_SLOT_COUNT := 3
+const SLOT_TEX := preload("res://assets/ui/equipment_skills/skills_slot.png")
+const BAG_SLOT_SIZE := Vector2(104, 104)
+
+# 6 个属性信息栏对应的 stat_key（与场景 StatBar0..5 一一对应）
+const _STAT_BAR_KEYS := ["atk_pct", "max_hp_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
+
+# 进场淡入（参考 equipment_panel）/ 按钮按下（参考 main_menu 开始按钮）
+const INTRO_STEP := 0.018      # 每个元素错峰间隔（秒）
+const INTRO_DURATION := 0.22   # 单元素显形时长（秒）
+const INTRO_SCALE_FROM := 0.82
+const _ACTION_BTN_PRESS_SCALE := 0.9
 
 signal closed
 
@@ -17,11 +28,12 @@ signal closed
 @onready var _bag_grid: GridContainer = %BagGrid
 @onready var _bag_scroll: ScrollContainer = $BagScroll
 @onready var _back_button: TextureButton = %BackButton
-@onready var _decompose_btn: Button = %DecomposeBtn
-@onready var _confirm_btn: Button = %ConfirmBtn
-@onready var _cancel_btn: Button = %CancelBtn
-@onready var _affix_total_rt: RichTextLabel = %AffixTotalRT
-@onready var _equipped_skills_rt: RichTextLabel = %EquippedSkillsRT
+@onready var _decompose_btn: TextureButton = %DecomposeBtn
+@onready var _confirm_btn: TextureButton = %ConfirmBtn
+@onready var _cancel_btn: TextureButton = %CancelBtn
+@onready var _confirm_label: Label = %ConfirmBtn/Label
+@onready var _cancel_label: Label = %CancelBtn/Label
+@onready var _stat_bars: Array[Control] = []
 @onready var _fly_layer: Control = %FlyLayer
 @onready var _toast: Label = %Toast
 
@@ -45,6 +57,8 @@ var _toast_timer := 0.0
 var _toast_duration := 1.9
 var _toast_base_top := 150.0
 
+var _intro_playing := false
+
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -66,17 +80,26 @@ func _ready() -> void:
 	PixelUi.apply_ui_font_tree(self)
 	_apply_pixel_filter_tree(self)
 
-	# InfoPanel 背景样式
-	var info_panel := get_node_or_null("InfoPanel") as Panel
-	if info_panel != null:
-		info_panel.add_theme_stylebox_override("panel", UiStyle.make_dialog_stylebox(Color(0.18, 0.14, 0.10, 0.92), 16))
-	# 动作按钮样式
+	# 收集 6 个属性信息栏
+	var stat_bars_node := get_node_or_null("StatBars")
+	if stat_bars_node != null:
+		for c in stat_bars_node.get_children():
+			if c is Control:
+				_stat_bars.append(c as Control)
+
+	# 动作按钮：分解 / 确认 / 取消 均为贴图按钮，由 texture_normal 提供外观
 	if _decompose_btn != null:
-		UiStyle.apply_primary_button(_decompose_btn, Color("#c84040"), 10)   # 红：分解
+		_decompose_btn.ignore_texture_size = true
 	if _confirm_btn != null:
-		UiStyle.apply_primary_button(_confirm_btn, Color("#efb840"), 10)      # 金：确认分解
+		_confirm_btn.ignore_texture_size = true
 	if _cancel_btn != null:
-		UiStyle.apply_primary_button(_cancel_btn, Color(0.55, 0.60, 0.78), 10)  # 蓝灰：取消
+		_cancel_btn.ignore_texture_size = true
+
+	# 动作按钮按下效果（参考 main_menu 开始按钮：scale 0.9 + 轻微暗化）
+	_setup_action_button_press(_decompose_btn)
+	_setup_action_button_press(_confirm_btn)
+	_setup_action_button_press(_cancel_btn)
+	_setup_action_button_press(_back_button)
 
 	_build_detail_popup()
 
@@ -88,6 +111,9 @@ func _ready() -> void:
 	_apply_static_texts()
 	_refresh()
 	set_process(true)
+	# 进场动效：每次面板可见时所有区块快速依次淡入显形
+	visibility_changed.connect(_on_visibility_changed)
+	_on_visibility_changed()   # 首次若已可见则立即播
 
 
 func _exit_tree() -> void:
@@ -105,6 +131,78 @@ func _on_language_changed(_lang: String) -> void:
 		_open_detail(_detail_uid, _detail_slot)
 
 
+# ─── 按钮按下效果（参考 main_menu 开始按钮）─────────────────
+func _setup_action_button_press(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.button_down.connect(_on_action_btn_down.bind(btn))
+	btn.button_up.connect(_on_action_btn_up.bind(btn))
+
+
+func _on_action_btn_down(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.pivot_offset = Vector2(floorf(btn.size.x * 0.5), floorf(btn.size.y * 0.5))
+	btn.scale = Vector2.ONE * _ACTION_BTN_PRESS_SCALE
+	btn.modulate = Color(0.92, 0.92, 0.96)
+
+
+func _on_action_btn_up(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.scale = Vector2.ONE
+	btn.modulate = Color.WHITE
+
+
+# ─── 进场动效：所有区块快速依次淡入显形 ───────────────────
+func _on_visibility_changed() -> void:
+	if visible and not Engine.is_editor_hint():
+		call_deferred("_play_intro")
+
+
+func _play_intro() -> void:
+	# 收集要"依次显形"的元素，按视觉从上到下排列（不含底部 HUD BottomBar）
+	var elems: Array[Control] = []
+	for p in [
+		"TitleIcon", "Title", "DecoLine",
+		"StoneSlot0", "StoneSlot1", "StoneSlot2",
+		"DecoLine02",
+		"BagScroll", "DecomposeBtn",
+	]:
+		var c := get_node_or_null(p) as Control
+		if c != null and c.visible:
+			elems.append(c)
+	# StatBars 里的 6 个信息栏单独追加（细粒度级联）
+	for bar in _stat_bars:
+		if bar != null and bar.visible:
+			elems.append(bar)
+	if elems.is_empty():
+		return
+	_intro_playing = true
+	# 起点：透明 + 轻微缩小（绕中心）
+	for c in elems:
+		c.modulate.a = 0.0
+		c.pivot_offset = c.size * 0.5
+		c.scale = Vector2(INTRO_SCALE_FROM, INTRO_SCALE_FROM)
+	# 逐个错峰淡入 + 回弹归位
+	var tw := create_tween()
+	tw.set_parallel(true)
+	for i in range(elems.size()):
+		var c: Control = elems[i]
+		var delay := INTRO_STEP * float(i)
+		tw.tween_property(c, "modulate:a", 1.0, INTRO_DURATION).set_delay(delay) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(c, "scale", Vector2.ONE, INTRO_DURATION).set_delay(delay) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_callback(Callable(self, "_on_intro_done"))
+
+
+func _on_intro_done() -> void:
+	_intro_playing = false
+
+
+
 func _on_skill_stones_changed() -> void:
 	_refresh()
 
@@ -115,19 +213,11 @@ func _on_gold_changed(_v: int) -> void:
 
 
 func _apply_static_texts() -> void:
-	var title := get_node_or_null("HeaderBoard/Title") as Label
+	var title := get_node_or_null("Title") as Label
 	if title != null:
 		title.text = LanguageManager.tr_ui("UI_SKILL_STONE_TITLE")
-	var at := get_node_or_null("InfoPanel/VBox/AffixTitleLabel") as Label
-	if at != null:
-		at.text = LanguageManager.tr_ui("UI_SKILL_STONE_AFFIX_TOTAL")
-	var st := get_node_or_null("InfoPanel/VBox/SkillsTitleLabel") as Label
-	if st != null:
-		st.text = LanguageManager.tr_ui("UI_SKILL_STONE_EQUIPPED_SKILLS")
-	if _decompose_btn != null:
-		_decompose_btn.text = LanguageManager.tr_ui("UI_SKILL_STONE_DECOMPOSE")
-	if _cancel_btn != null:
-		_cancel_btn.text = LanguageManager.tr_ui("UI_SKILL_STONE_CANCEL")
+	if _cancel_label != null:
+		_cancel_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_CANCEL")
 	if _detail_action_btn != null:
 		_refresh_detail_action_text()
 	if _detail_close_btn != null:
@@ -194,7 +284,8 @@ func _refresh_bag() -> void:
 	if _bag_grid == null:
 		return
 	var inventory := LobbyState.get_skill_stone_inventory_sorted()
-	var slot_count := maxi(BAG_BASE_SLOTS, inventory.size())
+	# 现在背包不显示空槽：只渲染已拥有的技能石
+	var slot_count := inventory.size()
 	_ensure_bag_slot_count(slot_count)
 	_bag_slot_uids.resize(slot_count)
 	for i in range(slot_count):
@@ -226,6 +317,11 @@ func _ensure_bag_slot_count(count: int) -> void:
 		if btn == null:
 			break
 		btn.name = "BagSlot%02d" % index
+		# 背包槽用技能石槽贴图 + 104 尺寸（与装备槽同形状）
+		btn.texture_normal = SLOT_TEX
+		btn.custom_minimum_size = BAG_SLOT_SIZE
+		btn.ignore_texture_size = true
+		btn.stretch_mode = TextureButton.STRETCH_SCALE
 		btn.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		btn.pressed.connect(_on_bag_slot_pressed.bind(index))
 		_bag_grid.add_child(btn)
@@ -234,39 +330,28 @@ func _ensure_bag_slot_count(count: int) -> void:
 
 
 func _refresh_info_panel() -> void:
-	# 词条总和（3 个已装备 stone 的 affix 求和）
+	# 6 个属性信息栏：已装备技能石 affix 求和 → 每个栏的 icon/name/value
 	var totals: Dictionary = LobbyState.get_skill_stone_affix_totals()
-	var display: Dictionary = GameConfig.get_skill_stone_affix_display()
-	var order: Array = GameConfig.get_skill_stone_rules().get("affix_stats", [])
-	var lines: Array[String] = []
-	for stat_key in order:
-		var s := str(stat_key)
-		if not totals.has(s):
-			continue
-		var v := float(totals[s])
-		if abs(v) < 0.0001:
-			continue   # 0 不显示
-		lines.append(_format_affix_line(s, v))
-	# affix_stats 之外可能的 key（兜底）
-	for s in totals.keys():
-		if order.has(s):
-			continue
-		var v := float(totals[s])
-		if abs(v) < 0.0001:
-			continue
-		lines.append(_format_affix_line(str(s), v))
-	var affix_text := "\n".join(lines) if not lines.is_empty() else LanguageManager.tr_ui("UI_SKILL_STONE_NO_AFFIX")
-	DescFormat.apply_to_rich_text(_affix_total_rt, affix_text, 16, false)
+	for i in range(_STAT_BAR_KEYS.size()):
+		if i >= _stat_bars.size():
+			break
+		var bar := _stat_bars[i]
+		var key: String = _STAT_BAR_KEYS[i]
+		var v := float(totals.get(key, 0.0))
+		var name_label := bar.get_node_or_null("NameLabel") as Label
+		var value_label := bar.get_node_or_null("ValueLabel") as Label
+		if name_label != null:
+			name_label.text = _affix_name(key)
+		if value_label != null:
+			value_label.text = _format_affix_value(v)
 
-	# 已装备技能列表
-	var equipped := LobbyState.get_equipped_skill_stones()
-	var skill_lines: Array[String] = []
-	for stone in equipped:
-		var nm := LobbyState.get_skill_stone_name(stone)
-		if nm == "":
-			nm = str(stone.get("skill_id", ""))
-		skill_lines.append("• " + nm)
-	_equipped_skills_rt.text = ("\n".join(skill_lines)) if not skill_lines.is_empty() else LanguageManager.tr_ui("UI_SKILL_STONE_NO_STONE_EQUIPPED")
+
+func _format_affix_value(value: float) -> String:
+	var pct := int(round(value * 100.0))
+	if pct == 0:
+		return "0%"
+	var sign := "+" if pct > 0 else "-"
+	return "%s%d%%" % [sign, abs(pct)]
 
 
 func _format_affix_line(stat_key: String, value: float) -> String:
@@ -294,7 +379,8 @@ func _refresh_action_buttons() -> void:
 		_cancel_btn.visible = not normal_mode
 	if not normal_mode and _confirm_btn != null:
 		var gold := _estimate_decompose_gold()
-		_confirm_btn.text = LanguageManager.tr_ui("UI_SKILL_STONE_DECOMPOSE_FMT") % gold
+		if _confirm_label != null:
+			_confirm_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_DECOMPOSE_FMT") % gold
 		_confirm_btn.disabled = _selected_uids.is_empty()
 		_confirm_btn.modulate = Color(1, 1, 1, 1) if not _selected_uids.is_empty() else Color(0.6, 0.6, 0.6, 1)
 

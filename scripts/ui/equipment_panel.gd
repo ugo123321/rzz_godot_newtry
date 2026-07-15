@@ -46,6 +46,10 @@ const SLOT_BUTTON_NODES := {
 @onready var _battle_power_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow/BattlePowerLabel
 @onready var _attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row/AttackLabel
 @onready var _hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row/HpLabel
+# 新增属性胶囊行：攻击 / 生命 / 移速（stat_capsule_9s 背景 + system icon + 数值）
+@onready var _capsule_attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Row/Value
+@onready var _capsule_hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Row/Value
+@onready var _capsule_speed_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Row/Value
 @onready var _preview_viewport: SubViewport = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap/PreviewContainer/PreviewViewport
 @onready var _preview_sprite: AnimatedSprite2D = %PreviewSprite
 
@@ -60,6 +64,11 @@ const SLOT_BUTTON_NODES := {
 @onready var _btn_upgrade: Button = $DetailPopup/Margin/VBox/ActionRow/BtnUpgrade
 @onready var _details_popup: AcceptDialog = $DetailsPopup
 @onready var _details_label: Label = $DetailsPopup/DetailsLabel
+@onready var _synth_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/SynthBtn
+@onready var _skill_stone_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn
+
+# 合成 / 技能石 按钮按下缩放（参考 main_menu 开始按钮）
+const _ACTION_BTN_PRESS_SCALE := 0.9
 
 var _icon_cache: Dictionary = {}
 var _preview_state := "walk"
@@ -93,6 +102,8 @@ func _ready() -> void:
 	_setup_scene_ui()
 	_connect_signals()
 	_apply_static_texts()
+	_setup_action_button_press(_synth_btn)
+	_setup_action_button_press(_skill_stone_btn)
 	_refresh_all()
 	set_process(true)
 	# 进场动效：每次面板可见时所有区块快速依次淡入显形
@@ -128,6 +139,7 @@ func _play_intro() -> void:
 	for lbl_path in [
 		"Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/PowerRow",
 		"Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow",
+		"Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow",
 	]:
 		var block := get_node_or_null(lbl_path) as Control
 		if block != null and block.visible:
@@ -178,6 +190,7 @@ func _on_intro_done() -> void:
 	for lbl_path in [
 		"Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/PowerRow",
 		"Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow",
+		"Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow",
 	]:
 		var block := get_node_or_null(lbl_path) as Control
 		if block != null:
@@ -201,6 +214,38 @@ func _apply_static_texts() -> void:
 		_btn_unequip.text = LanguageManager.tr_ui("UI_EQUIP_UNEQUIP")
 	if _btn_upgrade != null:
 		_btn_upgrade.text = LanguageManager.tr_ui("UI_EQUIP_UPGRADE_BTN")
+	if _synth_btn != null:
+		var synth_lbl := _synth_btn.get_node_or_null("Label") as Label
+		if synth_lbl != null:
+			synth_lbl.text = LanguageManager.tr_ui("UI_EQUIP_SYNTHESIZE")
+	if _skill_stone_btn != null:
+		var ss_lbl := _skill_stone_btn.get_node_or_null("Label") as Label
+		if ss_lbl != null:
+			ss_lbl.text = LanguageManager.tr_ui("UI_SKILL_STONE_TITLE")
+
+
+# 合成 / 技能石 按钮按下效果（参考 main_menu 开始按钮：缩放 0.9 + 轻微暗化）
+func _setup_action_button_press(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.button_down.connect(_on_action_btn_down.bind(btn))
+	btn.button_up.connect(_on_action_btn_up.bind(btn))
+
+
+func _on_action_btn_down(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.pivot_offset = Vector2(floorf(btn.size.x * 0.5), floorf(btn.size.y * 0.5))
+	btn.scale = Vector2.ONE * _ACTION_BTN_PRESS_SCALE
+	btn.modulate = Color(0.92, 0.92, 0.96)
+
+
+func _on_action_btn_up(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.scale = Vector2.ONE
+	btn.modulate = Color.WHITE
 
 
 func _connect_signals() -> void:
@@ -486,6 +531,14 @@ func _refresh_attributes() -> void:
 	_battle_power_label.text = str(int(attrs.get("battle_power", 0)))
 	_attack_label.text = str(int(round(float(attrs.get("attack", 0.0)))))
 	_hp_label.text = str(int(attrs.get("hp", 0)))
+	# 属性胶囊行（攻击 / 生命 / 移速）
+	if _capsule_attack_label != null:
+		_capsule_attack_label.text = str(int(round(float(attrs.get("attack", 0.0)))))
+	if _capsule_hp_label != null:
+		_capsule_hp_label.text = str(int(attrs.get("hp", 0)))
+	if _capsule_speed_label != null:
+		# 移速是 px/s 小数，四舍五入成整数显示
+		_capsule_speed_label.text = str(int(round(float(attrs.get("move_speed", 0.0)))))
 
 
 func _setup_inventory_slots() -> void:
