@@ -7,10 +7,8 @@ const KNOB_RADIUS := 48.0
 const MAX_DRAG_RADIUS := 138.0
 const DEADZONE_RATIO := 0.18
 
-const BASE_FILL := Color(1.0, 1.0, 1.0, 0.14)
-const BASE_RING := Color(1.0, 1.0, 1.0, 0.42)
-const KNOB_FILL := Color(1.0, 0.92, 0.55, 0.55)
-const KNOB_RING := Color(1.0, 0.85, 0.25, 0.9)
+const BASE_TEX := preload("res://assets/ui/control/control_bg.png")
+const KNOB_TEX := preload("res://assets/ui/control/control_handle.png")
 
 var enabled := true
 var output: Vector2 = Vector2.ZERO
@@ -28,6 +26,8 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	z_index = 25
+	# 贴图走线性插值，不要 NEAREST 像素风
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 
 func is_active() -> bool:
@@ -112,8 +112,10 @@ func _draw() -> void:
 	var knob := _screen_to_local(_knob)
 	var base_r := _scaled(BASE_RADIUS)
 	var knob_r := _scaled(KNOB_RADIUS)
-	var line_w := maxf(2.0, _scaled(2.0))
-	draw_circle(center, base_r, BASE_FILL)
-	draw_arc(center, base_r, 0.0, TAU, 48, BASE_RING, line_w)
-	draw_circle(knob, knob_r, KNOB_FILL)
-	draw_arc(knob, knob_r, 0.0, TAU, 32, KNOB_RING, line_w)
+	# 贴图以中心点对齐绘制，尺寸 = 半径 × 2
+	var base_size := base_r * 2.0
+	var knob_size := knob_r * 2.0
+	var base_rect := Rect2(center.x - base_r, center.y - base_r, base_size, base_size)
+	var knob_rect := Rect2(knob.x - knob_r, knob.y - knob_r, knob_size, knob_size)
+	draw_texture_rect(BASE_TEX, base_rect, false)
+	draw_texture_rect(KNOB_TEX, knob_rect, false)
