@@ -58,6 +58,7 @@ const DEFAULT_TAB := Tab.STAGE
 
 @onready var _content: MarginContainer = $Content
 @onready var _bottom_bar: Control = $BottomBar
+@onready var _top_bar_bg: TextureRect = get_node_or_null("TopBarBg")
 @onready var _background: TextureRect = %Background
 @onready var _bottom_bg: TextureRect = %BottomBg
 @onready var _tab_focus: TextureRect = %TabFocus
@@ -399,6 +400,9 @@ func _select_tab(tab_index: int) -> void:
 		var panel := _panels[i] if i < _panels.size() else null
 		if panel != null:
 			panel.visible = i == _current_tab
+	# 装备页顶部有自己的标题，隐藏主菜单共用货币栏；其余页保留
+	if _top_bar_bg != null:
+		_top_bar_bg.visible = _current_tab != Tab.EQUIPMENT
 	_apply_tab_button_visuals()
 	call_deferred("_refresh_tab_layout_state")
 	call_deferred("_update_tab_focus")

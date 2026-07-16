@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://delski8cut3gg" path="res://assets/ui/equipment/equipment_slot01.png" id="3_equip_slot"]
 [ext_resource type="Texture2D" uid="uid://df7j70y6h34yk" path="res://assets/ui/icons/system/icon_power.png" id="4_power"]
 [ext_resource type="Texture2D" uid="uid://dfsd7vuuv3n1l" path="res://assets/ui/icons/system/icon_detail.png" id="5_detail"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/system/icon_equipment.png" id="40_equip_title"]
 [ext_resource type="Texture2D" uid="uid://d2jqm4ulnf41r" path="res://assets/ui/equipment/information_bg.png" id="6_info_bg"]
 [ext_resource type="Texture2D" uid="uid://bqydu488pwhpf" path="res://assets/ui/icons/system/icon_attack.png" id="7_sword"]
 [ext_resource type="Texture2D" uid="uid://de1rwjnxwv63r" path="res://assets/ui/icons/system/icon_hp.png" id="8_heart"]
@@ -80,6 +81,31 @@ mouse_filter = 2
 texture = ExtResource("18_deco_line")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="TitleIcon" type="TextureRect" parent="Frame" unique_id=916852502]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 299.0
+offset_top = 50.0
+offset_right = 338.0
+offset_bottom = 98.0
+mouse_filter = 2
+texture = ExtResource("40_equip_title")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="Frame" unique_id=916852503]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 345.0
+offset_top = 50.0
+offset_right = 505.0
+offset_bottom = 105.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_font_sizes/font_size = 30
+text = "装备"
+vertical_alignment = 1
 
 [node name="TextureRect" type="TextureRect" parent="Frame" unique_id=1748671009]
 layout_mode = 1

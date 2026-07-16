@@ -170,6 +170,11 @@ func _play_intro() -> void:
 		return
 	# 收集要"依次显形"的细粒度元素，按视觉从上到下排列
 	var elems: Array[Control] = []
+	# 0) 顶部标题 icon + 文字
+	for title_path in ["Frame/TitleIcon", "Frame/Title"]:
+		var t := get_node_or_null(title_path) as Control
+		if t != null and t.visible:
+			elems.append(t)
 	# 1) 人物预览
 	if _preview_sprite != null and _preview_sprite.get_parent() is Control:
 		elems.append(_preview_sprite.get_parent() as Control)
@@ -249,6 +254,9 @@ func _reset_intro_visuals(nodes: Array) -> void:
 
 
 func _apply_static_texts() -> void:
+	var title := get_node_or_null("Frame/Title") as Label
+	if title != null:
+		title.text = LanguageManager.tr_ui("UI_MAIN_EQUIPMENT")
 	if _inventory_empty_label != null:
 		_inventory_empty_label.text = LanguageManager.tr_ui("UI_EQUIP_NO_ITEMS")
 	if _btn_equip != null:
