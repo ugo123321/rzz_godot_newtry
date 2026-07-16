@@ -3,20 +3,26 @@ class_name LoadingScreen
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const BATTLE_SCENE := "res://scenes/battle/battle.tscn"
-const MIN_LOAD_TIME := 0.3
-const PROGRESS_SPEED := 1.2
+const MIN_LOAD_TIME := 2.0
+const LOADING_BG_PATH := "res://assets/ui/backgrounds/loading_bg.png"
+const SCROLL_SPEED := 100.0
+const FADE_DURATION := 0.35
+
+enum State { FADE_IN, LOADING, FADE_OUT, DONE }
 
 @onready var _background: TextureRect = %Background
 @onready var _title_label: Label = %TitleLabel
 @onready var _status_label: Label = %StatusLabel
 @onready var _tip_label: Label = %TipLabel
-@onready var _progress_fill: ColorRect = %ProgressFill
-@onready var _progress_track: Control = %ProgressTrack
+@onready var _fade: ColorRect = %Fade
 
 var _elapsed := 0.0
 var _scene_ready := false
-var _transitioning := false
-var _display_progress := 0.0
+var _state := State.FADE_IN
+var _fade_t := 0.0
+var _bg_tex: Texture2D = null
+var _scroll_tiles: Array[TextureRect] = []
+var _scroll_tile_width := 0.0
 
 
 func _ready() -> void:
@@ -25,28 +31,97 @@ func _ready() -> void:
 	_refresh_tip()
 	_status_label.text = LanguageManager.tr_ui("UI_LOADING_LOADING")
 	_title_label.text = LanguageManager.tr_ui("UI_LOADING_READY")
-	_display_progress = 0.0
-	_apply_progress_bar(0.0)
+	_state = State.FADE_IN
+	_fade_t = 0.0
+	_set_fade_alpha(1.0)
 	ResourceLoader.load_threaded_request(BATTLE_SCENE)
 
 
 func _process(delta: float) -> void:
-	if _transitioning:
+	if _state == State.DONE:
 		return
 	_elapsed += delta
-	_update_load_progress(delta)
-	_update_status_dots()
-	if _scene_ready and _elapsed >= MIN_LOAD_TIME and _display_progress >= 0.999:
-		_finish_loading()
+	_animate_bg_scroll(delta)
+	match _state:
+		State.FADE_IN:
+			_fade_t += delta
+			_set_fade_alpha(1.0 - clampf(_fade_t / FADE_DURATION, 0.0, 1.0))
+			if _fade_t >= FADE_DURATION:
+				_state = State.LOADING
+				_fade_t = 0.0
+				_set_fade_alpha(0.0)
+		State.LOADING:
+			_poll_load_status()
+			_update_status_dots()
+			if _scene_ready and _elapsed >= MIN_LOAD_TIME:
+				_begin_fade_out()
+		State.FADE_OUT:
+			_fade_t += delta
+			_set_fade_alpha(clampf(_fade_t / FADE_DURATION, 0.0, 1.0))
+			_update_status_dots()
+			if _fade_t >= FADE_DURATION:
+				_change_scene()
 
 
 func _apply_background() -> void:
 	if _background == null:
 		return
-	var tex := load("res://assets/ui/home/bg_stage01.png") as Texture2D
-	if tex != null:
-		_background.texture = tex
-		_background.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_bg_tex = load(LOADING_BG_PATH) as Texture2D
+	if _bg_tex == null:
+		return
+	_setup_bg_scroll()
+
+
+# 将静态 Background 节点改造成横向卷轴宿主：两个相同贴片左右拼接，
+# 每帧右移，移出一屏宽度时跳到另一贴片后方 —— 与主界面背景同款无缝循环。
+func _setup_bg_scroll() -> void:
+	if _bg_tex == null or _background == null:
+		return
+	_background.texture = null
+	_background.clip_contents = true
+	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if not _background.resized.is_connected(_refresh_bg_scroll_layout):
+		_background.resized.connect(_refresh_bg_scroll_layout)
+	for i in 2:
+		var tile := TextureRect.new()
+		tile.name = "BgTile" + ("A" if i == 0 else "B")
+		tile.texture = _bg_tex
+		tile.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tile.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tile.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		_background.add_child(tile)
+		_scroll_tiles.append(tile)
+	_refresh_bg_scroll_layout()
+
+
+func _refresh_bg_scroll_layout() -> void:
+	if _scroll_tiles.size() < 2 or _background == null:
+		return
+	var view_size := _background.size
+	if view_size.x <= 0.0 or view_size.y <= 0.0:
+		return
+	_scroll_tile_width = view_size.x
+	for tile in _scroll_tiles:
+		tile.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		tile.size = view_size
+	_scroll_tiles[0].position = Vector2.ZERO
+	_scroll_tiles[1].position = Vector2(_scroll_tile_width, 0.0)
+
+
+func _animate_bg_scroll(delta: float) -> void:
+	if _scroll_tiles.size() < 2 or SCROLL_SPEED <= 0.0:
+		return
+	if _scroll_tile_width <= 0.0:
+		_refresh_bg_scroll_layout()
+		return
+	var dx := SCROLL_SPEED * delta
+	for tile in _scroll_tiles:
+		tile.position.x += dx
+	for i in 2:
+		var tile := _scroll_tiles[i]
+		if tile.position.x >= _scroll_tile_width:
+			var other := _scroll_tiles[1 - i]
+			tile.position.x = other.position.x - _scroll_tile_width
 
 
 func _refresh_tip() -> void:
@@ -66,7 +141,7 @@ func _refresh_tip() -> void:
 		_tip_label.text = LanguageManager.tr_ui("UI_LOADING_CHAPTER_STAGE_FMT") % [chapter_name, stage_name]
 
 
-func _update_load_progress(delta: float) -> void:
+func _poll_load_status() -> void:
 	var status := ResourceLoader.load_threaded_get_status(BATTLE_SCENE)
 	match status:
 		ResourceLoader.THREAD_LOAD_IN_PROGRESS:
@@ -75,24 +150,8 @@ func _update_load_progress(delta: float) -> void:
 			_scene_ready = true
 		ResourceLoader.THREAD_LOAD_FAILED:
 			_status_label.text = LanguageManager.tr_ui("UI_LOADING_FAILED")
+			_state = State.DONE
 			set_process(false)
-			return
-
-	var time_ratio := clampf(_elapsed / MIN_LOAD_TIME, 0.0, 1.0)
-	var target := time_ratio * 0.94
-	if _scene_ready:
-		target = maxf(target, 0.94)
-	if _scene_ready and _elapsed >= MIN_LOAD_TIME:
-		target = 1.0
-	_display_progress = move_toward(_display_progress, target, delta * PROGRESS_SPEED)
-	_apply_progress_bar(_display_progress)
-
-
-func _apply_progress_bar(ratio: float) -> void:
-	if _progress_fill == null or _progress_track == null:
-		return
-	var width := _progress_track.size.x * clampf(ratio, 0.0, 1.0)
-	_progress_fill.size.x = width
 
 
 func _update_status_dots() -> void:
@@ -102,19 +161,27 @@ func _update_status_dots() -> void:
 	_status_label.text = LanguageManager.tr_ui("UI_LOADING_LOADING") + ".".repeat(dot_count)
 
 
-func _finish_loading() -> void:
-	if _transitioning:
-		return
-	_transitioning = true
-	set_process(false)
+func _begin_fade_out() -> void:
+	_state = State.FADE_OUT
+	_fade_t = 0.0
 	_status_label.text = LanguageManager.tr_ui("UI_LOADING_GO")
-	_apply_progress_bar(1.0)
+
+
+func _change_scene() -> void:
+	_state = State.DONE
+	set_process(false)
 	var scene := ResourceLoader.load_threaded_get(BATTLE_SCENE) as PackedScene
 	if scene == null:
 		scene = load(BATTLE_SCENE) as PackedScene
 	if scene == null:
-		_transitioning = false
+		_state = State.LOADING
 		_status_label.text = LanguageManager.tr_ui("UI_LOADING_FAILED")
 		set_process(true)
 		return
 	get_tree().change_scene_to_packed(scene)
+
+
+func _set_fade_alpha(a: float) -> void:
+	if _fade == null:
+		return
+	_fade.color.a = clampf(a, 0.0, 1.0)

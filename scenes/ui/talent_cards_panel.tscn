@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://civp1i6oldjw1" path="res://scripts/ui/talent_cards_panel.gd" id="1_talent_panel"]
 [ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="2_spring"]
+[ext_resource type="Script" path="res://scripts/ui/scrolling_background.gd" id="3_scroll_bg_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/backgrounds/cards_bg.png" id="4_cards_bg"]
 
 [node name="TalentCardsPanel" type="Control" unique_id=1776697281]
 layout_mode = 3
@@ -12,6 +14,18 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_talent_panel")
+
+[node name="ScrollBg" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_scroll_bg_script")
+texture = ExtResource("4_cards_bg")
+scroll_speed = 22.0
 
 [node name="Title" type="Label" parent="." unique_id=2037355156]
 layout_mode = 1

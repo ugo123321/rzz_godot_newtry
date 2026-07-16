@@ -5,6 +5,8 @@
 [ext_resource type="Texture2D" uid="uid://bpd5qg7jsuea2" path="res://assets/ui/decorations/deco_lucky_spine.png" id="3_deco"]
 [ext_resource type="Texture2D" uid="uid://cr8nkfq8dkii7" path="res://assets/ui/decorations/deco_needle.png" id="4_needle"]
 [ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="5_gold"]
+[ext_resource type="Script" path="res://scripts/ui/scrolling_background.gd" id="6_scroll_bg_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/backgrounds/spin_bg.png" id="7_spin_bg"]
 
 [node name="LuckySpinPanel" type="Control" unique_id=1701175268]
 texture_filter = 1
@@ -26,8 +28,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.12, 0.09, 0.14, 1)
 
-[node name="FloatLayer" type="Control" parent="."]
-unique_name_in_owner = true
+[node name="ScrollBg" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -35,6 +36,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+script = ExtResource("6_scroll_bg_script")
+texture = ExtResource("7_spin_bg")
+scroll_speed = 22.0
 
 [node name="Title" type="Label" parent="." unique_id=683996632]
 layout_mode = 1

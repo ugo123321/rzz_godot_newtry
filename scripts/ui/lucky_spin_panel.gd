@@ -17,13 +17,6 @@ const SLOT_SIZE := Vector2(120.0, 116.0)
 # slot 圆环半径占转盘半径的比例（越小越靠中心）
 const SLOT_RING_RATIO := 0.52
 
-# 背景浮动光点（和主界面同款氛围）。纯代码生成，复用金币 icon 当贴图。
-const FLOAT_COUNT := 14
-const FLOAT_TEX_PATH := "res://assets/ui/icons/currency/icon_cur_gold.png"
-var _float_layer: Control = null
-var _float_tex: Texture2D = null
-var _motes: Array = []   # 每项 {node, phase, speed, sway, sway_speed, base_x}
-
 signal closed
 
 @onready var _wheel_wrap: Control = %WheelWrap
@@ -61,7 +54,6 @@ func _ready() -> void:
 
 	UiStyle.apply_primary_button(_spin_btn, Color("#efb840"), 10)
 	_apply_pixel_filter_tree(self)
-	_build_float_motes()
 
 	if _spin_btn != null:
 		_spin_btn.pressed.connect(_on_spin_pressed)
@@ -88,54 +80,7 @@ func _exit_tree() -> void:
 			EventBus.language_changed.disconnect(_on_language_changed)
 
 
-# ─── 背景浮动光点 ──────────────────────────────────────────
-func _build_float_motes() -> void:
-	_float_layer = get_node_or_null("FloatLayer") as Control
-	if _float_layer == null:
-		return
-	if ResourceLoader.exists(FLOAT_TEX_PATH):
-		_float_tex = load(FLOAT_TEX_PATH) as Texture2D
-	# 无贴图也能跑：draw 时如果 tex==null 就跳过
-	for i in range(FLOAT_COUNT):
-		var t := TextureRect.new()
-		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var size := randf_range(10.0, 22.0)
-		t.custom_minimum_size = Vector2(size, size)
-		t.size = Vector2(size, size)
-		t.texture = _float_tex
-		t.modulate = Color(1.0, 0.92, 0.55, 0.0)   # 金色，初始透明
-		_float_layer.add_child(t)
-		_motes.append({
-			"node": t,
-			"phase": randf() * 6.28,          # 随机起始相位
-			"speed": randf_range(14.0, 34.0), # 上浮速度 px/s
-			"sway": randf_range(10.0, 26.0),  # 左右漂移幅度
-			"sway_speed": randf_range(0.6, 1.4),
-			"base_x": 0.0,
-			"life": randf() * 4.0,            # 当前生命周期计时（错峰）
-			"max_life": randf_range(5.0, 9.0),
-		})
-	# 放入层后先摆随机位置
-	_layout_motes_initial()
-
-
-func _layout_motes_initial() -> void:
-	var area := _float_layer.size if _float_layer != null else Vector2(720, 1280)
-	if area.x <= 1.0 or area.y <= 1.0:
-		area = Vector2(720, 1280)
-	for m in _motes:
-		var base_x := randf() * area.x
-		m.base_x = base_x
-		m.life = randf() * float(m.max_life)
-		var y := area.y - (randf() * area.y * 0.6)   # 散布在下半到上
-		(m.node as TextureRect).position = Vector2(base_x, y)
-
-
 func _process(delta: float) -> void:
-	_update_float_motes(delta)
 	_update_decoration_breath(delta)
 
 
@@ -148,42 +93,6 @@ func _update_decoration_breath(delta: float) -> void:
 	_breath_phase += delta * BREATH_SPEED
 	var t: float = (sin(_breath_phase) * 0.5 + 0.5)   # 0..1
 	_decoration.modulate = Color(1.0, 1.0, 1.0, lerpf(BREATH_MIN, BREATH_MAX, t))
-
-
-func _update_float_motes(delta: float) -> void:
-	if _float_layer == null or _motes.is_empty():
-		return
-	var area := _float_layer.size
-	if area.x <= 1.0 or area.y <= 1.0:
-		return
-	for m in _motes:
-		var node: TextureRect = m.node
-		if node == null or not is_instance_valid(node):
-			continue
-		m.life += delta
-		var t := float(m.life) / float(m.max_life)   # 0..1
-		# 透明度：前 20% 淡入、后 25% 淡出
-		var a: float
-		if t < 0.2:
-			a = t / 0.2
-		elif t > 0.75:
-			a = (1.0 - t) / 0.25
-		else:
-			a = 1.0
-		# 上浮：y 从底部到顶部
-		var y := area.y * (1.0 - t)
-		# 左右漂移
-		m.phase += delta * float(m.sway_speed)
-		var x: float = float(m.base_x) + sin(m.phase) * float(m.sway)
-		node.position = Vector2(x - node.size.x * 0.5, y - node.size.y * 0.5)
-		var col := Color(1.0, 0.92, 0.55, a * 0.55)
-		node.modulate = col
-		# 一轮结束：重置到底部，随机 x / 相位，制造源源不断
-		if m.life >= float(m.max_life):
-			m.life = 0.0
-			m.base_x = randf() * area.x
-			m.phase = randf() * 6.28
-
 
 
 func _on_language_changed(_lang: String) -> void:
