@@ -16,17 +16,18 @@
 [ext_resource type="Texture2D" uid="uid://dv30osu0fjlyh" path="res://assets/ui/decorations/deco_line.png" id="18_deco_line"]
 [ext_resource type="Texture2D" uid="uid://cctv7df2ybypv" path="res://assets/ui/panels/top_bg.png" id="19_top_bg"]
 [ext_resource type="Texture2D" uid="uid://byj4bey4r4rya" path="res://assets/ui/buttons/btn_dismantle02.png" id="20_disman02"]
+[ext_resource type="Texture2D" path="res://assets/ui/panels/popup01.png" id="30_popup01"]
+[ext_resource type="Texture2D" path="res://assets/ui/decorations/deco_rare_common.png" id="31_deco_common"]
+[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_blue.png" id="32_btn_blue"]
+[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_red.png" id="33_btn_red"]
+[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_green.png" id="34_btn_green"]
+[ext_resource type="Texture2D" path="res://assets/ui/equipment/slot_bg_white.png" id="35_slotbg_white"]
+[ext_resource type="Texture2D" path="res://assets/ui/equipment/sort_bg.png" id="36_sortbg"]
+[ext_resource type="Texture2D" path="res://assets/ui/equipment/sort_icon_sord.png" id="37_sort_sord"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="38_gold"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_hpsfa"]
 load_path = "res://.godot/imported/small_bg.png-e3d49fedff66e0cd06d87351020374cd.ctex"
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_detail"]
-bg_color = Color(0.165, 0.141, 0.125, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.784314, 0.690196, 0.501961, 1)
 
 [node name="EquipmentPanel" type="Control" unique_id=1769657713]
 texture_filter = 2
@@ -289,9 +290,7 @@ offset_right = 80.0
 offset_bottom = 18.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.909804, 0.470588, 0.12549, 1)
-theme_override_colors/font_outline_color = Color(0.352941, 0.2, 0.062745, 1)
-theme_override_constants/outline_size = 2
+theme_override_colors/font_color = Color(0.898, 0.482, 0.208, 1)
 theme_override_font_sizes/font_size = 28
 text = "0"
 horizontal_alignment = 1
@@ -537,40 +536,28 @@ patch_margin_top = 12
 patch_margin_right = 12
 patch_margin_bottom = 12
 
-[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule" unique_id=1402520018]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = 2.0
-offset_right = -4.0
-offset_bottom = -2.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 6
-alignment = 1
-
-[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Row" unique_id=1603318900]
-custom_minimum_size = Vector2(44, 44)
-layout_mode = 2
-size_flags_vertical = 4
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule" unique_id=1603318900]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 8.0
+offset_right = 60.0
+offset_bottom = 52.0
 mouse_filter = 2
 texture = ExtResource("7_sword")
 expand_mode = 5
 stretch_mode = 5
 
-[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Row" unique_id=82018455]
-custom_minimum_size = Vector2(4, 0)
-layout_mode = 2
-
-[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Row" unique_id=1431289598]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_outline_color = Color(0.25, 0.16, 0.07, 1)
-theme_override_constants/outline_size = 3
+[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule" unique_id=1431289598]
+layout_mode = 0
+offset_left = 89.0
+offset_top = 16.0
+offset_right = 211.0
+offset_bottom = 48.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.545, 0.361, 0.271, 1)
 theme_override_font_sizes/font_size = 22
 text = "0"
+horizontal_alignment = 0
 vertical_alignment = 1
 
 [node name="HpCapsule" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow" unique_id=1270289332]
@@ -591,40 +578,28 @@ patch_margin_top = 12
 patch_margin_right = 12
 patch_margin_bottom = 12
 
-[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule" unique_id=1854514885]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = 2.0
-offset_right = -4.0
-offset_bottom = -2.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 6
-alignment = 1
-
-[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Row" unique_id=1852270401]
-custom_minimum_size = Vector2(44, 44)
-layout_mode = 2
-size_flags_vertical = 4
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule" unique_id=1852270401]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 8.0
+offset_right = 60.0
+offset_bottom = 52.0
 mouse_filter = 2
 texture = ExtResource("8_heart")
 expand_mode = 5
 stretch_mode = 5
 
-[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Row" unique_id=1750266890]
-custom_minimum_size = Vector2(4, 0)
-layout_mode = 2
-
-[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Row" unique_id=1692844177]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_outline_color = Color(0.07, 0.22, 0.13, 1)
-theme_override_constants/outline_size = 3
+[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule" unique_id=1692844177]
+layout_mode = 0
+offset_left = 89.0
+offset_top = 16.0
+offset_right = 211.0
+offset_bottom = 48.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.545, 0.361, 0.271, 1)
 theme_override_font_sizes/font_size = 22
 text = "0"
+horizontal_alignment = 0
 vertical_alignment = 1
 
 [node name="SpeedCapsule" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow" unique_id=1144561937]
@@ -645,40 +620,28 @@ patch_margin_top = 12
 patch_margin_right = 12
 patch_margin_bottom = 12
 
-[node name="Row" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule" unique_id=2034585684]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = 2.0
-offset_right = -4.0
-offset_bottom = -2.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 6
-alignment = 1
-
-[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Row" unique_id=1505189618]
-custom_minimum_size = Vector2(44, 44)
-layout_mode = 2
-size_flags_vertical = 4
+[node name="Icon" type="TextureRect" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule" unique_id=1505189618]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 8.0
+offset_right = 60.0
+offset_bottom = 52.0
 mouse_filter = 2
 texture = ExtResource("15_speed")
 expand_mode = 5
 stretch_mode = 5
 
-[node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Row" unique_id=1705785868]
-custom_minimum_size = Vector2(4, 0)
-layout_mode = 2
-
-[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Row" unique_id=1927931247]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_outline_color = Color(0.08, 0.16, 0.25, 1)
-theme_override_constants/outline_size = 3
+[node name="Value" type="Label" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule" unique_id=1927931247]
+layout_mode = 0
+offset_left = 89.0
+offset_top = 16.0
+offset_right = 211.0
+offset_bottom = 48.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.545, 0.361, 0.271, 1)
 theme_override_font_sizes/font_size = 22
 text = "0"
+horizontal_alignment = 0
 vertical_alignment = 1
 
 [node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot" unique_id=644179113]
@@ -866,97 +829,318 @@ horizontal_alignment = 1
 [node name="TextureRect" type="TextureRect" parent="Frame/RootMargin/BaseRoot" unique_id=2065470725]
 layout_mode = 2
 
-[node name="DetailPopup" type="PopupPanel" parent="." unique_id=1781527274]
+[node name="DetailPopup" type="Control" parent="." unique_id=1781527274]
 unique_name_in_owner = true
-size = Vector2i(560, 640)
-theme_override_styles/panel = SubResource("StyleBoxFlat_detail")
-
-[node name="Margin" type="MarginContainer" parent="DetailPopup" unique_id=493441903]
+visible = true
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 2.0
-offset_top = 2.0
-offset_right = 558.0
-offset_bottom = 638.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+mouse_filter = 2
 
-[node name="VBox" type="VBoxContainer" parent="DetailPopup/Margin" unique_id=1078849933]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Head" type="HBoxContainer" parent="DetailPopup/Margin/VBox" unique_id=455210285]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="DetailIcon" type="TextureRect" parent="DetailPopup/Margin/VBox/Head" unique_id=440485648]
+[node name="Dim" type="ColorRect" parent="DetailPopup" unique_id=10110001]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(72, 72)
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.4)
+
+[node name="Panel" type="TextureRect" parent="DetailPopup" unique_id=10110002]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 74.0
+offset_top = 351.0
+offset_right = 645.0
+offset_bottom = 944.0
+mouse_filter = 0
+texture = ExtResource("30_popup01")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="QualityDeco" type="TextureRect" parent="DetailPopup/Panel" unique_id=10110003]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 212.0
+offset_top = -14.0
+offset_right = 359.0
+offset_bottom = 23.0
+mouse_filter = 0
+texture = ExtResource("31_deco_common")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="HeadText" type="VBoxContainer" parent="DetailPopup/Margin/VBox/Head" unique_id=207732079]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="DetailNameLabel" type="Label" parent="DetailPopup/Margin/VBox/Head/HeadText" unique_id=1574923188]
+[node name="DetailIconSlot" type="TextureButton" parent="DetailPopup/Panel" unique_id=10110004]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 34
+layout_mode = 0
+offset_left = 36.0
+offset_top = 39.0
+offset_right = 162.0
+offset_bottom = 165.0
+mouse_filter = 0
+texture_normal = ExtResource("15_np2w0")
+ignore_texture_size = true
+stretch_mode = 0
 
-[node name="DetailLevelLabel" type="Label" parent="DetailPopup/Margin/VBox/Head/HeadText" unique_id=211919218]
+[node name="SlotBg" type="TextureRect" parent="DetailPopup/Panel/DetailIconSlot" unique_id=10110005]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("35_slotbg_white")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ItemIcon" type="TextureRect" parent="DetailPopup/Panel/DetailIconSlot" unique_id=10110006]
+unique_name_in_owner = true
+visible = false
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SortIconBg" type="TextureRect" parent="DetailPopup/Panel/DetailIconSlot" unique_id=10110007]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 37.0
+offset_bottom = 37.0
+mouse_filter = 2
+texture = ExtResource("36_sortbg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="SortIcon" type="TextureRect" parent="DetailPopup/Panel/DetailIconSlot/SortIconBg" unique_id=10110008]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -10.0
+offset_top = -10.0
+offset_right = 10.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("37_sort_sord")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="DetailNameLabel" type="Label" parent="DetailPopup/Panel" unique_id=10110009]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 51.0
+offset_right = 571.0
+offset_bottom = 95.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/font_size = 35
+vertical_alignment = 1
+
+[node name="DetailLevelLabel" type="Label" parent="DetailPopup/Panel" unique_id=10110010]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 99.0
+offset_right = 571.0
+offset_bottom = 135.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 4
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 26
+vertical_alignment = 1
 
-[node name="DetailSkillText" type="RichTextLabel" parent="DetailPopup/Margin/VBox" unique_id=1028065338]
+[node name="DetailTipLabel" type="Label" parent="DetailPopup/Panel" unique_id=10110011]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 320)
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_font_sizes/normal_font_size = 28
-theme_override_font_sizes/bold_font_size = 28
+layout_mode = 0
+offset_left = 44.0
+offset_top = 218.0
+offset_right = 200.0
+offset_bottom = 250.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/font_size = 26
+text = "属性"
+
+[node name="DetailSkillText" type="RichTextLabel" parent="DetailPopup/Panel" unique_id=10110012]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 44.0
+offset_top = 252.0
+offset_right = 527.0
+offset_bottom = 455.0
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 22
+theme_override_font_sizes/bold_font_size = 22
 bbcode_enabled = true
+text = ""
 
-[node name="DetailTipLabel" type="Label" parent="DetailPopup/Margin/VBox" unique_id=170426239]
+[node name="BtnEquip" type="TextureButton" parent="DetailPopup/Panel" unique_id=10110013]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-autowrap_mode = 3
+visible = false
+layout_mode = 0
+offset_left = 59.0
+offset_top = 468.0
+offset_right = 274.0
+offset_bottom = 553.0
+mouse_filter = 0
+texture_normal = ExtResource("32_btn_blue")
+ignore_texture_size = true
+stretch_mode = 0
 
-[node name="ActionRow" type="HBoxContainer" parent="DetailPopup/Margin/VBox" unique_id=1370520975]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="BtnEquip" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=661109105]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="Label" type="Label" parent="DetailPopup/Panel/BtnEquip" unique_id=10110014]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 3
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 28
 text = "穿戴"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="BtnUnequip" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=1290576736]
+[node name="BtnUnequip" type="TextureButton" parent="DetailPopup/Panel" unique_id=10110015]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-size_flags_horizontal = 3
+visible = false
+layout_mode = 0
+offset_left = 59.0
+offset_top = 468.0
+offset_right = 274.0
+offset_bottom = 553.0
+mouse_filter = 0
+texture_normal = ExtResource("33_btn_red")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="DetailPopup/Panel/BtnUnequip" unique_id=10110016]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 3
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 28
 text = "卸下"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="BtnUpgrade" type="Button" parent="DetailPopup/Margin/VBox/ActionRow" unique_id=867442681]
+[node name="BtnUpgrade" type="TextureButton" parent="DetailPopup/Panel" unique_id=10110017]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 68)
+visible = false
+layout_mode = 0
+offset_left = 289.0
+offset_top = 468.0
+offset_right = 504.0
+offset_bottom = 553.0
+mouse_filter = 0
+texture_normal = ExtResource("34_btn_green")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="DetailPopup/Panel/BtnUpgrade" unique_id=10110018]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -107.0
+offset_top = -26.0
+offset_right = 107.0
+offset_bottom = 26.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="DetailPopup/Panel/BtnUpgrade/VBox" unique_id=10110019]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 3
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 24
 text = "升级"
+horizontal_alignment = 1
+
+[node name="GoldRow" type="HBoxContainer" parent="DetailPopup/Panel/BtnUpgrade/VBox" unique_id=10110020]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="GoldIcon" type="TextureRect" parent="DetailPopup/Panel/BtnUpgrade/VBox/GoldRow" unique_id=10110021]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("38_gold")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="DetailPopup/Panel/BtnUpgrade/VBox/GoldRow" unique_id=10110022]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+text = "0/0"
+vertical_alignment = 1
 
 [node name="DetailsPopup" type="AcceptDialog" parent="." unique_id=1342962880]
 unique_name_in_owner = true
@@ -972,6 +1156,7 @@ autowrap_mode = 3
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow/DetailBtn" to="." method="_show_attr_popup"]
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn" to="." method="_on_skill_stone_pressed"]
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SynthBtn" to="." method="_on_synthesis_pressed"]
-[connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnEquip" to="." method="_on_detail_equip"]
-[connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnUnequip" to="." method="_on_detail_unequip"]
-[connection signal="pressed" from="DetailPopup/Margin/VBox/ActionRow/BtnUpgrade" to="." method="_on_detail_upgrade"]
+[connection signal="gui_input" from="DetailPopup/Dim" to="." method="_on_detail_outside_clicked"]
+[connection signal="pressed" from="DetailPopup/Panel/BtnEquip" to="." method="_on_detail_equip"]
+[connection signal="pressed" from="DetailPopup/Panel/BtnUnequip" to="." method="_on_detail_unequip"]
+[connection signal="pressed" from="DetailPopup/Panel/BtnUpgrade" to="." method="_on_detail_upgrade"]

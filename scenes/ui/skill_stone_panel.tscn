@@ -19,6 +19,10 @@
 [ext_resource type="Texture2D" uid="uid://b08ivj0j207jl" path="res://assets/ui/icons/system/icon_ctd.png" id="17_ctd"]
 [ext_resource type="Texture2D" uid="uid://4gj31hqixnrg" path="res://assets/ui/icons/system/icon_speed.png" id="18_speed"]
 [ext_resource type="Texture2D" uid="uid://byj4bey4r4rya" path="res://assets/ui/buttons/btn_dismantle02.png" id="19_disman02"]
+[ext_resource type="Texture2D" uid="uid://b01xpa2d67vo" path="res://assets/ui/panels/popup01.png" id="30_popup01"]
+[ext_resource type="Texture2D" uid="uid://k6eedbsvyfnb" path="res://assets/ui/decorations/deco_rare_common.png" id="31_deco_common"]
+[ext_resource type="Texture2D" uid="uid://e86mlai64t6a" path="res://assets/ui/buttons/btn_blue.png" id="32_btn_blue"]
+[ext_resource type="Texture2D" uid="uid://bjbhw6n7kmune" path="res://assets/ui/equipment/slot_bg_white.png" id="35_slotbg_white"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
 bg_color = Color(0.16, 0.1, 0.03, 0.9)
@@ -135,10 +139,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = -18.0
+offset_left = 7.0
+offset_top = 7.0
+offset_right = -7.0
+offset_bottom = -7.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -163,10 +167,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = -18.0
+offset_left = 7.0
+offset_top = 7.0
+offset_right = -7.0
+offset_bottom = -7.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -191,10 +195,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = -18.0
+offset_left = 7.0
+offset_top = 7.0
+offset_right = -7.0
+offset_bottom = -7.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -640,3 +644,163 @@ theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_toast")
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="DetailPopup" type="Control" parent="." unique_id=928271000]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Dim" type="ColorRect" parent="DetailPopup" unique_id=2034933537]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="Panel" type="TextureRect" parent="DetailPopup" unique_id=1927944503]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 74.0
+offset_top = 343.0
+offset_right = 645.0
+offset_bottom = 936.0
+mouse_filter = 0
+texture = ExtResource("30_popup01")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="QualityDeco" type="TextureRect" parent="DetailPopup/Panel" unique_id=291107261]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 212.0
+offset_top = -14.0
+offset_right = 359.0
+offset_bottom = 23.0
+mouse_filter = 2
+texture = ExtResource("31_deco_common")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DetailIconSlot" type="TextureButton" parent="DetailPopup/Panel" unique_id=1875425397]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 0
+offset_left = 36.0
+offset_top = 39.0
+offset_right = 162.0
+offset_bottom = 165.0
+mouse_filter = 2
+texture_normal = ExtResource("4_slot")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="SlotBg" type="TextureRect" parent="DetailPopup/Panel/DetailIconSlot" unique_id=1276986756]
+texture_filter = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("35_slotbg_white")
+expand_mode = 1
+
+[node name="ItemIcon" type="TextureRect" parent="DetailPopup/Panel/DetailIconSlot" unique_id=270333539]
+visible = false
+texture_filter = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DetailNameLabel" type="Label" parent="DetailPopup/Panel" unique_id=2071189995]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 51.0
+offset_right = 531.0
+offset_bottom = 93.0
+theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/font_size = 30
+
+[node name="DetailSkillRT" type="RichTextLabel" parent="DetailPopup/Panel" unique_id=218531330]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 99.0
+offset_right = 530.0
+offset_bottom = 165.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/normal_font_size = 22
+theme_override_font_sizes/bold_font_size = 22
+bbcode_enabled = true
+
+[node name="DetailTipLabel" type="Label" parent="DetailPopup/Panel" unique_id=1910004538]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 34.0
+offset_top = 214.0
+offset_right = 533.0
+offset_bottom = 246.0
+theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/font_size = 22
+
+[node name="DetailAffixRT" type="RichTextLabel" parent="DetailPopup/Panel" unique_id=1162789127]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 36.0
+offset_top = 252.0
+offset_right = 535.0
+offset_bottom = 400.0
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 20
+theme_override_font_sizes/bold_font_size = 20
+bbcode_enabled = true
+
+[node name="ActionBtn" type="TextureButton" parent="DetailPopup/Panel" unique_id=332056413]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 178.0
+offset_top = 470.0
+offset_right = 393.0
+offset_bottom = 555.0
+texture_normal = ExtResource("32_btn_blue")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="DetailPopup/Panel/ActionBtn" unique_id=811172163]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[connection signal="gui_input" from="DetailPopup/Dim" to="." method="_on_detail_outside_clicked"]
+[connection signal="pressed" from="DetailPopup/Panel/ActionBtn" to="." method="_on_detail_action_pressed"]

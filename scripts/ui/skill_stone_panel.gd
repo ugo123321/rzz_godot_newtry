@@ -12,6 +12,29 @@ const BAG_BASE_SLOTS := BAG_COLUMNS * BAG_VISIBLE_ROWS
 const EQUIP_SLOT_COUNT := 3
 const SLOT_TEX := preload("res://assets/ui/equipment_skills/skills_slot.png")
 const BAG_SLOT_SIZE := Vector2(104, 104)
+const CIRCLE_SHADER := preload("res://shaders/ui/skill_stone_icon.gdshader")
+# 槽位品质背景贴图（同装备界面 equipment_panel.SLOT_BG_TEX），按品质铺底盖住空槽框
+const SLOT_BG_TEX := {
+	0: preload("res://assets/ui/equipment/slot_bg_white.png"),
+	1: preload("res://assets/ui/equipment/slot_bg_blue.png"),
+	2: preload("res://assets/ui/equipment/slot_bg_purple.png"),
+	3: preload("res://assets/ui/equipment/slot_bg_orange.png"),
+}
+const ICON_INSET_STONE := 7  # StoneSlot icon inset（圆形 icon 留一圈品质底）
+const ICON_INSET_BAG := 5    # 背包槽（104px）按比例缩小后的 inset
+# 详情弹窗贴图（面板/装饰带在 tscn 里；按钮蓝红 / 品质装饰带 / 品质底由代码按状态切换）
+const BTN_BLUE_TEX := preload("res://assets/ui/buttons/btn_blue.png")   # 装备
+const BTN_RED_TEX := preload("res://assets/ui/buttons/btn_red.png")    # 卸下
+const QUALITY_DECO_TEX := {
+	0: preload("res://assets/ui/decorations/deco_rare_common.png"),
+	1: preload("res://assets/ui/decorations/deco_rare_rare.png"),
+	2: preload("res://assets/ui/decorations/deco_rare_epic.png"),
+	3: preload("res://assets/ui/decorations/deco_rare_legendary.png"),
+}
+# 详情弹窗文字配色：深棕（同装备详情正文）/ 深绿（同装备生效属性）/ 红
+const _AFFIX_COLOR_BROWN := "#341b19"   # = Color(0.204, 0.106, 0.098)
+const _AFFIX_COLOR_GREEN := "#1c8a3d"   # = Color(0.12, 0.54, 0.24) 装备生效属性深绿
+const _AFFIX_COLOR_RED := "#ff2a2a"
 
 # 6 个属性信息栏对应的 stat_key（与场景 StatBar0..5 一一对应）
 const _STAT_BAR_KEYS := ["atk_pct", "max_hp_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
@@ -38,18 +61,26 @@ signal closed
 @onready var _toast: Label = %Toast
 
 var _icon_cache: Dictionary = {}
+var _circle_mat: ShaderMaterial = null
 var _bag_slot_uids: Array[int] = []
 var _multi_select := false
 var _selected_uids: Dictionary = {}   # uid(int) -> true
 
-var _detail_popup: PopupPanel = null
+# 详情弹窗节点：布局在 skill_stone_panel.tscn 的 DetailPopup 子树里，可在编辑器调位置
+@onready var _detail_popup: Control = %DetailPopup
+@onready var _detail_dim: ColorRect = %Dim
+@onready var _detail_panel: TextureRect = %Panel
+@onready var _detail_quality_deco: TextureRect = %QualityDeco
+@onready var _detail_icon_slot: TextureButton = %DetailIconSlot
+@onready var _detail_name_label: Label = %DetailNameLabel
+@onready var _detail_skill_rt: RichTextLabel = %DetailSkillRT
+@onready var _detail_tip_label: Label = %DetailTipLabel
+@onready var _detail_affix_rt: RichTextLabel = %DetailAffixRT
+@onready var _detail_action_btn: TextureButton = %ActionBtn
+# 子节点（名字与别处冲突，不设 unique_name，按父节点取）
 var _detail_icon_rect: TextureRect = null
-var _detail_name_label: Label = null
-var _detail_quality_label: Label = null
-var _detail_skill_rt: RichTextLabel = null
-var _detail_affix_rt: RichTextLabel = null
-var _detail_action_btn: Button = null
-var _detail_close_btn: Button = null
+var _detail_bg_rect: TextureRect = null
+var _detail_action_label: Label = null
 var _detail_uid: int = -1
 var _detail_slot: int = -1   # -1 = 来自背包（action=装备）；>=0 = 已装备槽（action=卸下）
 
@@ -58,6 +89,11 @@ var _toast_duration := 1.9
 var _toast_base_top := 150.0
 
 var _intro_playing := false
+
+# 详情弹窗弹出 / 弹回动效（同装备信息面板：Panel 中心缩放 + Dim 淡入淡出）
+const _DETAIL_POP_TIME := 0.18
+const _DETAIL_POP_SCALE := Vector2(0.82, 0.82)
+var _detail_tween: Tween = null
 
 
 func _ready() -> void:
@@ -68,6 +104,7 @@ func _ready() -> void:
 		if btn != null:
 			btn.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 			btn.pressed.connect(_on_stone_slot_pressed.bind(i))
+			_apply_circle_to_icon(btn)
 	if _back_button != null:
 		_back_button.pressed.connect(_on_back_pressed)
 	if _decompose_btn != null:
@@ -101,7 +138,7 @@ func _ready() -> void:
 	_setup_action_button_press(_cancel_btn)
 	_setup_action_button_press(_back_button)
 
-	_build_detail_popup()
+	_setup_detail_popup()
 
 	if EventBus:
 		EventBus.skill_stones_changed.connect(_on_skill_stones_changed)
@@ -218,16 +255,17 @@ func _apply_static_texts() -> void:
 		title.text = LanguageManager.tr_ui("UI_SKILL_STONE_TITLE")
 	if _cancel_label != null:
 		_cancel_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_CANCEL")
+	if _detail_tip_label != null:
+		_detail_tip_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_AFFIX_HEADER")
 	if _detail_action_btn != null:
 		_refresh_detail_action_text()
-	if _detail_close_btn != null:
-		_detail_close_btn.text = LanguageManager.tr_ui("UI_SKILL_STONE_CLOSE")
 
 
 func _apply_pixel_filter_tree(root: Node) -> void:
 	if root is CanvasItem:
 		var ci := root as CanvasItem
-		if str(root.name) == "ItemIcon":
+		# 像素艺术：ItemIcon / 品质底 SlotBg 走 NEAREST，其余抗锯齿
+		if str(root.name) == "ItemIcon" or str(root.name) == "SlotBg":
 			ci.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		else:
 			ci.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -273,11 +311,19 @@ func _refresh_equipped_slots() -> void:
 
 
 func _set_slot_visual(btn: TextureButton, tex: Texture2D, quality: int, has_item: bool) -> void:
+	_ensure_slot_bg(btn)
+	# 同装备界面：不再用 self_modulate 染槽框；品质色由 SlotBg 贴图承担
+	btn.self_modulate = Color.WHITE
+	var slot_bg := btn.get_node_or_null("SlotBg") as TextureRect
+	if slot_bg != null:
+		slot_bg.texture = SLOT_BG_TEX.get(quality, SLOT_BG_TEX[0])
+		slot_bg.visible = has_item
 	var icon_rect := btn.get_node_or_null("ItemIcon") as TextureRect
 	if icon_rect != null:
+		# 动态创建的背包槽未被 _apply_pixel_filter_tree 覆盖到，强制 NEAREST 保持像素清晰
+		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		icon_rect.texture = tex
 		icon_rect.visible = tex != null
-	btn.self_modulate = LobbyState.get_quality_color(quality) if has_item else Color.WHITE
 
 
 func _refresh_bag() -> void:
@@ -324,6 +370,7 @@ func _ensure_bag_slot_count(count: int) -> void:
 		btn.stretch_mode = TextureButton.STRETCH_SCALE
 		btn.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 		btn.pressed.connect(_on_bag_slot_pressed.bind(index))
+		_apply_circle_to_icon(btn, ICON_INSET_BAG)
 		_bag_grid.add_child(btn)
 	while _bag_grid.get_child_count() > count:
 		var extra := _bag_grid.get_child(_bag_grid.get_child_count() - 1)
@@ -349,6 +396,16 @@ func _refresh_info_panel() -> void:
 			name_label.text = _affix_name(key)
 		if value_label != null:
 			value_label.text = _format_affix_value(v)
+			# 颜色规律同详情词条：增加深绿 / 减少红 / 0% 深棕
+			var color: Color
+			var pct := int(round(v * 100.0))
+			if pct == 0:
+				color = Color(_AFFIX_COLOR_BROWN)
+			elif pct > 0:
+				color = Color(_AFFIX_COLOR_GREEN)
+			else:
+				color = Color(_AFFIX_COLOR_RED)
+			value_label.add_theme_color_override("font_color", color)
 
 
 func _format_affix_value(value: float) -> String:
@@ -360,11 +417,14 @@ func _format_affix_value(value: float) -> String:
 
 
 func _format_affix_line(stat_key: String, value: float) -> String:
-	# 属性词条：直接写出具体百分比数值（带颜色），不走升级奖励的三角箭头渲染
+	# 属性词条：整行变色 —— 增加深绿 / 减少红 / 0% 深棕；不走升级奖励的三角箭头渲染
 	var pct := int(round(value * 100.0))
-	var sign := "+" if pct >= 0 else "-"
-	var color := "#22ee44" if pct >= 0 else "#ff2a2a"
-	return "%s [color=%s]%s%d%%[/color]" % [_affix_name(stat_key), color, sign, abs(pct)]
+	var name := _affix_name(stat_key)
+	if pct == 0:
+		return "[color=%s]%s 0%%[/color]" % [_AFFIX_COLOR_BROWN, name]
+	var sign := "+" if pct > 0 else "-"
+	var color := _AFFIX_COLOR_GREEN if pct > 0 else _AFFIX_COLOR_RED
+	return "[color=%s]%s %s%d%%[/color]" % [color, name, sign, abs(pct)]
 
 
 func _affix_name(stat_key: String) -> String:
@@ -461,95 +521,82 @@ func _on_cancel_decompose_pressed() -> void:
 	_refresh_action_buttons()
 
 
-# ─── 详情弹窗 ─────────────────────────────────────────────
-func _build_detail_popup() -> void:
-	var popup := PopupPanel.new()
-	popup.name = "DetailPopup"
-	var vbox := VBoxContainer.new()
-	vbox.name = "VBox"
-	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 8)
-	popup.add_child(vbox)
+# ─── 详情弹窗：节点在 skill_stone_panel.tscn 的 DetailPopup 子树里（编辑器可调位置）；
+#     这里只做运行时接线 —— 挂圆形 shader、取子节点引用、连信号 ────
+func _setup_detail_popup() -> void:
+	if _detail_popup == null:
+		return
+	# 取子节点引用（ItemIcon/SlotBg/Label 名字与背包槽/按钮冲突，不设 unique_name）
+	if _detail_icon_slot != null:
+		_detail_icon_rect = _detail_icon_slot.get_node_or_null("ItemIcon") as TextureRect
+		_detail_bg_rect = _detail_icon_slot.get_node_or_null("SlotBg") as TextureRect
+	if _detail_action_btn != null:
+		_detail_action_label = _detail_action_btn.get_node_or_null("Label") as Label
+	# 详情 icon 套圆形 + 黑边 shader（材质在代码建/缓存，编辑器只调位置）
+	if _detail_icon_rect != null:
+		_detail_icon_rect.material = _get_circle_material()
+	# 信号（gui_input / pressed 也可在 tscn 里连，这里防御性再连一次避免漏接）
+	if _detail_dim != null and not _detail_dim.gui_input.is_connected(_on_detail_outside_clicked):
+		_detail_dim.gui_input.connect(_on_detail_outside_clicked)
+	if _detail_action_btn != null and not _detail_action_btn.pressed.is_connected(_on_detail_action_pressed):
+		_detail_action_btn.pressed.connect(_on_detail_action_pressed)
 
-	var head := HBoxContainer.new()
-	head.name = "Head"
-	head.add_theme_constant_override("separation", 12)
-	vbox.add_child(head)
 
-	var icon_rect := TextureRect.new()
-	icon_rect.name = "DetailIcon"
-	icon_rect.custom_minimum_size = Vector2(64, 64)
-	icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	head.add_child(icon_rect)
+func _on_detail_outside_clicked(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			_close_detail()
 
-	var head_col := VBoxContainer.new()
-	head_col.name = "HeadCol"
-	head_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head_col.add_theme_constant_override("separation", 2)
-	head.add_child(head_col)
 
-	var name_label := Label.new()
-	name_label.name = "DetailName"
-	name_label.add_theme_font_size_override("font_size", 22)
-	head_col.add_child(name_label)
+func _kill_detail_tween() -> void:
+	if _detail_tween != null and _detail_tween.is_valid():
+		_detail_tween.kill()
+	_detail_tween = null
 
-	var quality_label := Label.new()
-	quality_label.name = "DetailQuality"
-	quality_label.add_theme_font_size_override("font_size", 16)
-	head_col.add_child(quality_label)
 
-	var skill_rt := RichTextLabel.new()
-	skill_rt.name = "DetailSkillRT"
-	skill_rt.bbcode_enabled = true
-	skill_rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	skill_rt.custom_minimum_size = Vector2(380, 70)
-	skill_rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_child(skill_rt)
+# 弹出动效：Panel 从 0.82 回弹到 1（BACK）+ Dim 0→0.4
+func _play_detail_open() -> void:
+	if _detail_popup == null:
+		return
+	_kill_detail_tween()
+	_detail_popup.visible = true
+	if _detail_panel != null:
+		_detail_panel.pivot_offset = _detail_panel.size * 0.5
+		_detail_panel.scale = _DETAIL_POP_SCALE
+	if _detail_dim != null:
+		_detail_dim.modulate = Color(1, 1, 1, 0.0)
+	_detail_tween = create_tween()
+	_detail_tween.set_parallel(true)
+	if _detail_dim != null:
+		_detail_tween.tween_property(_detail_dim, "modulate:a", 0.4, _DETAIL_POP_TIME)
+	if _detail_panel != null:
+		_detail_tween.tween_property(_detail_panel, "scale", Vector2.ONE, _DETAIL_POP_TIME) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
-	var affix_rt := RichTextLabel.new()
-	affix_rt.name = "DetailAffixRT"
-	affix_rt.bbcode_enabled = true
-	affix_rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	affix_rt.custom_minimum_size = Vector2(380, 60)
-	affix_rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_child(affix_rt)
 
-	var action_row := HBoxContainer.new()
-	action_row.name = "ActionRow"
-	action_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	action_row.add_theme_constant_override("separation", 12)
-	vbox.add_child(action_row)
+# 弹回动效：Panel 缩回 0.82（CUBIC）+ Dim→0，完成后隐藏
+func _play_detail_close() -> void:
+	if _detail_popup == null or not _detail_popup.visible:
+		return
+	_kill_detail_tween()
+	if _detail_panel != null:
+		_detail_panel.pivot_offset = _detail_panel.size * 0.5
+	_detail_tween = create_tween()
+	_detail_tween.set_parallel(true)
+	if _detail_dim != null:
+		_detail_tween.tween_property(_detail_dim, "modulate:a", 0.0, _DETAIL_POP_TIME)
+	if _detail_panel != null:
+		_detail_tween.tween_property(_detail_panel, "scale", _DETAIL_POP_SCALE, _DETAIL_POP_TIME) \
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_detail_tween.chain().tween_callback(_hide_detail_after_close)
 
-	var action_btn := Button.new()
-	action_btn.name = "ActionBtn"
-	action_btn.custom_minimum_size = Vector2(150, 52)
-	action_row.add_child(action_btn)
 
-	var close_btn := Button.new()
-	close_btn.name = "CloseBtn"
-	close_btn.custom_minimum_size = Vector2(120, 52)
-	action_row.add_child(close_btn)
-
-	popup.wrap_controls = true
-	add_child(popup)
-
-	_detail_popup = popup
-	_detail_icon_rect = icon_rect
-	_detail_name_label = name_label
-	_detail_quality_label = quality_label
-	_detail_skill_rt = skill_rt
-	_detail_affix_rt = affix_rt
-	_detail_action_btn = action_btn
-	_detail_close_btn = close_btn
-
-	UiStyle.apply_primary_button(action_btn, Color("#4dd07a"), 10)
-	UiStyle.apply_primary_button(close_btn, Color(0.55, 0.60, 0.78), 10)
-	popup.add_theme_stylebox_override("panel", UiStyle.make_dialog_stylebox(Color(0.18, 0.14, 0.10, 0.97), 18))
-
-	action_btn.pressed.connect(_on_detail_action_pressed)
-	close_btn.pressed.connect(_close_detail)
+func _hide_detail_after_close() -> void:
+	if _detail_popup != null:
+		_detail_popup.visible = false
+	_detail_uid = -1
+	_detail_slot = -1
 
 
 func _open_detail(uid: int, slot: int) -> void:
@@ -560,20 +607,28 @@ func _open_detail(uid: int, slot: int) -> void:
 		return
 	_detail_uid = uid
 	_detail_slot = slot
+	var q := int(stone.get("quality", 0))
+	# 顶部品质装饰带
+	if _detail_quality_deco != null:
+		_detail_quality_deco.texture = QUALITY_DECO_TEX.get(q, QUALITY_DECO_TEX[0])
+	# icon 槽：品质 SlotBg + 圆形 icon（无部位徽章）
 	var icon := _get_stone_icon(stone)
 	if _detail_icon_rect != null:
 		_detail_icon_rect.texture = icon
 		_detail_icon_rect.visible = icon != null
+	if _detail_bg_rect != null:
+		_detail_bg_rect.texture = SLOT_BG_TEX.get(q, SLOT_BG_TEX[0])
+		_detail_bg_rect.visible = true
+	# 名字
 	if _detail_name_label != null:
 		_detail_name_label.text = LobbyState.get_skill_stone_name(stone)
-	if _detail_quality_label != null:
-		var q := int(stone.get("quality", 0))
-		_detail_quality_label.text = LobbyState.get_quality_name(q)
-		_detail_quality_label.modulate = LobbyState.get_quality_color(q)
-	# 技能描述（= 对应升级奖励的游戏内描述）
+	# 技能介绍正文（= 对应升级奖励的游戏内描述；字号 22 与原段头一致）
 	if _detail_skill_rt != null:
-		DescFormat.apply_to_rich_text(_detail_skill_rt, LobbyState.get_skill_stone_desc(stone), 16, false)
-	# 属性词条：直接显示具体百分比数值（带颜色），不走升级奖励的三角箭头渲染
+		DescFormat.apply_to_rich_text(_detail_skill_rt, LobbyState.get_skill_stone_desc(stone), 22, false)
+	# "属性加成" 段头
+	if _detail_tip_label != null:
+		_detail_tip_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_AFFIX_HEADER")
+	# 属性词条：增加深绿 / 减少红 / 0% 深棕（直接百分比数值带色，不走升级奖励三角箭头）
 	if _detail_affix_rt != null:
 		var affixes = stone.get("affixes", [])
 		var lines: Array[String] = []
@@ -582,20 +637,29 @@ func _open_detail(uid: int, slot: int) -> void:
 				if typeof(a) != TYPE_DICTIONARY:
 					continue
 				lines.append(_format_affix_line(str(a.get("stat_key", "")), float(a.get("value", 0.0))))
-		var txt := "\n".join(lines) if not lines.is_empty() else LanguageManager.tr_ui("UI_SKILL_STONE_NO_AFFIX")
-		# bbcode_enabled = true，直接赋 text 让 [color] 标签解析；不用 DescFormat 避免把 +X% 转成箭头
+		var txt := ""
+		if lines.is_empty():
+			# 无属性加成：深棕
+			txt = "[color=%s]%s[/color]" % [_AFFIX_COLOR_BROWN, LanguageManager.tr_ui("UI_SKILL_STONE_NO_AFFIX")]
+		else:
+			txt = "\n".join(lines)
 		_detail_affix_rt.text = txt
 	_refresh_detail_action_text()
-	_detail_popup.popup_centered(Vector2i(440, 360))
+	_play_detail_open()
 
 
 func _refresh_detail_action_text() -> void:
 	if _detail_action_btn == null:
 		return
+	# 已装备槽 -> 卸下（红）；来自背包 -> 装备（蓝）
 	if _detail_slot >= 0:
-		_detail_action_btn.text = LanguageManager.tr_ui("UI_SKILL_STONE_UNEQUIP")
+		_detail_action_btn.texture_normal = BTN_RED_TEX
+		if _detail_action_label != null:
+			_detail_action_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_UNEQUIP")
 	else:
-		_detail_action_btn.text = LanguageManager.tr_ui("UI_SKILL_STONE_EQUIP")
+		_detail_action_btn.texture_normal = BTN_BLUE_TEX
+		if _detail_action_label != null:
+			_detail_action_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_EQUIP")
 
 
 func _on_detail_action_pressed() -> void:
@@ -615,13 +679,55 @@ func _on_detail_action_pressed() -> void:
 
 
 func _close_detail() -> void:
-	if _detail_popup != null:
-		_detail_popup.hide()
-	_detail_uid = -1
-	_detail_slot = -1
+	_play_detail_close()
 
 
 # ─── 图标 / Toast ──────────────────────────────────────────
+func _get_circle_material() -> ShaderMaterial:
+	if _circle_mat == null:
+		_circle_mat = ShaderMaterial.new()
+		_circle_mat.shader = CIRCLE_SHADER
+		# radius/border_width/edge_aa 用 shader 默认值（见 skill_stone_icon.gdshader）
+	return _circle_mat
+
+
+# 给槽位 ItemIcon 套圆形 + 黑边 shader，并收 inset 让圆形 icon 留一圈品质底
+func _apply_circle_to_icon(btn: TextureButton, inset_px: int = -1) -> void:
+	if btn == null:
+		return
+	var icon_rect := btn.get_node_or_null("ItemIcon") as TextureRect
+	if icon_rect == null:
+		return
+	icon_rect.material = _get_circle_material()
+	if inset_px >= 0:
+		# anchors_preset = 15（full rect），正负对称 offset 把 icon 内缩 inset_px
+		icon_rect.offset_left = float(inset_px)
+		icon_rect.offset_top = float(inset_px)
+		icon_rect.offset_right = float(-inset_px)
+		icon_rect.offset_bottom = float(-inset_px)
+
+
+# 在槽位内确保一个 SlotBg 子节点（品质背景，铺底盖住空槽框），插在最底（索引 0）→ ItemIcon 在其之上
+func _ensure_slot_bg(btn: TextureButton) -> void:
+	if btn.get_node_or_null("SlotBg") != null:
+		return
+	var bg := TextureRect.new()
+	bg.name = "SlotBg"
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.offset_left = 0
+	bg.offset_top = 0
+	bg.offset_right = 0
+	bg.offset_bottom = 0
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	bg.texture = SLOT_BG_TEX[0]
+	bg.visible = false
+	btn.add_child(bg)
+	btn.move_child(bg, 0)   # 索引 0 → 最底
+
+
 func _get_stone_icon(stone: Dictionary) -> Texture2D:
 	var path := LobbyState.get_skill_stone_icon_path(stone)
 	if path.is_empty():

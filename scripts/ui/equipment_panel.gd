@@ -3,10 +3,8 @@ extends Control
 class_name EquipmentPanelView
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
-const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 const SYNTHESIS_PANEL_SCENE := preload("res://scenes/ui/synthesis_panel.tscn")
 const SKILL_STONE_PANEL_SCENE := preload("res://scenes/ui/skill_stone_panel.tscn")
-const ICON_CLOSE_PATH := "res://assets/ui/icons/system/icon_close.png"
 const ICON_BACK_PATH := "res://assets/ui/icons/system/icon_back.png"
 
 const SLOT_ORDER := [
@@ -44,6 +42,15 @@ const SORT_ICON_TEX := {
 	"shoes": preload("res://assets/ui/equipment/sort_icon_boot.png"),
 }
 const SORT_BG_TEX := preload("res://assets/ui/equipment/sort_bg.png")
+# 详情弹窗顶部品质装饰带：0 白 / 1 蓝 / 2 紫 / 3 橙
+# deco_rare_common=白 / deco_rare_rare=蓝 / deco_rare_epic=紫 / deco_rare_legendary=橙
+const QUALITY_DECO_TEX := {
+	0: preload("res://assets/ui/decorations/deco_rare_common.png"),
+	1: preload("res://assets/ui/decorations/deco_rare_rare.png"),
+	2: preload("res://assets/ui/decorations/deco_rare_epic.png"),
+	3: preload("res://assets/ui/decorations/deco_rare_legendary.png"),
+}
+const GOLD_ICON_TEX := preload("res://assets/ui/icons/currency/icon_cur_gold.png")
 const SORT_BADGE_SIZE := 33   # sort_bg 33×33
 const SORT_ICON_INNER := 20   # sort_icon 20×20，居中放在 sort_bg 内
 const LEVEL_FONT_SIZE := 18
@@ -79,21 +86,25 @@ const SLOT_BUTTON_NODES := {
 @onready var _attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/AttackBox/Row/AttackLabel
 @onready var _hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/MarginContainer/StatsBlock/SubStatsRow/HpBox/Row/HpLabel
 # 新增属性胶囊行：攻击 / 生命 / 移速（stat_capsule_9s 背景 + system icon + 数值）
-@onready var _capsule_attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Row/Value
-@onready var _capsule_hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Row/Value
-@onready var _capsule_speed_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Row/Value
+@onready var _capsule_attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Value
+@onready var _capsule_hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Value
+@onready var _capsule_speed_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Value
 @onready var _preview_viewport: SubViewport = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap/PreviewContainer/PreviewViewport
 @onready var _preview_sprite: AnimatedSprite2D = %PreviewSprite
 
-@onready var _detail_popup: PopupPanel = $DetailPopup
-@onready var _detail_icon: TextureRect = $DetailPopup/Margin/VBox/Head/DetailIcon
-@onready var _detail_name_label: Label = $DetailPopup/Margin/VBox/Head/HeadText/DetailNameLabel
-@onready var _detail_level_label: Label = $DetailPopup/Margin/VBox/Head/HeadText/DetailLevelLabel
-@onready var _detail_skill_text: RichTextLabel = $DetailPopup/Margin/VBox/DetailSkillText
-@onready var _detail_tip_label: Label = $DetailPopup/Margin/VBox/DetailTipLabel
-@onready var _btn_equip: Button = $DetailPopup/Margin/VBox/ActionRow/BtnEquip
-@onready var _btn_unequip: Button = $DetailPopup/Margin/VBox/ActionRow/BtnUnequip
-@onready var _btn_upgrade: Button = $DetailPopup/Margin/VBox/ActionRow/BtnUpgrade
+@onready var _detail_popup: Control = $DetailPopup
+@onready var _detail_dim: ColorRect = $DetailPopup/Dim
+@onready var _detail_panel: TextureRect = $DetailPopup/Panel
+@onready var _detail_quality_deco: TextureRect = $DetailPopup/Panel/QualityDeco
+@onready var _detail_icon_slot: TextureButton = $DetailPopup/Panel/DetailIconSlot
+@onready var _detail_icon: TextureRect = $DetailPopup/Panel/DetailIconSlot/ItemIcon
+@onready var _detail_name_label: Label = $DetailPopup/Panel/DetailNameLabel
+@onready var _detail_level_label: Label = $DetailPopup/Panel/DetailLevelLabel
+@onready var _detail_tip_label: Label = $DetailPopup/Panel/DetailTipLabel
+@onready var _detail_skill_text: RichTextLabel = $DetailPopup/Panel/DetailSkillText
+@onready var _btn_equip: TextureButton = $DetailPopup/Panel/BtnEquip
+@onready var _btn_unequip: TextureButton = $DetailPopup/Panel/BtnUnequip
+@onready var _btn_upgrade: TextureButton = $DetailPopup/Panel/BtnUpgrade
 @onready var _details_popup: AcceptDialog = $DetailsPopup
 @onready var _details_label: Label = $DetailsPopup/DetailsLabel
 @onready var _synth_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/SynthBtn
@@ -241,11 +252,19 @@ func _apply_static_texts() -> void:
 	if _inventory_empty_label != null:
 		_inventory_empty_label.text = LanguageManager.tr_ui("UI_EQUIP_NO_ITEMS")
 	if _btn_equip != null:
-		_btn_equip.text = LanguageManager.tr_ui("UI_EQUIP_WEAR")
+		var lbl := _btn_equip.get_node_or_null("Label") as Label
+		if lbl != null:
+			lbl.text = LanguageManager.tr_ui("UI_EQUIP_WEAR")
 	if _btn_unequip != null:
-		_btn_unequip.text = LanguageManager.tr_ui("UI_EQUIP_UNEQUIP")
+		var lbl := _btn_unequip.get_node_or_null("Label") as Label
+		if lbl != null:
+			lbl.text = LanguageManager.tr_ui("UI_EQUIP_UNEQUIP")
 	if _btn_upgrade != null:
-		_btn_upgrade.text = LanguageManager.tr_ui("UI_EQUIP_UPGRADE_BTN")
+		var lbl := _btn_upgrade.get_node_or_null("VBox/TitleLabel") as Label
+		if lbl != null:
+			lbl.text = LanguageManager.tr_ui("UI_EQUIP_UPGRADE_BTN")
+	if _detail_tip_label != null:
+		_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_DETAIL_ATTR_HEADER")
 	if _synth_btn != null:
 		var synth_lbl := _synth_btn.get_node_or_null("Label") as Label
 		if synth_lbl != null:
@@ -300,68 +319,117 @@ func _setup_scene_ui() -> void:
 
 	PixelUi.apply_ui_font_tree(self)
 	_apply_pixel_filter_tree(self)
-	_style_detail_buttons()  # 必须在 _apply_pixel_filter_tree 之后，否则 LINEAR filter 被覆盖回 NEAREST
-	_style_detail_popup_panel()
+	# 详情弹窗：编辑器里默认可见方便排版，运行时启动即隐藏
+	if _detail_popup != null and not Engine.is_editor_hint():
+		_detail_popup.visible = false
+	# 弹板按钮按下缩放效果（参考技能石/合成功能按钮）
+	_setup_action_button_press(_btn_equip)
+	_setup_action_button_press(_btn_unequip)
+	_setup_action_button_press(_btn_upgrade)
 
 
-# 详情弹窗里的"装备 / 卸下 / 强化"3 个按钮：从默认 Godot 样式升级到 9-slice
-func _style_detail_buttons() -> void:
-	if _btn_equip != null:
-		UiStyle.apply_primary_button(_btn_equip, Color("#4dd07a"), 10)  # 绿：装备
-		_btn_equip.add_theme_color_override("font_color", Color(0.06, 0.10, 0.06))
-	if _btn_unequip != null:
-		UiStyle.apply_primary_button(_btn_unequip, Color(0.55, 0.60, 0.78), 10)  # 蓝灰：卸下
-		_btn_unequip.add_theme_color_override("font_color", Color(0.96, 0.96, 0.98))
-	if _btn_upgrade != null:
-		UiStyle.apply_primary_button(_btn_upgrade, Color("#efb840"), 10)  # 金：强化
-		_btn_upgrade.add_theme_color_override("font_color", Color(0.18, 0.10, 0.04))
+# 点击弹窗外的暗化区域 → 关闭（替代旧右上角关闭按钮）
+func _on_detail_outside_clicked(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			_close_detail()
 
 
-# 详情弹窗背景改用 panel_tooltip_std_9s（比 dialog 尺寸更近、圆角更小、更贴合物品详情弹窗定位）
-# 注意：PopupPanel 继承自 Window（不是 CanvasItem），不能设 texture_filter；LINEAR 由 StyleBoxTexture 自带
-func _style_detail_popup_panel() -> void:
+func _close_detail() -> void:
+	_play_detail_close()
+
+
+# 弹出 / 弹回动效：Panel 以中心为轴心缩放 + Dim 淡入淡出
+const _DETAIL_POP_TIME := 0.18
+const _DETAIL_POP_SCALE := Vector2(0.82, 0.82)
+var _detail_tween: Tween = null
+
+
+func _kill_detail_tween() -> void:
+	if _detail_tween != null and _detail_tween.is_valid():
+		_detail_tween.kill()
+	_detail_tween = null
+
+
+func _play_detail_open() -> void:
 	if _detail_popup == null:
 		return
-	var tooltip_style := UiStyle.make_tooltip_stylebox(Color(0.20, 0.18, 0.16, 0.98), 12)
-	if tooltip_style != null:
-		_detail_popup.add_theme_stylebox_override("panel", tooltip_style)
-	_attach_detail_close_button()
+	_kill_detail_tween()
+	_detail_popup.visible = true
+	if _detail_panel != null:
+		_detail_panel.pivot_offset = _detail_panel.size * 0.5
+		_detail_panel.scale = _DETAIL_POP_SCALE
+	if _detail_dim != null:
+		_detail_dim.modulate = Color(1, 1, 1, 0.0)
+	_detail_tween = create_tween()
+	_detail_tween.set_parallel(true)
+	if _detail_dim != null:
+		_detail_tween.tween_property(_detail_dim, "modulate:a", 0.4, _DETAIL_POP_TIME)
+	if _detail_panel != null:
+		_detail_tween.tween_property(_detail_panel, "scale", Vector2.ONE, _DETAIL_POP_TIME) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
-# 详情弹窗右上角挂 icon_close.png（Head HBox 现有：DetailIcon + HeadText，追加 spacer + close）
-func _attach_detail_close_button() -> void:
-	if _detail_popup == null:
+func _play_detail_close() -> void:
+	if _detail_popup == null or not _detail_popup.visible:
 		return
-	var head := _detail_popup.get_node_or_null("Margin/VBox/Head") as HBoxContainer
-	if head == null or head.get_node_or_null("CloseBtn") != null:
-		return
-	if not ResourceLoader.exists(ICON_CLOSE_PATH):
-		return
-	var tex := load(ICON_CLOSE_PATH) as Texture2D
-	if tex == null:
-		return
-	var spacer := Control.new()
-	spacer.name = "HeadSpacer"
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(spacer)
-	var btn := TextureButton.new()
-	btn.name = "CloseBtn"
-	btn.texture_normal = tex
-	btn.texture_hover = tex
-	btn.texture_pressed = tex
-	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	btn.ignore_texture_size = true
-	btn.custom_minimum_size = Vector2(32, 32)
-	btn.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	btn.pressed.connect(_on_detail_close_pressed)
-	head.add_child(btn)
+	_kill_detail_tween()
+	if _detail_panel != null:
+		_detail_panel.pivot_offset = _detail_panel.size * 0.5
+	_detail_tween = create_tween()
+	_detail_tween.set_parallel(true)
+	if _detail_dim != null:
+		_detail_tween.tween_property(_detail_dim, "modulate:a", 0.0, _DETAIL_POP_TIME)
+	if _detail_panel != null:
+		_detail_tween.tween_property(_detail_panel, "scale", _DETAIL_POP_SCALE, _DETAIL_POP_TIME) \
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_detail_tween.chain().tween_callback(_hide_detail_after_close)
 
 
-func _on_detail_close_pressed() -> void:
+func _hide_detail_after_close() -> void:
 	if _detail_popup != null:
-		_detail_popup.hide()
+		_detail_popup.visible = false
 	_current_detail_uid = -1
+
+
+# 详情弹窗里的装备 icon 槽：品质背景 + 部位徽章 + 物品 icon（无等级文字）
+func _apply_detail_icon_slot(item: Dictionary, quality: int, slot: String) -> void:
+	if _detail_icon_slot == null:
+		return
+	var slot_bg := _detail_icon_slot.get_node_or_null("SlotBg") as TextureRect
+	if slot_bg != null:
+		slot_bg.texture = SLOT_BG_TEX.get(quality, SLOT_BG_TEX[0])
+		slot_bg.visible = true
+	var icon := _get_item_icon(item)
+	if _detail_icon != null:
+		_detail_icon.texture = icon
+		_detail_icon.visible = icon != null
+	var sort_bg := _detail_icon_slot.get_node_or_null("SortIconBg") as TextureRect
+	if sort_bg != null:
+		sort_bg.visible = slot != ""
+		var sort_icon := sort_bg.get_node_or_null("SortIcon") as TextureRect
+		if sort_icon != null and slot != "":
+			sort_icon.texture = SORT_ICON_TEX.get(slot, null)
+	_detail_icon_slot.self_modulate = Color.WHITE
+
+
+# 升级按钮：第一行 "升级" + 第二行 [金币 icon] cost/total；金币不足置灰、数字转红
+func _refresh_upgrade_button(cost: int) -> void:
+	if _btn_upgrade == null:
+		return
+	var held := int(LobbyState.gold)
+	var title := _btn_upgrade.get_node_or_null("VBox/TitleLabel") as Label
+	if title != null:
+		title.text = LanguageManager.tr_ui("UI_EQUIP_UPGRADE_BTN")
+	var cost_label := _btn_upgrade.get_node_or_null("VBox/GoldRow/CostLabel") as Label
+	if cost_label != null:
+		cost_label.text = "%d/%d" % [cost, held]
+		var afford := held >= cost
+		cost_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3) if not afford else Color(1, 1, 1))
+	var can_afford := held >= cost
+	_btn_upgrade.disabled = not can_afford
+	_btn_upgrade.modulate = Color(0.6, 0.6, 0.6) if not can_afford else Color.WHITE
 
 
 func _bind_slot_buttons() -> void:
@@ -446,6 +514,9 @@ func _should_keep_ci_nearest(node: Node) -> bool:
 	# 装备格子新增的像素贴图：品质背景 SlotBg、部位徽章 SortIconBg/SortIcon 也走 NEAREST
 	if n == "SlotBg" or n == "SortIconBg" or n == "SortIcon":
 		return true
+	# 详情弹窗金币 icon 也是像素图
+	if n == "GoldIcon":
+		return true
 	return false
 
 
@@ -454,7 +525,7 @@ func _on_synthesis_pressed() -> void:
 	if host == null:
 		return
 	if _detail_popup != null:
-		_detail_popup.hide()
+		_detail_popup.visible = false
 	_current_detail_uid = -1
 	var panel := SYNTHESIS_PANEL_SCENE.instantiate() as Control
 	if panel == null:
@@ -470,7 +541,7 @@ func _on_skill_stone_pressed() -> void:
 	if host == null:
 		return
 	if _detail_popup != null:
-		_detail_popup.hide()
+		_detail_popup.visible = false
 	_current_detail_uid = -1
 	var panel := SKILL_STONE_PANEL_SCENE.instantiate() as Control
 	if panel == null:
@@ -495,7 +566,7 @@ func _on_equipment_changed() -> void:
 
 func _on_gold_changed(_value: int) -> void:
 	if _current_detail_uid >= 0 and _detail_popup.visible:
-		_open_item_detail(_current_detail_uid)
+		_refresh_detail_content(_current_detail_uid)
 
 
 func _refresh_all() -> void:
@@ -767,21 +838,36 @@ func _on_slot_pressed(slot: String) -> void:
 
 
 func _open_item_detail(uid: int) -> void:
-	if _detail_popup == null or _btn_equip == null or _btn_unequip == null or _btn_upgrade == null:
+	if not _refresh_detail_content(uid):
 		return
+	_play_detail_open()
+
+
+# 刷新弹板内容（品质装饰/icon/名称/等级/属性球/按钮）。返回 false=物品不存在。
+# 注意：升级 / 金币变化触发的刷新走这里——不带弹出动画，避免每次刷新都 re-pop。
+func _refresh_detail_content(uid: int) -> bool:
+	if _detail_popup == null or _btn_equip == null or _btn_unequip == null or _btn_upgrade == null:
+		return false
 	var item := LobbyState.get_item_by_uid(uid)
 	if item.is_empty():
-		return
+		return false
 	_current_detail_uid = uid
-	_detail_icon.texture = _get_item_icon(item)
 	var quality := int(item.get("quality", 0))
-	var quality_color := LobbyState.get_quality_color(quality)
+	var slot := str(item.get("slot", ""))
+	# 顶部品质装饰带
+	if _detail_quality_deco != null:
+		_detail_quality_deco.texture = QUALITY_DECO_TEX.get(quality, QUALITY_DECO_TEX[0])
+	# 装备 icon（带部位徽章，无等级文字）
+	_apply_detail_icon_slot(item, quality, slot)
+	# 名称
 	_detail_name_label.text = LobbyState.get_item_name(item)
-	_detail_name_label.self_modulate = quality_color
+	# 等级信息
 	_detail_level_label.text = LanguageManager.tr_ui("UI_EQUIP_LEVEL_PART_FMT") % [
 		int(item.get("level", 1)),
-		LobbyState.get_slot_display_name(str(item.get("slot", ""))),
+		LobbyState.get_slot_display_name(slot),
 	]
+	# "属性" 段头
+	_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_DETAIL_ATTR_HEADER")
 
 	var lines: PackedStringArray = []
 	for entry in LobbyState.get_item_skill_entries(item):
@@ -790,7 +876,7 @@ func _open_item_detail(uid: int) -> void:
 		var text := str(entry.get("text", ""))
 		var ball := _make_quality_pixel_ball(quality_tier, unlocked)
 		if unlocked:
-			lines.append("%s [color=#d6f7d2]%s[/color]" % [ball, text])
+			lines.append("%s [color=#%s]%s[/color]" % [ball, _ATTR_TEXT_ACTIVE.to_html(), text])
 		else:
 			lines.append("%s [color=#7a7a7a]%s[/color]" % [ball, text])
 	_detail_skill_text.text = "\n".join(lines)
@@ -798,23 +884,16 @@ func _open_item_detail(uid: int) -> void:
 	var equipped := LobbyState.is_item_equipped(uid)
 	_btn_equip.visible = not equipped
 	_btn_unequip.visible = equipped
-	_btn_upgrade.visible = equipped
-	if equipped:
-		var cost := LobbyState.get_upgrade_cost(item)
-		_btn_upgrade.text = LanguageManager.tr_ui("UI_EQUIP_UPGRADE_COST_FMT") % cost
-		_btn_upgrade.disabled = int(LobbyState.gold) < cost
-		_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_TIP_UPGRADE")
-	else:
-		_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_TIP_WEAR")
-	_detail_popup.popup_centered()
+	_btn_upgrade.visible = true
+	_refresh_upgrade_button(LobbyState.get_upgrade_cost(item))
+	return true
 
 
 func _on_detail_equip() -> void:
 	if _current_detail_uid < 0:
 		return
 	if LobbyState.equip_item(_current_detail_uid):
-		_detail_popup.hide()
-		_current_detail_uid = -1
+		_close_detail()
 
 
 func _on_detail_unequip() -> void:
@@ -825,8 +904,7 @@ func _on_detail_unequip() -> void:
 		return
 	var slot := str(item.get("slot", ""))
 	if LobbyState.unequip_slot(slot):
-		_detail_popup.hide()
-		_current_detail_uid = -1
+		_close_detail()
 
 
 func _on_detail_upgrade() -> void:
@@ -834,9 +912,12 @@ func _on_detail_upgrade() -> void:
 		return
 	var upgraded := LobbyState.upgrade_item(_current_detail_uid)
 	if upgraded.is_empty():
-		_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_TIP_NO_GOLD")
+		# 金币不足：刷新按钮置灰，不关弹窗、不动 "属性" 段头
+		var cur := LobbyState.get_item_by_uid(_current_detail_uid)
+		if not cur.is_empty():
+			_refresh_upgrade_button(LobbyState.get_upgrade_cost(cur))
 		return
-	_open_item_detail(_current_detail_uid)
+	_refresh_detail_content(_current_detail_uid)
 
 
 func _build_active_effect_lines() -> PackedStringArray:
@@ -876,9 +957,20 @@ func _show_attr_popup() -> void:
 	_details_popup.popup_centered()
 
 
+# 属性球：按品质取高饱和色；生效=满色，未生效=同色淡（lightened）。
+# 生效的属性"文字说明"才是深绿，球本身始终按品质色。
+const _ATTR_BALL_COLOR := {
+	0: Color(0.86, 0.86, 0.86, 1),   # 白 → 浅灰（白无饱和度可提）
+	1: Color(0.30, 0.55, 1.00, 1),   # 蓝 → 高饱和蓝
+	2: Color(0.70, 0.30, 1.00, 1),   # 紫 → 高饱和紫
+	3: Color(1.00, 0.55, 0.10, 1),   # 橙 → 高饱和橙
+}
+const _ATTR_TEXT_ACTIVE := Color(0.12, 0.54, 0.24, 1)   # 生效属性文字：深绿
+
+
 func _make_quality_pixel_ball(quality: int, unlocked: bool) -> String:
-	var base := LobbyState.get_quality_color(quality)
-	var fill := base if unlocked else base.lightened(0.45)
+	var base: Color = _ATTR_BALL_COLOR.get(quality, _ATTR_BALL_COLOR[0])
+	var fill: Color = base if unlocked else base.lightened(0.4)
 	return "[color=%s]●[/color]" % fill.to_html()
 
 
