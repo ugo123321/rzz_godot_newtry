@@ -22,7 +22,8 @@
           "per_level": 2.0,
           "pct": false
         }
-      ]
+      ],
+      "icon": "Stat_Power_01"
     },
     {
       "id": "hp",
@@ -46,7 +47,8 @@
           "per_level": 2.0,
           "pct": false
         }
-      ]
+      ],
+      "icon": "Economy_Heart_Red"
     },
     {
       "id": "ki",
@@ -70,7 +72,8 @@
           "per_level": 5.0,
           "pct": false
         }
-      ]
+      ],
+      "icon": "Item_Hourglass_01_Silver"
     },
     {
       "id": "ki_regen",
@@ -94,7 +97,8 @@
           "per_level": 2.0,
           "pct": false
         }
-      ]
+      ],
+      "icon": "Item_Clock_01_Silver"
     },
     {
       "id": "crit_rate",
@@ -118,7 +122,8 @@
           "per_level": 0.5,
           "pct": true
         }
-      ]
+      ],
+      "icon": "UI_ETC_Target_02_Brown"
     },
     {
       "id": "crit_damage",
@@ -142,7 +147,8 @@
           "per_level": 2.0,
           "pct": true
         }
-      ]
+      ],
+      "icon": "UI_ETC_Target_01"
     },
     {
       "id": "move_speed",
@@ -166,7 +172,8 @@
           "per_level": 5.0,
           "pct": false
         }
-      ]
+      ],
+      "icon": "Stat_MoveSpeed_01"
     },
     {
       "id": "range",
@@ -190,7 +197,8 @@
           "per_level": 5.0,
           "pct": true
         }
-      ]
+      ],
+      "icon": "Gear_Helmet_03"
     },
     {
       "id": "atk_speed",
@@ -214,7 +222,8 @@
           "per_level": 2.0,
           "pct": true
         }
-      ]
+      ],
+      "icon": "Gear_Bow_01"
     },
     {
       "id": "lethal_strike",
@@ -246,7 +255,8 @@
           "per_level": 5.0,
           "pct": true
         }
-      ]
+      ],
+      "icon": "UI_Play_Skull_04"
     },
     {
       "id": "lightning_dash",
@@ -278,7 +288,8 @@
           "per_level": 5.0,
           "pct": true
         }
-      ]
+      ],
+      "icon": "Economy_Energy_02_Blue"
     },
     {
       "id": "meditation",
@@ -310,7 +321,8 @@
           "per_level": 5.0,
           "pct": false
         }
-      ]
+      ],
+      "icon": "Material_Ore_01"
     },
     {
       "id": "super_enhance",
@@ -342,7 +354,8 @@
           "per_level": 5.0,
           "pct": false
         }
-      ]
+      ],
+      "icon": "UI_Common_Speed_01_Yellow"
     },
     {
       "id": "long_range_strike",
@@ -374,7 +387,8 @@
           "per_level": 6.0,
           "pct": true
         }
-      ]
+      ],
+      "icon": "Misc_Fist_01_Gold"
     },
     {
       "id": "unlock_first_reward",
@@ -388,7 +402,8 @@
       "unlock_flag": "first_reward",
       "desc_template_cn": "进入游戏时触发一次奖励",
       "desc_template_en": "Trigger one reward on game start",
-      "display": []
+      "display": [],
+      "icon": "Item_Horn_01_Wood"
     },
     {
       "id": "unlock_angel_stage",
@@ -402,7 +417,8 @@
       "unlock_flag": "angel_stage",
       "desc_template_cn": "解锁天使关",
       "desc_template_en": "Unlock Angel Stage",
-      "display": []
+      "display": [],
+      "icon": "Item_Artifact_01_Gold"
     },
     {
       "id": "unlock_demon_stage",
@@ -416,7 +432,8 @@
       "unlock_flag": "demon_stage",
       "desc_template_cn": "解锁恶魔关",
       "desc_template_en": "Unlock Demon Stage",
-      "display": []
+      "display": [],
+      "icon": "Item_Artifact_01_Gold"
     },
     {
       "id": "unlock_forge_stage",
@@ -430,7 +447,8 @@
       "unlock_flag": "forge_stage",
       "desc_template_cn": "解锁属性打造关",
       "desc_template_en": "Unlock Attribute Forge Stage",
-      "display": []
+      "display": [],
+      "icon": "Item_Artifact_01_Gold"
     },
     {
       "id": "unlock_mystery_portal",
@@ -444,7 +462,8 @@
       "unlock_flag": "mystery_portal",
       "desc_template_cn": "偶尔会出现神秘传送门",
       "desc_template_en": "Mystery portals may appear",
-      "display": []
+      "display": [],
+      "icon": "Item_Artifact_01_Gold"
     },
     {
       "id": "unlock_elite_enemy",
@@ -458,7 +477,8 @@
       "unlock_flag": "elite_enemy",
       "desc_template_cn": "敌人小概率变异",
       "desc_template_en": "Enemies may mutate into elites",
-      "display": []
+      "display": [],
+      "icon": "Item_Artifact_01_Gold"
     }
   ]
 }

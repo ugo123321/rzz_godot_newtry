@@ -173,6 +173,7 @@
 	"UI_BUFF_NOTICE_ICE": "Freeze Orb",
 	"UI_TALENT_TITLE": "Talent Cards",
 	"UI_TALENT_DRAW": "Draw",
+	"UI_DRAW_BTN": "Draw",
 	"UI_TALENT_CLOSE_HINT": "Tap blank area to close",
 	"UI_TALENT_LV_FMT": "LV%d",
 	"UI_TALENT_INSUFFICIENT_GOLD": "Not enough gold",

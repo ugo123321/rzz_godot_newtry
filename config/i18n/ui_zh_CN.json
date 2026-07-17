@@ -173,6 +173,7 @@
 	"UI_BUFF_NOTICE_ICE": "冰冻球",
 	"UI_TALENT_TITLE": "天赋卡牌",
 	"UI_TALENT_DRAW": "抽卡",
+	"UI_DRAW_BTN": "抽取",
 	"UI_TALENT_CLOSE_HINT": "点击空白处以关闭",
 	"UI_TALENT_LV_FMT": "LV%d",
 	"UI_TALENT_INSUFFICIENT_GOLD": "金币不足",

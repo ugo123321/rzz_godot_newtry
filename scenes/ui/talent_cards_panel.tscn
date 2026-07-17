@@ -1,9 +1,21 @@
-[gd_scene format=3 uid="uid://cb6wm6ifww2tv"]
+[gd_scene load_steps=17 format=3 uid="uid://cb6wm6ifww2tv"]
 
 [ext_resource type="Script" uid="uid://civp1i6oldjw1" path="res://scripts/ui/talent_cards_panel.gd" id="1_talent_panel"]
 [ext_resource type="Script" uid="uid://dag4k5g7htdb2" path="res://scripts/ui/spring_scroll_container.gd" id="2_spring"]
 [ext_resource type="Script" path="res://scripts/ui/scrolling_background.gd" id="3_scroll_bg_script"]
 [ext_resource type="Texture2D" path="res://assets/ui/backgrounds/cards_bg.png" id="4_cards_bg"]
+[ext_resource type="PackedScene" path="res://scenes/ui/talent_card_slot.tscn" id="5_slot_scene"]
+[ext_resource type="Texture2D" path="res://assets/ui/cards/card_white_bg.png" id="6_white_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/cards/card_purple_bg.png" id="7_purple_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/cards/card_orange_bg.png" id="8_orange_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/cards/card_back_bg.png" id="9_back_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/cards/Stat_Power_01.png" id="10_power"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/cards/Economy_Heart_Red.png" id="11_heart"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/cards/Item_Hourglass_01_Silver.png" id="12_hourglass"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/cards/UI_Play_Skull_04.png" id="13_skull"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/cards/Item_Artifact_01_Gold.png" id="14_artifact"]
+[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_orange.png" id="15_btn_orange"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="16_gold"]
 
 [node name="TalentCardsPanel" type="Control" unique_id=1776697281]
 layout_mode = 3
@@ -13,7 +25,18 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+texture_filter = 2
 script = ExtResource("1_talent_panel")
+
+[node name="BgColor" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.466667, 0.305882, 0.698039, 1)
 
 [node name="ScrollBg" type="Control" parent="."]
 layout_mode = 1
@@ -81,7 +104,129 @@ theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 16
 columns = 4
 
-[node name="DrawButton" type="Button" parent="." unique_id=1343252722]
+[node name="Preview1" parent="Scroll/CardGrid" instance=ExtResource("5_slot_scene")]
+slot_size = Vector2(130, 170)
+custom_minimum_size = Vector2(130, 170)
+
+[node name="Background" parent="Scroll/CardGrid/Preview1" index="0"]
+texture = ExtResource("6_white_bg")
+
+[node name="Icon" parent="Scroll/CardGrid/Preview1" index="1"]
+texture = ExtResource("10_power")
+
+[node name="LVLabel" parent="Scroll/CardGrid/Preview1" index="2"]
+text = "LV1"
+
+[node name="NameLabel" parent="Scroll/CardGrid/Preview1" index="3"]
+text = "力量"
+
+[node name="Preview2" parent="Scroll/CardGrid" instance=ExtResource("5_slot_scene")]
+slot_size = Vector2(130, 170)
+custom_minimum_size = Vector2(130, 170)
+
+[node name="Background" parent="Scroll/CardGrid/Preview2" index="0"]
+texture = ExtResource("6_white_bg")
+
+[node name="Icon" parent="Scroll/CardGrid/Preview2" index="1"]
+texture = ExtResource("11_heart")
+
+[node name="LVLabel" parent="Scroll/CardGrid/Preview2" index="2"]
+text = "LV5"
+
+[node name="NameLabel" parent="Scroll/CardGrid/Preview2" index="3"]
+text = "生命"
+
+[node name="Preview3" parent="Scroll/CardGrid" instance=ExtResource("5_slot_scene")]
+slot_size = Vector2(130, 170)
+custom_minimum_size = Vector2(130, 170)
+
+[node name="Icon" parent="Scroll/CardGrid/Preview3" index="1"]
+texture = ExtResource("12_hourglass")
+
+[node name="LVLabel" parent="Scroll/CardGrid/Preview3" index="2"]
+text = "LV2"
+
+[node name="NameLabel" parent="Scroll/CardGrid/Preview3" index="3"]
+text = "气力"
+
+[node name="Preview4" parent="Scroll/CardGrid" instance=ExtResource("5_slot_scene")]
+slot_size = Vector2(130, 170)
+custom_minimum_size = Vector2(130, 170)
+
+[node name="Icon" parent="Scroll/CardGrid/Preview4" index="1"]
+texture = ExtResource("10_power")
+
+[node name="LVLabel" parent="Scroll/CardGrid/Preview4" index="2"]
+text = "LV3"
+
+[node name="NameLabel" parent="Scroll/CardGrid/Preview4" index="3"]
+text = "攻速"
+
+[node name="Preview5" parent="Scroll/CardGrid" instance=ExtResource("5_slot_scene")]
+slot_size = Vector2(130, 170)
+custom_minimum_size = Vector2(130, 170)
+
+[node name="Background" parent="Scroll/CardGrid/Preview5" index="0"]
+texture = ExtResource("7_purple_bg")
+
+[node name="Icon" parent="Scroll/CardGrid/Preview5" index="1"]
+texture = ExtResource("13_skull")
+
+[node name="LVLabel" parent="Scroll/CardGrid/Preview5" index="2"]
+text = "LV1"
+
+[node name="NameLabel" parent="Scroll/CardGrid/Preview5" index="3"]
+text = "致命一击"
+
+[node name="Preview6" parent="Scroll/CardGrid" instance=ExtResource("5_slot_scene")]
+slot_size = Vector2(130, 170)
+custom_minimum_size = Vector2(130, 170)
+
+[node name="Background" parent="Scroll/CardGrid/Preview6" index="0"]
+texture = ExtResource("7_purple_bg")
+
+[node name="Icon" parent="Scroll/CardGrid/Preview6" index="1"]
+texture = ExtResource("12_hourglass")
+
+[node name="LVLabel" parent="Scroll/CardGrid/Preview6" index="2"]
+text = "LV2"
+
+[node name="NameLabel" parent="Scroll/CardGrid/Preview6" index="3"]
+text = "冥想"
+
+[node name="Preview7" parent="Scroll/CardGrid" instance=ExtResource("5_slot_scene")]
+slot_size = Vector2(130, 170)
+custom_minimum_size = Vector2(130, 170)
+
+[node name="Background" parent="Scroll/CardGrid/Preview7" index="0"]
+texture = ExtResource("8_orange_bg")
+
+[node name="Icon" parent="Scroll/CardGrid/Preview7" index="1"]
+texture = ExtResource("14_artifact")
+
+[node name="LVLabel" parent="Scroll/CardGrid/Preview7" index="2"]
+text = "LV1"
+
+[node name="NameLabel" parent="Scroll/CardGrid/Preview7" index="3"]
+text = "天使关"
+
+[node name="Preview8" parent="Scroll/CardGrid" instance=ExtResource("5_slot_scene")]
+slot_size = Vector2(130, 170)
+custom_minimum_size = Vector2(130, 170)
+
+[node name="Background" parent="Scroll/CardGrid/Preview8" index="0"]
+texture = ExtResource("9_back_bg")
+
+[node name="Icon" parent="Scroll/CardGrid/Preview8" index="1"]
+visible = false
+
+[node name="LVLabel" parent="Scroll/CardGrid/Preview8" index="2"]
+text = ""
+
+[node name="NameLabel" parent="Scroll/CardGrid/Preview8" index="3"]
+text = ""
+
+[node name="DrawButton" type="TextureButton" parent="." unique_id=1343252722]
 custom_minimum_size = Vector2(240, 84)
 layout_mode = 1
 anchors_preset = 7
@@ -95,40 +240,62 @@ offset_right = 120.0
 offset_bottom = -46.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0.165, 0.094, 0.031, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 26
+mouse_filter = 0
+texture_normal = ExtResource("15_btn_orange")
+ignore_texture_size = true
+stretch_mode = 0
 
-[node name="DrawLabel" type="Label" parent="DrawButton" unique_id=1028638640]
+[node name="VBox" type="VBoxContainer" parent="DrawButton" unique_id=1028638640]
 layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_top = 10.0
-offset_bottom = 44.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -107.0
+offset_top = -26.0
+offset_right = 107.0
+offset_bottom = 26.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0.165, 0.094, 0.031, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 26
-text = "抽卡"
-horizontal_alignment = 1
-vertical_alignment = 1
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+alignment = 1
 
-[node name="CostLabel" type="Label" parent="DrawButton" unique_id=867206357]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -40.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_colors/font_color = Color(1, 0.957, 0.627, 1)
-theme_override_colors/font_outline_color = Color(0.227, 0.141, 0.031, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 20
-text = "100"
+[node name="TitleLabel" type="Label" parent="DrawButton/VBox" unique_id=10000001]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 3
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 24
+text = "抽取"
 horizontal_alignment = 1
+
+[node name="GoldRow" type="HBoxContainer" parent="DrawButton/VBox" unique_id=10000002]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="GoldIcon" type="TextureRect" parent="DrawButton/VBox/GoldRow" unique_id=10000003]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("16_gold")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="DrawButton/VBox/GoldRow" unique_id=10000004]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+text = "0/0"
 vertical_alignment = 1

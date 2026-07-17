@@ -1,12 +1,13 @@
-[gd_scene format=3 uid="uid://dlxbn1sl1yrmi"]
+[gd_scene load_steps=9 format=3 uid="uid://dlxbn1sl1yrmi"]
 
 [ext_resource type="Script" uid="uid://b2qf3y24cdav3" path="res://scripts/ui/lucky_spin_panel.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://cwu7oyvy74gvu" path="res://assets/ui/panels/lucky_spin.png" id="2_wheel"]
 [ext_resource type="Texture2D" uid="uid://bpd5qg7jsuea2" path="res://assets/ui/decorations/deco_lucky_spine.png" id="3_deco"]
 [ext_resource type="Texture2D" uid="uid://cr8nkfq8dkii7" path="res://assets/ui/decorations/deco_needle.png" id="4_needle"]
 [ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="5_gold"]
-[ext_resource type="Script" path="res://scripts/ui/scrolling_background.gd" id="6_scroll_bg_script"]
-[ext_resource type="Texture2D" path="res://assets/ui/backgrounds/spin_bg.png" id="7_spin_bg"]
+[ext_resource type="Script" uid="uid://bl01sv52m1x7t" path="res://scripts/ui/scrolling_background.gd" id="6_scroll_bg_script"]
+[ext_resource type="Texture2D" uid="uid://bek2hl55br6mf" path="res://assets/ui/backgrounds/spin_bg.png" id="7_spin_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_orange.png" id="8_btn_orange"]
 
 [node name="LuckySpinPanel" type="Control" unique_id=1701175268]
 texture_filter = 1
@@ -18,7 +19,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Bg" type="ColorRect" parent="." unique_id=1094546122]
+[node name="BgColor" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -26,9 +27,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.12, 0.09, 0.14, 1)
+color = Color(0.882353, 0.533333, 0.117647, 1)
 
-[node name="ScrollBg" type="Control" parent="."]
+[node name="ScrollBg" type="Control" parent="." unique_id=557916761]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -38,25 +39,20 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("6_scroll_bg_script")
 texture = ExtResource("7_spin_bg")
-scroll_speed = 22.0
 
 [node name="Title" type="Label" parent="." unique_id=683996632]
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -200.0
-offset_top = 56.0
-offset_right = 200.0
-offset_bottom = 104.0
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 92.0
+offset_bottom = 136.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.95, 0.85, 0.5, 1)
-theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
-theme_override_constants/outline_size = 4
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.078, 0.094, 0.141, 1)
+theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 32
 text = "幸运转盘"
 horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="WheelWrap" type="Control" parent="." unique_id=785662749]
 unique_name_in_owner = true
@@ -317,19 +313,79 @@ theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SpinBtn" type="Button" parent="." unique_id=1727586665]
+[node name="SpinBtn" type="TextureButton" parent="." unique_id=1727586665]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(240, 84)
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -110.0
+offset_left = -120.0
 offset_top = 980.0
-offset_right = 110.0
+offset_right = 120.0
 offset_bottom = 1064.0
 grow_horizontal = 2
-theme_override_font_sizes/font_size = 22
-text = "10"
-icon = ExtResource("5_gold")
-expand_icon = true
+mouse_filter = 0
+texture_normal = ExtResource("8_btn_orange")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="SpinBtn"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -107.0
+offset_top = -26.0
+offset_right = 107.0
+offset_bottom = 26.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="SpinBtn/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 3
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 24
+text = "抽取"
+horizontal_alignment = 1
+
+[node name="GoldRow" type="HBoxContainer" parent="SpinBtn/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="GoldIcon" type="TextureRect" parent="SpinBtn/VBox/GoldRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("5_gold")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="SpinBtn/VBox/GoldRow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+text = "0/0"
+vertical_alignment = 1

@@ -7,14 +7,21 @@ class_name TalentDrawResultPopup
 
 signal closed(id: String, level_before: int, level_after: int, is_new: bool)
 
-const TalentCardSlotT = preload("res://scripts/ui/talent_card_slot.gd")
+const TalentCardSlotT = preload("res://scenes/ui/talent_card_slot.tscn")
+const EFFECT_TEX := preload("res://assets/ui/effect/effect01.png")
 
 const CARD_SIZE := Vector2(300.0, 400.0)
 const SHOW_DURATION := 0.35
 const HIDE_DURATION := 0.18
+# 卡牌背后的旋转光效（effect01.png）
+const EFFECT_SIZE := 520.0
+const EFFECT_SPIN_PERIOD := 6.0
+const EFFECT_ALPHA := 0.9
 
 var _result: Dictionary = {}
 var _overlay: ColorRect
+var _effect: TextureRect
+var _effect_spin: Tween
 var _card: Control
 var _desc_label: Label
 var _hint_label: Label
@@ -45,7 +52,26 @@ func _build_ui() -> void:
 	# ? 图案背景装饰（简单半透纹路，用 draw 实现于 overlay 之下的 Control）
 	# 保持简单：仅用纯色 overlay
 
-	_card = TalentCardSlotT.new()
+	# 卡牌背后的旋转光效（在 _card 之前 add_child，画在卡牌下层）
+	_effect = TextureRect.new()
+	_effect.texture = EFFECT_TEX
+	_effect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_effect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_effect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_effect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_effect.anchor_left = 0.5
+	_effect.anchor_top = 0.5
+	_effect.anchor_right = 0.5
+	_effect.anchor_bottom = 0.5
+	_effect.offset_left = -EFFECT_SIZE * 0.5
+	_effect.offset_right = EFFECT_SIZE * 0.5
+	_effect.offset_top = -EFFECT_SIZE * 0.5 - 30.0
+	_effect.offset_bottom = EFFECT_SIZE * 0.5 - 30.0
+	_effect.pivot_offset = Vector2(EFFECT_SIZE * 0.5, EFFECT_SIZE * 0.5)
+	_effect.modulate = Color(1, 1, 1, EFFECT_ALPHA)
+	add_child(_effect)
+
+	_card = TalentCardSlotT.instantiate()
 	_card.slot_size = CARD_SIZE
 	_card.custom_minimum_size = CARD_SIZE
 	_card.size = CARD_SIZE
@@ -139,11 +165,28 @@ func _play_show_anim() -> void:
 	_card.pivot_offset = _card.size * 0.5
 	_card.scale = Vector2(0.05, 0.05)
 	modulate = Color(1, 1, 1, 0.0)
+	# 光效随卡牌一起从小放大
+	if _effect != null:
+		_effect.scale = Vector2(0.5, 0.5)
 	var tw := create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(self, "modulate", Color.WHITE, 0.15)
-	tw.tween_property(_card, "scale", Vector2(1.08, 1.08), SHOW_DURATION * 0.7).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tw.chain().tween_property(_card, "scale", Vector2.ONE, SHOW_DURATION * 0.3).set_ease(Tween.EASE_IN_OUT)
+	# 单段带回弹的缩放：TRANS_BACK 会先冲过 1.0 再回落，一气呵成，避免两段拼接在峰值处顿一下
+	tw.tween_property(_card, "scale", Vector2.ONE, SHOW_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	if _effect != null:
+		tw.tween_property(_effect, "scale", Vector2.ONE, SHOW_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	_start_effect_spin()
+
+
+func _start_effect_spin() -> void:
+	if _effect == null:
+		return
+	if _effect_spin != null and _effect_spin.is_valid():
+		_effect_spin.kill()
+	_effect_spin = create_tween()
+	# 线性无限旋转一圈（TAU 与 0 视觉等价，loop 无跳变）
+	_effect_spin.set_loops()
+	_effect_spin.tween_property(_effect, "rotation", TAU, EFFECT_SPIN_PERIOD).set_trans(Tween.TRANS_LINEAR)
 
 
 func _gui_input(event: InputEvent) -> void:

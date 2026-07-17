@@ -5,7 +5,7 @@ class_name TalentCardsPanel
 # 下方抽卡按钮消耗金币抽卡；抽到卡后弹 TalentDrawResultPopup，关闭时若是重复卡触发升级动画。
 # 点击已拥有卡片弹 TalentDetailPopup（左右切换观看）。
 
-const TalentCardSlotT = preload("res://scripts/ui/talent_card_slot.gd")
+const TalentCardSlotT = preload("res://scenes/ui/talent_card_slot.tscn")
 const TalentDrawResultPopupT = preload("res://scripts/ui/talent_draw_result_popup.gd")
 const TalentDetailPopupT = preload("res://scripts/ui/talent_detail_popup.gd")
 const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
@@ -15,14 +15,13 @@ const GRID_ROWS := 5  # 20 卡 = 4 × 5；面板高度够就不出滚动条，�
 const CARD_ASPECT := Vector2(130.0, 170.0)  # 参考比例
 const CARD_H_MARGIN := 12.0
 const CARD_V_MARGIN := 16.0
-const DRAW_BUTTON_TINT := Color("#efb840")
 const DEBUG_BUTTON_TINT := Color("#efb840")
 
 @onready var _title_label: Label = $Title
 @onready var _grid: GridContainer = $Scroll/CardGrid
-@onready var _draw_button: Button = $DrawButton
-@onready var _cost_label: Label = $DrawButton/CostLabel
-@onready var _draw_label: Label = $DrawButton/DrawLabel
+@onready var _draw_button: TextureButton = $DrawButton
+@onready var _cost_label: Label = get_node_or_null("DrawButton/VBox/GoldRow/CostLabel") as Label
+@onready var _draw_label: Label = get_node_or_null("DrawButton/VBox/TitleLabel") as Label
 @onready var _debug_unlock_btn: Button = $DebugUnlockButton
 
 var _slot_by_id: Dictionary = {}   # id -> Control (TalentCardSlot)
@@ -51,6 +50,7 @@ func _ready() -> void:
 	_update_cost_visual()
 	if _draw_button != null:
 		_draw_button.pressed.connect(_on_draw_pressed)
+		_setup_button_press(_draw_button)
 	if _debug_unlock_btn != null:
 		# pressed = 一次完整 down+up；button_down = 按下瞬间就触发，冗余以防事件被吞
 		_debug_unlock_btn.pressed.connect(_on_debug_unlock_pressed)
@@ -67,10 +67,35 @@ func _ready() -> void:
 
 
 func _apply_button_style() -> void:
-	if _draw_button != null:
-		UiStyle.apply_primary_button(_draw_button, DRAW_BUTTON_TINT, 10)
+	# DrawButton 现在是 btn_orange 贴图按钮，不走 9-slice 样式
 	if _debug_unlock_btn != null:
 		UiStyle.apply_primary_button(_debug_unlock_btn, DEBUG_BUTTON_TINT, 8)
+
+
+# 按钮按下缩放效果（参考 equipment_panel._setup_action_button_press）
+const _PRESS_SCALE := 0.9
+
+func _setup_button_press(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.button_down.connect(_on_draw_btn_down.bind(btn))
+	btn.button_up.connect(_on_draw_btn_up.bind(btn))
+
+
+func _on_draw_btn_down(btn: TextureButton) -> void:
+	if btn == null or btn.disabled:
+		return
+	btn.pivot_offset = Vector2(floorf(btn.size.x * 0.5), floorf(btn.size.y * 0.5))
+	btn.scale = Vector2.ONE * _PRESS_SCALE
+	btn.modulate = Color(0.92, 0.92, 0.96)
+
+
+func _on_draw_btn_up(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.scale = Vector2.ONE
+	btn.modulate = Color.WHITE
 
 
 func _build_layout_from_code() -> void:
@@ -106,7 +131,7 @@ func _build_layout_from_code() -> void:
 
 	_populate_grid()
 
-	_draw_button = Button.new()
+	_draw_button = TextureButton.new()
 	_draw_button.name = "DrawButton"
 	_draw_button.custom_minimum_size = Vector2(240, 84)
 	_draw_button.anchor_left = 0.5
@@ -171,7 +196,7 @@ func _populate_grid() -> void:
 	var total_cells := rows * GRID_COLUMNS
 
 	for i in range(total_cells):
-		var slot: Control = TalentCardSlotT.new()
+		var slot: Control = TalentCardSlotT.instantiate()
 		slot.slot_size = CARD_ASPECT
 		slot.custom_minimum_size = CARD_ASPECT
 		_grid.add_child(slot)
@@ -191,18 +216,22 @@ func _apply_texts() -> void:
 	if _title_label != null:
 		_title_label.text = LanguageManager.tr_ui("UI_TALENT_TITLE")
 	if _draw_label != null:
-		_draw_label.text = LanguageManager.tr_ui("UI_TALENT_DRAW")
+		_draw_label.text = LanguageManager.tr_ui("UI_DRAW_BTN")
 	if _debug_unlock_btn != null:
 		_debug_unlock_btn.text = LanguageManager.tr_ui("UI_TALENT_DEBUG_UNLOCK_ALL")
 	_update_cost_visual()
 
 
 func _update_cost_visual() -> void:
-	if _cost_label == null:
-		return
-	_cost_label.text = "%d" % LobbyState.TALENT_DRAW_COST
-	var affordable := LobbyState.gold >= LobbyState.TALENT_DRAW_COST
-	_cost_label.add_theme_color_override("font_color", Color("#fff4a0") if affordable else Color("#ff9090"))
+	var cost := LobbyState.TALENT_DRAW_COST
+	var held := LobbyState.gold
+	var affordable := held >= cost
+	if _cost_label != null:
+		_cost_label.text = "%d/%d" % [cost, held]
+		_cost_label.add_theme_color_override("font_color", Color("#ff7070") if not affordable else Color(1, 1, 1))
+	if _draw_button != null:
+		_draw_button.disabled = not affordable
+		_draw_button.modulate = Color(0.6, 0.6, 0.6) if not affordable else Color.WHITE
 
 
 func _on_gold_changed(_g: int) -> void:

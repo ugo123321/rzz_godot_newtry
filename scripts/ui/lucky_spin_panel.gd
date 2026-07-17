@@ -3,11 +3,10 @@ class_name LuckySpinPanelView
 
 # 旋转逻辑照抄 reward_wheel_popup.gd（局内抽奖关），不改原文件。
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
-const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 
 const SLOT_COUNT := 6
 const SLOT_ANGLE := TAU / float(SLOT_COUNT)
-const SPIN_DURATION := 2.7
+const SPIN_DURATION := 4.0
 # 暂定：旋转消耗 10 金币，6 格金币奖励 10/20/30/40/50/60。后续可抽 game_tuning.json。
 const SPIN_COST := 10
 const REWARDS := [10, 20, 30, 40, 50, 60]
@@ -23,7 +22,7 @@ signal closed
 @onready var _wheel: Control = %Wheel
 @onready var _slots: Control = %Slots
 @onready var _pointer: TextureRect = %Pointer
-@onready var _spin_btn: Button = %SpinBtn
+@onready var _spin_btn: TextureButton = %SpinBtn
 @onready var _result_label: Label = %ResultLabel
 @onready var _decoration: TextureRect = get_node_or_null("WheelWrap/Decoration") as TextureRect
 
@@ -52,11 +51,11 @@ func _ready() -> void:
 		if amt_label != null and i < REWARDS.size():
 			amt_label.text = str(REWARDS[i])
 
-	UiStyle.apply_primary_button(_spin_btn, Color("#efb840"), 10)
 	_apply_pixel_filter_tree(self)
 
 	if _spin_btn != null:
 		_spin_btn.pressed.connect(_on_spin_pressed)
+		_setup_button_press(_spin_btn)
 
 	if EventBus:
 		EventBus.gold_changed.connect(_on_gold_changed)
@@ -108,6 +107,10 @@ func _apply_texts() -> void:
 	var title := get_node_or_null("Title") as Label
 	if title != null:
 		title.text = LanguageManager.tr_ui("UI_LUCKY_SPIN_TITLE")
+	if _spin_btn != null:
+		var btn_title := _spin_btn.get_node_or_null("VBox/TitleLabel") as Label
+		if btn_title != null:
+			btn_title.text = LanguageManager.tr_ui("UI_DRAW_BTN")
 	if _result_label != null and _result_label.text == "":
 		_result_label.text = LanguageManager.tr_ui("UI_LUCKY_SPIN_TIP")
 
@@ -122,6 +125,32 @@ func _apply_pixel_filter_tree(root: Node) -> void:
 			ci.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	for child in root.get_children():
 		_apply_pixel_filter_tree(child)
+
+
+# 按钮按下缩放效果（参考 equipment_panel._setup_action_button_press）
+const _PRESS_SCALE := 0.9
+
+func _setup_button_press(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.button_down.connect(_on_spin_btn_down.bind(btn))
+	btn.button_up.connect(_on_spin_btn_up.bind(btn))
+
+
+func _on_spin_btn_down(btn: TextureButton) -> void:
+	if btn == null or btn.disabled:
+		return
+	btn.pivot_offset = Vector2(floorf(btn.size.x * 0.5), floorf(btn.size.y * 0.5))
+	btn.scale = Vector2.ONE * _PRESS_SCALE
+	btn.modulate = Color(0.92, 0.92, 0.96)
+
+
+func _on_spin_btn_up(btn: TextureButton) -> void:
+	if btn == null:
+		return
+	btn.scale = Vector2.ONE
+	btn.modulate = Color.WHITE
 
 
 # ─── 布局：slot 圆环排列（照抄 reward_wheel_popup._layout_slots）──────────
@@ -195,11 +224,16 @@ func _on_spin_finished() -> void:
 func _refresh_cost() -> void:
 	if _spin_btn == null:
 		return
-	_spin_btn.text = str(SPIN_COST)
+	var held := LobbyState.gold
+	var afford := held >= SPIN_COST
+	var cost_label := _spin_btn.get_node_or_null("VBox/GoldRow/CostLabel") as Label
+	if cost_label != null:
+		cost_label.text = "%d/%d" % [SPIN_COST, held]
+		cost_label.add_theme_color_override("font_color", Color("#ff7070") if not afford else Color(1, 1, 1))
 	if not _spinning:
-		_spin_btn.disabled = LobbyState.gold < SPIN_COST
+		_spin_btn.disabled = not afford
 		if not _intro_playing:
-			_spin_btn.modulate = Color(1, 1, 1, 1) if LobbyState.gold >= SPIN_COST else Color(0.6, 0.6, 0.6, 1.0)
+			_spin_btn.modulate = Color(0.6, 0.6, 0.6) if not afford else Color.WHITE
 
 
 # ─── 进场动效：元素从左飞入 ───────────────────────────────

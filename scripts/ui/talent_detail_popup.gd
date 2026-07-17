@@ -10,7 +10,7 @@ class_name TalentDetailPopup
 
 signal closed()
 
-const TalentCardSlotT = preload("res://scripts/ui/talent_card_slot.gd")
+const TalentCardSlotT = preload("res://scenes/ui/talent_card_slot.tscn")
 
 const CARD_SIZE := Vector2(300.0, 400.0)
 const HIDE_DURATION := 0.15
@@ -53,7 +53,7 @@ func _build_ui() -> void:
 	_overlay.gui_input.connect(_on_overlay_input)
 	add_child(_overlay)
 
-	_card = TalentCardSlotT.new()
+	_card = TalentCardSlotT.instantiate()
 	_card.slot_size = CARD_SIZE
 	_card.custom_minimum_size = CARD_SIZE
 	_card.size = CARD_SIZE

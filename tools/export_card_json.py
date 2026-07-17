@@ -234,6 +234,10 @@ def convert():
         meta = ID_META[rid]
         quality_raw = str(r[2] or "").strip()
         quality = QUALITY_CN_TO_INT.get(quality_raw, 0)
+        # B column (index 1) — icon file name (strip optional .png suffix)
+        icon_name = str(r[1] or "").strip()
+        if icon_name.lower().endswith(".png"):
+            icon_name = icon_name[:-4]
         # H column (index 7) — pity target
         pity_target = int(_num(r[7], 0)) if len(r) > 7 else 0
 
@@ -258,6 +262,7 @@ def convert():
             "desc_template_cn": meta["template_cn"],
             "desc_template_en": meta["template_en"],
             "display": display_json,
+            "icon": icon_name,
         }
         out.append(rec)
 
