@@ -18,6 +18,7 @@ const CARD_V_MARGIN := 16.0
 const DEBUG_BUTTON_TINT := Color("#efb840")
 
 @onready var _title_label: Label = $Title
+@onready var _scroll: ScrollContainer = $Scroll
 @onready var _grid: GridContainer = $Scroll/CardGrid
 @onready var _draw_button: TextureButton = $DrawButton
 @onready var _cost_label: Label = get_node_or_null("DrawButton/VBox/GoldRow/CostLabel") as Label
@@ -35,6 +36,7 @@ func _ready() -> void:
 		_build_layout_from_code()
 	else:
 		_grid.columns = GRID_COLUMNS
+		_fit_scroll_to_grid()
 		_populate_grid()
 	# 强制让 Title 不拦截鼠标（tscn 里的 mouse_filter=2 会被编辑器保存时抹掉，这里代码兜底）
 	# Title 横贯顶部与右上 DebugUnlockButton y 范围重叠；默认 STOP 会吃掉 button 的点击
@@ -64,6 +66,9 @@ func _ready() -> void:
 		EventBus.talent_changed.connect(_on_talent_changed)
 		EventBus.gold_changed.connect(_on_gold_changed)
 		EventBus.language_changed.connect(_on_language_changed)
+	# 进场动效：每次面板可见时从右飞入（参考 lucky_spin_panel._play_intro，方向镜像）
+	visibility_changed.connect(_on_visibility_changed)
+	_on_visibility_changed()
 
 
 func _apply_button_style() -> void:
@@ -74,6 +79,64 @@ func _apply_button_style() -> void:
 
 # 按钮按下缩放效果（参考 equipment_panel._setup_action_button_press）
 const _PRESS_SCALE := 0.9
+
+# 进场飞入动效（参考 lucky_spin_panel，方向改为从右）
+const INTRO_OFFSET_X := 600.0   # 飞入起点：原位右侧 600px
+const INTRO_STEP := 0.06        # 每个元素错峰间隔（秒）
+const INTRO_DURATION := 0.28    # 单元素飞入时长（秒）
+var _intro_playing := false
+var _intro_base_offsets: Dictionary = {}   # 元素 instance_id -> Vector2(offset_left, offset_right) 基准
+
+
+func _on_visibility_changed() -> void:
+	if visible:
+		_play_intro(_collect_intro_elems())
+
+
+func _collect_intro_elems() -> Array[Control]:
+	# 顶层可见元素（从上到下：标题→调试按钮→卡牌区→抽取按钮）
+	var elems: Array[Control] = []
+	if _title_label != null:
+		elems.append(_title_label)
+	if _debug_unlock_btn != null:
+		elems.append(_debug_unlock_btn)
+	if _scroll != null:
+		elems.append(_scroll)
+	if _draw_button != null:
+		elems.append(_draw_button)
+	return elems
+
+
+func _play_intro(elems: Array) -> void:
+	if elems.is_empty():
+		return
+	_intro_playing = true
+	# 首次记录各元素基准 offset（用于反复进出面板时复位）
+	if _intro_base_offsets.is_empty():
+		for c in elems:
+			_intro_base_offsets[c.get_instance_id()] = Vector2(c.offset_left, c.offset_right)
+	# 起点：offset_left / offset_right 同步右移 600（保持宽度不塌陷）+ 透明度 0
+	for c in elems:
+		var base: Vector2 = _intro_base_offsets[c.get_instance_id()]
+		c.offset_left = base.x + INTRO_OFFSET_X
+		c.offset_right = base.y + INTRO_OFFSET_X
+		c.modulate.a = 0.0
+	# 错峰飞入：左右 offset 平移回基准（宽度恒定）+ alpha 回 1
+	var tw := create_tween()
+	tw.set_parallel(true)
+	for i in range(elems.size()):
+		var c: Control = elems[i]
+		var base: Vector2 = _intro_base_offsets[c.get_instance_id()]
+		var delay := INTRO_STEP * float(i)
+		tw.tween_property(c, "offset_left", base.x, INTRO_DURATION).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(c, "offset_right", base.y, INTRO_DURATION).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(c, "modulate:a", 1.0, INTRO_DURATION * 0.7).set_delay(delay)
+	tw.chain().tween_callback(_on_intro_done)
+
+
+func _on_intro_done() -> void:
+	_intro_playing = false
+	_update_cost_visual()
 
 func _setup_button_press(btn: TextureButton) -> void:
 	if btn == null:
@@ -181,6 +244,19 @@ class _DrawButtonBg extends Control:
 		pass
 
 
+func _fit_scroll_to_grid() -> void:
+	if _scroll == null:
+		return
+	# 让 ScrollContainer 宽度 = 网格内容宽度并水平居中。
+	# 原因：GridContainer 在 ScrollContainer 内不靠 SHRINK_CENTER 居中（内容容器收缩到子节点尺寸并左对齐），
+	# 直接让 Scroll 宽度 == 网格宽度，网格填满 Scroll，Scroll 本身居中 → 网格正中（与标题对齐）。
+	var grid_w := CARD_ASPECT.x * float(GRID_COLUMNS) + CARD_H_MARGIN * float(GRID_COLUMNS - 1)
+	_scroll.anchor_left = 0.5
+	_scroll.anchor_right = 0.5
+	_scroll.offset_left = -grid_w * 0.5
+	_scroll.offset_right = grid_w * 0.5
+
+
 func _populate_grid() -> void:
 	# 清空
 	for child in _grid.get_children():
@@ -231,7 +307,9 @@ func _update_cost_visual() -> void:
 		_cost_label.add_theme_color_override("font_color", Color("#ff7070") if not affordable else Color(1, 1, 1))
 	if _draw_button != null:
 		_draw_button.disabled = not affordable
-		_draw_button.modulate = Color(0.6, 0.6, 0.6) if not affordable else Color.WHITE
+		# 进场飞入期间不覆盖 alpha（避免和 intro 的 modulate:a 打架）
+		if not _intro_playing:
+			_draw_button.modulate = Color(0.6, 0.6, 0.6) if not affordable else Color.WHITE
 
 
 func _on_gold_changed(_g: int) -> void:

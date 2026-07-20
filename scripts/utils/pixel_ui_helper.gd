@@ -638,68 +638,6 @@ static func draw_combo_banner(
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-static func draw_exp_bar(
-	canvas: CanvasItem,
-	viewport_size: Vector2,
-	level: int,
-	exp_value: int,
-	exp_to_next: int
-) -> void:
-	var s := _ui_scale()
-	var h := int(floor(_scaled(EXP_BAR_HEIGHT)))
-	var pad := int(round(12.0 * s))
-	var y := int(floor(viewport_size.y - h - 8.0 * s))
-	var w := int(floor(viewport_size.x - pad * 2))
-	var x := pad
-	var border := maxi(2, int(round(3.0 * s)))
-	var block := maxi(3, int(round(4.0 * s)))
-	var inner_x := x + border
-	var inner_y := y + border
-	var inner_w := w - border * 2
-	var inner_h := h - border * 2
-	var ratio := clampf(float(exp_value) / maxf(1.0, float(exp_to_next)), 0.0, 1.0)
-	var fill_blocks := int(floor(float(inner_w) / float(block) * ratio))
-
-	draw_pixel_panel(canvas, Rect2(x, y, w, h), Color("#1a2030"), Color("#c8a040"), border)
-
-	var col := 0
-	while col * block < inner_w:
-		var bx := inner_x + col * block
-		var bw := mini(block - 1, inner_w - col * block)
-		if bw <= 0:
-			break
-		if col < fill_blocks:
-			canvas.draw_rect(Rect2(bx, inner_y, bw, inner_h), Color("#348848"))
-			canvas.draw_rect(Rect2(bx, inner_y, bw, maxi(2, int(floor(inner_h * 0.42)))), Color("#68c878"))
-			canvas.draw_rect(Rect2(bx, inner_y, bw, maxi(1, int(floor(inner_h * 0.18)))), Color("#98e8a8"))
-		else:
-			canvas.draw_rect(Rect2(bx, inner_y, bw, inner_h), Color("#242c3a") if col % 2 == 0 else Color("#1e2430"))
-		col += 1
-
-	var rivet := maxi(2, 2)
-	canvas.draw_rect(Rect2(x + border, y + border, rivet, rivet), Color("#5a4828"))
-	canvas.draw_rect(Rect2(x + w - border - rivet, y + border, rivet, rivet), Color("#5a4828"))
-	canvas.draw_rect(Rect2(x + border, y + h - border - rivet, rivet, rivet), Color("#5a4828"))
-	canvas.draw_rect(Rect2(x + w - border - rivet, y + h - border - rivet, rivet, rivet), Color("#5a4828"))
-
-	draw_pixel_text(
-		canvas,
-		"Lv%d" % level,
-		Vector2(x + 10.0 * s, y + h * 0.5),
-		snap_pixel_font_size(int(round(PIXEL_FONT_BASE * s))),
-		Color("#ffe8a8"),
-		HORIZONTAL_ALIGNMENT_LEFT
-	)
-	draw_pixel_text(
-		canvas,
-		"%d/%d" % [exp_value, exp_to_next],
-		Vector2(x + w - 10.0 * s, y + h * 0.5),
-		snap_pixel_font_size(int(round(PIXEL_FONT_BASE * s))),
-		Color("#e8f4ff"),
-		HORIZONTAL_ALIGNMENT_RIGHT
-	)
-
-
 static func draw_message_panel(canvas: CanvasItem, text: String, center: Vector2, alpha: float = 1.0) -> void:
 	if text.is_empty() or alpha <= 0.0:
 		return

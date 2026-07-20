@@ -21,7 +21,6 @@ const EFFECT_ALPHA := 0.9
 var _result: Dictionary = {}
 var _overlay: ColorRect
 var _effect: TextureRect
-var _effect_spin: Tween
 var _card: Control
 var _desc_label: Label
 var _hint_label: Label
@@ -161,6 +160,12 @@ func _start_hint_breathing() -> void:
 	tw.tween_property(_hint_label, "modulate:a", 1.0, 1.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
+func _process(delta: float) -> void:
+	# 每帧累加旋转（tween_property+set_loops 会因起始值重取而转一圈后停）
+	if _effect != null:
+		_effect.rotation += delta * (TAU / EFFECT_SPIN_PERIOD)
+
+
 func _play_show_anim() -> void:
 	_card.pivot_offset = _card.size * 0.5
 	_card.scale = Vector2(0.05, 0.05)
@@ -175,18 +180,6 @@ func _play_show_anim() -> void:
 	tw.tween_property(_card, "scale", Vector2.ONE, SHOW_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	if _effect != null:
 		tw.tween_property(_effect, "scale", Vector2.ONE, SHOW_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	_start_effect_spin()
-
-
-func _start_effect_spin() -> void:
-	if _effect == null:
-		return
-	if _effect_spin != null and _effect_spin.is_valid():
-		_effect_spin.kill()
-	_effect_spin = create_tween()
-	# 线性无限旋转一圈（TAU 与 0 视觉等价，loop 无跳变）
-	_effect_spin.set_loops()
-	_effect_spin.tween_property(_effect, "rotation", TAU, EFFECT_SPIN_PERIOD).set_trans(Tween.TRANS_LINEAR)
 
 
 func _gui_input(event: InputEvent) -> void:

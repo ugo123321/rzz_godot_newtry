@@ -3,6 +3,7 @@ class_name LuckySpinPanelView
 
 # 旋转逻辑照抄 reward_wheel_popup.gd（局内抽奖关），不改原文件。
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
+const LuckySpinResultPopupT := preload("res://scripts/ui/lucky_spin_result_popup.gd")
 
 const SLOT_COUNT := 6
 const SLOT_ANGLE := TAU / float(SLOT_COUNT)
@@ -219,6 +220,19 @@ func _on_spin_finished() -> void:
 	if _result_label != null:
 		_result_label.text = LanguageManager.tr_ui("UI_LUCKY_SPIN_RESULT_FMT") % gain
 	_refresh_cost()
+	# 弹出结果弹窗（dim + 金币 icon + 旋转光效 + 奖励文字 + 点击关闭）
+	_show_result_popup(gain)
+
+
+func _show_result_popup(gain: int) -> void:
+	var popup := LuckySpinResultPopupT.new()
+	# 挂到 root 覆盖整屏（含底部选项卡），与 talent 抽卡弹窗一致
+	var root_layer := get_tree().current_scene
+	if root_layer != null:
+		root_layer.add_child(popup)
+	else:
+		add_child(popup)
+	popup.show_result(gain)
 
 
 func _refresh_cost() -> void:

@@ -9,8 +9,6 @@ extends RefCounted
 const DIALOG_PATH := "res://assets/ui/panels/panel_dialog_9s.png"
 const TOOLTIP_STD_PATH := "res://assets/ui/panels/panel_tooltip_std_9s.png"
 const BTN_PRIMARY_PATH := "res://assets/ui/buttons/btn_primary_9s.png"
-const BAR_FRAME_PATH := "res://assets/ui/panels/bar_frame_9s.png"
-const BAR_FILL_PATH := "res://assets/ui/panels/bar_fill_9s.png"
 
 # 升级卡 PNG icon（skill_XX.png，源自 xlsx E 列 icon 字段）+ 边框
 const UPGRADE_ICON_DIR := "res://assets/ui/icons/upgrades/"
@@ -23,7 +21,6 @@ const REWARD_FRAME_OPAQUE_RATIO := 0.625
 const DIALOG_MARGIN := 24
 const TOOLTIP_STD_MARGIN := 12
 const BTN_PRIMARY_MARGIN := 16
-const BAR_MARGIN := 8
 
 # 按钮状态调制（normal=1.0；hover 提亮；pressed 压暗；disabled 灰化半透）
 const HOVER_BOOST := 1.18
@@ -106,15 +103,6 @@ static func apply_primary_button(btn: Button, tint: Color = Color.WHITE, content
 	btn.add_theme_stylebox_override("pressed", _btn_stylebox(tint, PRESSED_DIM, 1.0, content_pad))
 	btn.add_theme_stylebox_override("disabled", _btn_stylebox(tint, DISABLED_DIM, DISABLED_ALPHA, content_pad))
 	btn.add_theme_stylebox_override("focus", _btn_stylebox(tint, 1.0, 0.0, content_pad))
-
-
-# ─── HUD 血条 / 经验条（独立绘制函数，因为 HUD 是 _draw 模式） ───
-static func get_bar_frame_texture() -> Texture2D:
-	return _load_tex(BAR_FRAME_PATH)
-
-
-static func get_bar_fill_texture() -> Texture2D:
-	return _load_tex(BAR_FILL_PATH)
 
 
 # ─── UI 图片抗锯齿（LINEAR filter） ───
