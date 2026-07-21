@@ -42,6 +42,7 @@ var _active_tween: Tween = null
 var _closing := false
 var _claim_pressed := false
 var _claim_base_scale := Vector2.ONE
+var _hint_tween: Tween = null
 
 
 func _ready() -> void:
@@ -128,11 +129,13 @@ func show_popup() -> void:
 	_closing = false
 	_refresh_accum = 0.0
 	_play_show_tween()
+	_start_hint_breathing()
 
 
 func hide_popup() -> void:
 	if not visible:
 		return
+	_stop_hint_breathing()
 	if Engine.is_editor_hint():
 		visible = false
 		return
@@ -201,6 +204,27 @@ func _play_hide_tween() -> void:
 	_active_tween.chain().tween_callback(func():
 		visible = false
 		_closing = false)
+
+
+# "点击空白处以关闭" 提示的呼吸效果（参考 talent_detail_popup._start_hint_breathing）：
+# 透明度 0.4 ↔ 1.0，各 1 秒，SINE/EASE_IN_OUT 循环。show 时启动，hide 时停止。
+func _start_hint_breathing() -> void:
+	if _close_hint_label == null:
+		return
+	_stop_hint_breathing()
+	_hint_tween = create_tween().set_loops()
+	_hint_tween.tween_property(_close_hint_label, "modulate:a", 0.4, 1.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_hint_tween.tween_property(_close_hint_label, "modulate:a", 1.0, 1.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _stop_hint_breathing() -> void:
+	if _hint_tween != null and _hint_tween.is_valid():
+		_hint_tween.kill()
+	_hint_tween = null
+	if _close_hint_label != null:
+		_close_hint_label.modulate.a = 1.0
 
 
 func _apply_texts() -> void:
