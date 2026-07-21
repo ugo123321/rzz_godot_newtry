@@ -16,6 +16,7 @@
 [ext_resource type="Texture2D" uid="uid://dv30osu0fjlyh" path="res://assets/ui/decorations/deco_line.png" id="18_deco_line"]
 [ext_resource type="Texture2D" uid="uid://cctv7df2ybypv" path="res://assets/ui/panels/top_bg.png" id="19_top_bg"]
 [ext_resource type="Texture2D" uid="uid://byj4bey4r4rya" path="res://assets/ui/buttons/btn_dismantle02.png" id="20_disman02"]
+[ext_resource type="Texture2D" uid="uid://dw5f21j40kk0t" path="res://assets/ui/panels/popup02.png" id="27_eqkiu"]
 [ext_resource type="Texture2D" uid="uid://b01xpa2d67vo" path="res://assets/ui/panels/popup01.png" id="30_popup01"]
 [ext_resource type="Texture2D" uid="uid://k6eedbsvyfnb" path="res://assets/ui/decorations/deco_rare_common.png" id="31_deco_common"]
 [ext_resource type="Texture2D" uid="uid://e86mlai64t6a" path="res://assets/ui/buttons/btn_blue.png" id="32_btn_blue"]
@@ -1135,16 +1136,92 @@ theme_override_font_sizes/font_size = 18
 text = "0/0"
 vertical_alignment = 1
 
-[node name="DetailsPopup" type="AcceptDialog" parent="." unique_id=1342962880]
+[node name="AttrDetailPopup" type="Control" parent="." unique_id=2000000001]
 unique_name_in_owner = true
-title = "主角详细属性"
-size = Vector2i(500, 460)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
-[node name="DetailsLabel" type="Label" parent="DetailsPopup" unique_id=1005835323]
-unique_name_in_owner = true
-offset_right = 480.0
-offset_bottom = 420.0
-autowrap_mode = 3
+[node name="Dim" type="ColorRect" parent="AttrDetailPopup" unique_id=2000000002]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.4)
+
+[node name="Panel" type="TextureRect" parent="AttrDetailPopup" unique_id=2000000003]
+layout_mode = 0
+offset_left = 74.0
+offset_top = 351.0
+offset_right = 645.0
+offset_bottom = 944.0
+mouse_filter = 0
+texture = ExtResource("27_eqkiu")
+expand_mode = 1
+
+[node name="TitleLabel" type="Label" parent="AttrDetailPopup/Panel" unique_id=2000000004]
+layout_mode = 0
+offset_left = 44.0
+offset_top = 36.0
+offset_right = 527.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/font_size = 35
+text = "详细属性"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AttrText" type="RichTextLabel" parent="AttrDetailPopup/Panel" unique_id=2000000005]
+layout_mode = 0
+offset_left = 44.0
+offset_top = 104.0
+offset_right = 527.0
+offset_bottom = 290.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/normal_font_size = 18
+theme_override_font_sizes/bold_font_size = 18
+bbcode_enabled = true
+
+[node name="EffectHeader" type="Label" parent="AttrDetailPopup/Panel" unique_id=2000000006]
+layout_mode = 0
+offset_left = 44.0
+offset_top = 300.0
+offset_right = 527.0
+offset_bottom = 334.0
+theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/font_size = 26
+text = "当前装备特效"
+
+[node name="EffectText" type="RichTextLabel" parent="AttrDetailPopup/Panel" unique_id=2000000007]
+layout_mode = 0
+offset_left = 44.0
+offset_top = 340.0
+offset_right = 527.0
+offset_bottom = 475.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/normal_font_size = 20
+theme_override_font_sizes/bold_font_size = 20
+bbcode_enabled = true
+
+[node name="NoteText" type="RichTextLabel" parent="AttrDetailPopup/Panel" unique_id=2000000008]
+layout_mode = 0
+offset_left = 44.0
+offset_top = 485.0
+offset_right = 527.0
+offset_bottom = 580.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.204, 0.106, 0.098, 1)
+theme_override_font_sizes/normal_font_size = 18
+theme_override_font_sizes/bold_font_size = 18
+bbcode_enabled = true
 
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow/DetailBtn" to="." method="_show_attr_popup"]
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn" to="." method="_on_skill_stone_pressed"]
@@ -1153,3 +1230,5 @@ autowrap_mode = 3
 [connection signal="pressed" from="DetailPopup/Panel/BtnEquip" to="." method="_on_detail_equip"]
 [connection signal="pressed" from="DetailPopup/Panel/BtnUnequip" to="." method="_on_detail_unequip"]
 [connection signal="pressed" from="DetailPopup/Panel/BtnUpgrade" to="." method="_on_detail_upgrade"]
+[connection signal="gui_input" from="AttrDetailPopup/Dim" to="." method="_on_attr_outside_clicked"]
+[connection signal="gui_input" from="AttrDetailPopup/Panel" to="." method="_on_attr_outside_clicked"]

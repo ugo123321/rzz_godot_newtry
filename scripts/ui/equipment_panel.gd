@@ -105,8 +105,14 @@ const SLOT_BUTTON_NODES := {
 @onready var _btn_equip: TextureButton = $DetailPopup/Panel/BtnEquip
 @onready var _btn_unequip: TextureButton = $DetailPopup/Panel/BtnUnequip
 @onready var _btn_upgrade: TextureButton = $DetailPopup/Panel/BtnUpgrade
-@onready var _details_popup: AcceptDialog = $DetailsPopup
-@onready var _details_label: Label = $DetailsPopup/DetailsLabel
+@onready var _attr_popup: Control = $AttrDetailPopup
+@onready var _attr_panel: TextureRect = $AttrDetailPopup/Panel
+@onready var _attr_dim: ColorRect = $AttrDetailPopup/Dim
+@onready var _attr_title_label: Label = $AttrDetailPopup/Panel/TitleLabel
+@onready var _attr_text: RichTextLabel = $AttrDetailPopup/Panel/AttrText
+@onready var _attr_effect_header: Label = $AttrDetailPopup/Panel/EffectHeader
+@onready var _attr_effect_text: RichTextLabel = $AttrDetailPopup/Panel/EffectText
+@onready var _attr_note_text: RichTextLabel = $AttrDetailPopup/Panel/NoteText
 @onready var _synth_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/SynthBtn
 @onready var _skill_stone_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn
 
@@ -330,6 +336,9 @@ func _setup_scene_ui() -> void:
 	# 详情弹窗：编辑器里默认可见方便排版，运行时启动即隐藏
 	if _detail_popup != null and not Engine.is_editor_hint():
 		_detail_popup.visible = false
+	# 主角详细属性弹窗：同样编辑器默认可见，运行时隐藏
+	if _attr_popup != null and not Engine.is_editor_hint():
+		_attr_popup.visible = false
 	# 弹板按钮按下缩放效果（参考技能石/合成功能按钮）
 	_setup_action_button_press(_btn_equip)
 	_setup_action_button_press(_btn_unequip)
@@ -399,6 +408,69 @@ func _hide_detail_after_close() -> void:
 	if _detail_popup != null:
 		_detail_popup.visible = false
 	_current_detail_uid = -1
+
+
+# 主角详细属性弹窗：复用详情弹窗的板子样式，无装饰、无按钮、点空白关闭 + 淡入淡出
+func _on_attr_outside_clicked(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			_close_attr_popup()
+
+
+func _close_attr_popup() -> void:
+	_play_attr_close()
+
+
+const _ATTR_POP_TIME := 0.18
+const _ATTR_POP_SCALE := Vector2(0.82, 0.82)
+var _attr_tween: Tween = null
+
+
+func _kill_attr_tween() -> void:
+	if _attr_tween != null and _attr_tween.is_valid():
+		_attr_tween.kill()
+	_attr_tween = null
+
+
+func _play_attr_open() -> void:
+	if _attr_popup == null:
+		return
+	_kill_attr_tween()
+	_attr_popup.visible = true
+	if _attr_panel != null:
+		_attr_panel.pivot_offset = _attr_panel.size * 0.5
+		_attr_panel.scale = _ATTR_POP_SCALE
+	if _attr_dim != null:
+		_attr_dim.modulate = Color(1, 1, 1, 0.0)
+	_attr_tween = create_tween()
+	_attr_tween.set_parallel(true)
+	if _attr_dim != null:
+		_attr_tween.tween_property(_attr_dim, "modulate:a", 0.4, _ATTR_POP_TIME)
+	if _attr_panel != null:
+		_attr_tween.tween_property(_attr_panel, "scale", Vector2.ONE, _ATTR_POP_TIME) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+
+func _play_attr_close() -> void:
+	if _attr_popup == null or not _attr_popup.visible:
+		return
+	_kill_attr_tween()
+	if _attr_panel != null:
+		_attr_panel.pivot_offset = _attr_panel.size * 0.5
+	_attr_tween = create_tween()
+	_attr_tween.set_parallel(true)
+	if _attr_dim != null:
+		_attr_tween.tween_property(_attr_dim, "modulate:a", 0.0, _ATTR_POP_TIME)
+	if _attr_panel != null:
+		_attr_tween.tween_property(_attr_panel, "scale", _ATTR_POP_SCALE, _ATTR_POP_TIME) \
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_attr_tween.chain().tween_callback(_hide_attr_after_close)
+
+
+func _hide_attr_after_close() -> void:
+	if _attr_popup != null:
+		_attr_popup.visible = false
 
 
 # 详情弹窗里的装备 icon 槽：品质背景 + 部位徽章 + 物品 icon（无等级文字）
@@ -945,19 +1017,53 @@ func _build_active_effect_lines() -> PackedStringArray:
 
 
 func _show_attr_popup() -> void:
+	if _attr_popup == null:
+		return
 	var attrs := LobbyState.get_player_preview_attributes()
-	var effect_lines := _build_active_effect_lines()
-	_details_label.text = LanguageManager.tr_ui("UI_EQUIP_DETAILS_FMT") % [
-		int(round(float(attrs.get("attack", 0.0)))),
-		int(round(float(attrs.get("equip_attack", 0.0)))),
-		int(attrs.get("hp", 0)),
-		int(attrs.get("equip_hp", 0)),
-		float(attrs.get("crit_rate", 0.0)) * 100.0,
-		float(attrs.get("equip_crit_rate", 0.0)) * 100.0,
-		int(attrs.get("battle_power", 0)),
-		"\n".join(effect_lines),
-	]
-	_details_popup.popup_centered()
+	var attack := int(round(float(attrs.get("attack", 0.0))))
+	var equip_attack := int(round(float(attrs.get("equip_attack", 0.0))))
+	var hp := int(attrs.get("hp", 0))
+	var equip_hp := int(attrs.get("equip_hp", 0))
+	var crit := float(attrs.get("crit_rate", 0.0)) * 100.0
+	var equip_crit := float(attrs.get("equip_crit_rate", 0.0)) * 100.0
+	# 暴击伤害：倍率转百分比；装备加成 = (final - base) × 100（百分点差）
+	var crit_dmg := float(attrs.get("crit_damage", 1.6)) * 100.0
+	var base_crit_dmg := float(attrs.get("base_crit_damage", 1.6)) * 100.0
+	var equip_crit_dmg := crit_dmg - base_crit_dmg
+	var move_speed := int(round(float(attrs.get("move_speed", 0.0))))
+	var equip_move_speed := int(round(float(attrs.get("equip_move_speed", 0.0))))
+	var max_ki := int(round(float(attrs.get("max_ki", 0.0))))
+	var base_ki := int(round(float(attrs.get("base_ki", 0.0))))
+	var equip_max_ki := max_ki - base_ki
+	var ki_regen := int(round(float(attrs.get("ki_regen", 0.0))))
+	var base_ki_regen := int(round(float(attrs.get("base_ki_regen", 0.0))))
+	var equip_ki_regen := ki_regen - base_ki_regen
+	var power := int(attrs.get("battle_power", 0))
+	# 标题 / 段头（编辑器里的中文 text 只是占位，运行时由 tr_ui 覆盖）
+	if _attr_title_label != null:
+		_attr_title_label.text = LanguageManager.tr_ui("UI_EQUIP_DETAILS_TITLE")
+	if _attr_effect_header != null:
+		_attr_effect_header.text = LanguageManager.tr_ui("UI_EQUIP_ATTR_EFFECT_HEADER")
+	# 主角属性数值（8 行：攻击/生命/暴击率/暴击伤害/移速/气力上限/气力回复/战斗力）
+	if _attr_text != null:
+		var lines: PackedStringArray = []
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_ATTR_ATTACK_FMT") % [attack, equip_attack])
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_ATTR_HP_FMT") % [hp, equip_hp])
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_ATTR_CRIT_FMT") % [crit, equip_crit])
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_ATTR_CRITDMG_FMT") % [crit_dmg, equip_crit_dmg])
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_ATTR_MOVE_FMT") % [move_speed, equip_move_speed])
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_ATTR_KIMAX_FMT") % [max_ki, equip_max_ki])
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_ATTR_KIREGEN_FMT") % [ki_regen, equip_ki_regen])
+		lines.append(LanguageManager.tr_ui("UI_EQUIP_ATTR_POWER_FMT") % [power])
+		_attr_text.text = "\n".join(lines)
+	# 当前装备特效
+	if _attr_effect_text != null:
+		var effect_lines := _build_active_effect_lines()
+		_attr_effect_text.text = "\n".join(effect_lines)
+	# 说明
+	if _attr_note_text != null:
+		_attr_note_text.text = LanguageManager.tr_ui("UI_EQUIP_ATTR_NOTE")
+	_play_attr_open()
 
 
 # 属性球：按品质取高饱和色；生效=满色，未生效=同色淡（lightened）。

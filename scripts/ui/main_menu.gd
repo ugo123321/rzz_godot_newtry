@@ -121,18 +121,14 @@ var _sky_glow_tiles: Array[TextureRect] = []
 var _sky_glow_tile_width := 0.0
 var _stage_icon_pulse_material: ShaderMaterial
 @onready var _scout_popup: ScoutRewardPopupT = %ScoutRewardPopup
-@onready var _scout_entry_button: Button = %ScoutEntryButton
+@onready var _scout_entry_button: TextureButton = %ScoutEntryButton
 @onready var _scout_entry_label: Label = %ScoutEntryButton/Row/ScoutLabel
 
-# 关卡界面进场动效：所有元素错峰出发、同一时刻归位（duration = TOTAL - delay）。
-const STAGE_INTRO_STEP := 0.05          # 相邻元素出发间隔（错峰节奏）
+# 关卡界面进场动效：所有元素同时出发、同时归位（duration = TOTAL，无错峰）。
 const STAGE_INTRO_OFFSET := 320.0       # 飞入起点偏移量（上飞入负方向 / 下飞入正方向）
-const STAGE_INTRO_TOTAL := 0.50         # 总归位时长：所有元素都在此时刻同时归位
-const STAGE_INTRO_MIN_DUR := 0.18       # 单元素最短飞入时长（保险，避免末尾 duration 过小）
+const STAGE_INTRO_TOTAL := 0.36        # 飞入时长：所有元素一起飞入一起落位
 var _stage_intro_playing := false
 var _stage_intro_orig_pos: Dictionary = {}   # 记录元素原始 position，飞入后归位用
-# TopHud 元素常驻跨 tab，仅首次进关卡页时飞入一次，避免切回时已可见的元素闪烁。
-var _top_hud_intro_played := false
 
 
 func _ui_scale() -> float:
@@ -650,11 +646,9 @@ func _play_stage_intro() -> void:
 	for c in [_chapter_label, _stage_icon, _deco_line, _progress_bar_group, _player_info_card, _options_button, _mission_button]:
 		if c != null:
 			items.append({"mover": c, "fadee": c, "from_bottom": false})
-	# 货币槽跨 tab 常驻（除装备页外），仅首次飞入一次，避免切回时已可见的元素闪烁。
-	if not _top_hud_intro_played:
-		if _gold_bar != null:
-			items.append({"mover": _gold_bar, "fadee": _gold_bar, "from_bottom": false})
-		_top_hud_intro_played = true
+	# 货币槽：和其他元素一样每次都飞入
+	if _gold_bar != null:
+		items.append({"mover": _gold_bar, "fadee": _gold_bar, "from_bottom": false})
 	if _chapter_prev != null:
 		items.append({"mover": _chapter_prev, "fadee": _chapter_prev, "from_bottom": true})
 	if _chapter_next != null:
@@ -682,20 +676,16 @@ func _play_stage_intro() -> void:
 		var fadee: Control = it["fadee"]
 		if fadee != null:
 			fadee.modulate.a = 0.0
-	# 错峰出发、同时归位：第 i 个 delay = STEP*i，duration = TOTAL - delay → 都在 TOTAL 时刻归位。
+	# 同时出发、同时归位：所有元素 delay=0、duration=TOTAL，一起飞入一起落位。
 	var tw := create_tween()
 	tw.set_parallel(true)
-	var idx := 0
 	for it in items:
 		var m: Control = it["mover"]
-		var delay := STAGE_INTRO_STEP * float(idx)
-		var dur := maxf(STAGE_INTRO_MIN_DUR, STAGE_INTRO_TOTAL - delay)
 		var end_y: float = (_stage_intro_orig_pos[m] as Vector2).y
-		tw.tween_property(m, "position:y", end_y, dur).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(m, "position:y", end_y, STAGE_INTRO_TOTAL).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		var fadee: Control = it["fadee"]
 		if fadee != null:
-			tw.parallel().tween_property(fadee, "modulate:a", 1.0, dur * 0.7).set_delay(delay)
-		idx += 1
+			tw.parallel().tween_property(fadee, "modulate:a", 1.0, STAGE_INTRO_TOTAL * 0.7)
 	# 所有元素在 TOTAL 时刻同时归位，callback 此时触发
 	tw.chain().tween_callback(Callable(self, "_on_stage_intro_done"))
 
@@ -891,12 +881,10 @@ func _on_level_editor_pressed() -> void:
 
 
 func _setup_scout_entry() -> void:
-	# 侦察入口：节点结构已在 main_menu.tscn（ScoutEntryButton + Row/Icon/ScoutLabel，
-	# ScoutRewardPopup 实例挂在根节点下）。本函数只套程序化 stylebox / 字体 + 连信号 + 兜底图标。
+	# 侦察入口：节点结构 + btn_green 贴图已在 main_menu.tscn（ScoutEntryButton 是 TextureButton，
+	# ScoutRewardPopup 实例挂在根节点下）。本函数只套字体 + 连信号 + 兜底图标。
 	if _scout_entry_button == null:
 		return
-	# 用 9-slice 主按钮样式（暖色调，与开始按钮配色一致但更小）
-	UiStyle.apply_primary_button(_scout_entry_button, Color("#8fb078"), 10)
 	PixelUi.apply_ui_font(_scout_entry_button)
 	# 图标兜底：.tscn 里已配 icon_detail，缺图时退回 dungeon 图标
 	var icon := _scout_entry_button.get_node_or_null("Row/Icon") as TextureRect
@@ -905,9 +893,42 @@ func _setup_scout_entry() -> void:
 	if _scout_entry_label != null:
 		PixelUi.apply_ui_font(_scout_entry_label)
 	_scout_entry_button.pressed.connect(_on_scout_entry_pressed)
+	# 按下缩放（以中心为轴心），松开归位
+	_scout_entry_button.button_down.connect(_on_scout_entry_button_down)
+	_scout_entry_button.button_up.connect(_on_scout_entry_button_up)
+	call_deferred("_cache_scout_entry_pivot")
 	# Popup：已在场景里实例化，这里只初始化（套样式 + 连信号 + 文案）
 	if _scout_popup != null:
 		_scout_popup.setup()
+
+
+const SCOUT_ENTRY_PRESS_SCALE := 0.9
+var _scout_entry_pressed := false
+var _scout_entry_base_scale := Vector2.ONE
+
+
+func _cache_scout_entry_pivot() -> void:
+	if _scout_entry_button == null or _scout_entry_button.size.x <= 0.0:
+		return
+	_scout_entry_button.pivot_offset = _scout_entry_button.size * 0.5
+	_scout_entry_base_scale = _scout_entry_button.scale
+	_update_scout_entry_button_scale()
+
+
+func _on_scout_entry_button_down() -> void:
+	_scout_entry_pressed = true
+	_update_scout_entry_button_scale()
+
+
+func _on_scout_entry_button_up() -> void:
+	_scout_entry_pressed = false
+	_update_scout_entry_button_scale()
+
+
+func _update_scout_entry_button_scale() -> void:
+	if _scout_entry_button == null:
+		return
+	_scout_entry_button.scale = _scout_entry_base_scale * (SCOUT_ENTRY_PRESS_SCALE if _scout_entry_pressed else 1.0)
 
 
 func _on_scout_entry_pressed() -> void:

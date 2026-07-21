@@ -1,10 +1,12 @@
 [gd_scene format=3 uid="uid://scoutpopup01"]
 
 [ext_resource type="Script" uid="uid://bsv2uamlvds34" path="res://scripts/ui/scout_reward_popup.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="2_gold_icon"]
+[ext_resource type="Texture2D" uid="uid://b8yp3gmcq4d6j" path="res://assets/ui/panels/panel_scout.png" id="2_panel"]
+[ext_resource type="Texture2D" uid="uid://brjbj1mt4usve" path="res://assets/ui/scout/scout_item_slot.png" id="3_slot"]
+[ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="4_gold"]
+[ext_resource type="Texture2D" uid="uid://ctugv2y5dgghv" path="res://assets/ui/buttons/btn_orange.png" id="5_btn_claim"]
 
-[node name="ScoutRewardPopup" type="Control"]
-script = ExtResource("1_script")
+[node name="ScoutRewardPopup" type="Control" unique_id=1005022223]
 unique_name_in_owner = true
 layout_mode = 3
 anchors_preset = 15
@@ -12,10 +14,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
-visible = true
+script = ExtResource("1_script")
 
-[node name="Overlay" type="ColorRect" parent="."]
+[node name="Overlay" type="ColorRect" parent="." unique_id=1605929636]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -23,11 +24,11 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.65)
 
-[node name="Panel" type="PanelContainer" parent="."]
+[node name="Panel" type="Control" parent="." unique_id=1972812760]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(604, 739)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -36,104 +37,423 @@ anchor_right = 0.5
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
-custom_minimum_size = Vector2(420, 560)
 
-[node name="VBox" type="VBoxContainer" parent="Panel"]
+[node name="PanelBg" type="TextureRect" parent="Panel" unique_id=75451719]
 unique_name_in_owner = true
-layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 14
-
-[node name="TitleLabel" type="Label" parent="Panel/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.231, 0.149, 0.071, 1)
-theme_override_font_sizes/font_size = 32
-text = "侦察收益"
-
-[node name="SubtitleLabel" type="Label" parent="Panel/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.478, 0.353, 0.165, 1)
-theme_override_font_sizes/font_size = 18
-text = "自动获取丰富奖励"
-
-[node name="ElapsedLabel" type="Label" parent="Panel/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.173, 0.11, 0.039, 1)
-theme_override_font_sizes/font_size = 24
-text = "已侦察  00:00:00"
-
-[node name="HourlyRow" type="HBoxContainer" parent="Panel/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 10
-
-[node name="HourlyIcon" type="TextureRect" parent="Panel/VBox/HourlyRow"]
-unique_name_in_owner = true
-layout_mode = 2
-custom_minimum_size = Vector2(36, 36)
+texture_filter = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+texture = ExtResource("2_panel")
+expand_mode = 1
+
+[node name="TitleLabel" type="Label" parent="Panel" unique_id=955152082]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 18.0
+offset_right = 250.0
+offset_bottom = 68.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 38
+text = "侦察收益"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotsLayer" type="Control" parent="Panel" unique_id=1925245867]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Slot_0" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1131863501]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 40.0
+offset_top = 110.0
+offset_right = 141.0
+offset_bottom = 214.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_1" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1945099121]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 146.0
+offset_top = 110.0
+offset_right = 247.0
+offset_bottom = 214.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_2" type="TextureRect" parent="Panel/SlotsLayer" unique_id=2139223580]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 252.0
+offset_top = 110.0
+offset_right = 353.0
+offset_bottom = 214.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_3" type="TextureRect" parent="Panel/SlotsLayer" unique_id=986148588]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 358.0
+offset_top = 110.0
+offset_right = 459.0
+offset_bottom = 214.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_4" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1950215207]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 464.0
+offset_top = 110.0
+offset_right = 565.0
+offset_bottom = 214.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_5" type="TextureRect" parent="Panel/SlotsLayer" unique_id=677021772]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 40.0
+offset_top = 219.0
+offset_right = 141.0
+offset_bottom = 323.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_6" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1997998180]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 146.0
+offset_top = 219.0
+offset_right = 247.0
+offset_bottom = 323.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_7" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1724101966]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 252.0
+offset_top = 219.0
+offset_right = 353.0
+offset_bottom = 323.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_8" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1568220832]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 358.0
+offset_top = 219.0
+offset_right = 459.0
+offset_bottom = 323.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_9" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1335616505]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 464.0
+offset_top = 219.0
+offset_right = 565.0
+offset_bottom = 323.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_10" type="TextureRect" parent="Panel/SlotsLayer" unique_id=716582717]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 40.0
+offset_top = 328.0
+offset_right = 141.0
+offset_bottom = 432.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_11" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1385434812]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 146.0
+offset_top = 328.0
+offset_right = 247.0
+offset_bottom = 432.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_12" type="TextureRect" parent="Panel/SlotsLayer" unique_id=1971905351]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 252.0
+offset_top = 328.0
+offset_right = 353.0
+offset_bottom = 432.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_13" type="TextureRect" parent="Panel/SlotsLayer" unique_id=976767994]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 358.0
+offset_top = 328.0
+offset_right = 459.0
+offset_bottom = 432.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="Slot_14" type="TextureRect" parent="Panel/SlotsLayer" unique_id=366002745]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+offset_left = 464.0
+offset_top = 328.0
+offset_right = 565.0
+offset_bottom = 432.0
+mouse_filter = 2
+texture = ExtResource("3_slot")
+expand_mode = 1
+
+[node name="ItemTemplate" type="Control" parent="Panel" unique_id=1759455982]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(101, 104)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ItemIcon" type="TextureRect" parent="Panel/ItemTemplate" unique_id=1689936893]
+custom_minimum_size = Vector2(58, 58)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -29.0
+offset_top = 10.0
+offset_right = 29.0
+offset_bottom = 68.0
+grow_horizontal = 2
+mouse_filter = 2
+texture = ExtResource("4_gold")
 expand_mode = 1
 stretch_mode = 5
-texture = ExtResource("2_gold_icon")
 
-[node name="HourlyLabel" type="Label" parent="Panel/VBox/HourlyRow"]
+[node name="CountLabel" type="Label" parent="Panel/ItemTemplate" unique_id=1586992232]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -50.0
+offset_top = -34.0
+offset_right = 50.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 25
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="Panel" unique_id=1016478302]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 446.0
+offset_right = 250.0
+offset_bottom = 474.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.77098864, 0.62242734, 0.21630237, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 20
+text = "自动获取丰富奖励"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ElapsedLabel" type="Label" parent="Panel" unique_id=37651756]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 482.0
+offset_right = 250.0
+offset_bottom = 512.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 24
+text = "已侦察  00:00:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HourlyRow" type="HBoxContainer" parent="Panel" unique_id=1382427107]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -90.0
+offset_top = 520.0
+offset_right = 90.0
+offset_bottom = 556.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="HourlyIcon" type="TextureRect" parent="Panel/HourlyRow" unique_id=1388083735]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HourlyLabel" type="Label" parent="Panel/HourlyRow" unique_id=1071803285]
 unique_name_in_owner = true
 layout_mode = 2
-vertical_alignment = 1
-theme_override_colors/font_color = Color(0.173, 0.11, 0.039, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 22
 text = "0 / 小时"
+vertical_alignment = 1
 
-[node name="ItemSlot" type="PanelContainer" parent="Panel/VBox"]
+[node name="HintLabel" type="Label" parent="Panel" unique_id=617131324]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 200)
-
-[node name="ItemCenter" type="CenterContainer" parent="Panel/VBox/ItemSlot"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="ItemEmptyLabel" type="Label" parent="Panel/VBox/ItemSlot/ItemCenter"]
-unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 564.0
+offset_right = 250.0
+offset_bottom = 592.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.93, 0.55, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "章节越高,收益越大"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.478, 0.353, 0.165, 1)
-theme_override_font_sizes/font_size = 22
-text = "暂未获得任何道具"
+vertical_alignment = 1
 
-[node name="HintLabel" type="Label" parent="Panel/VBox"]
+[node name="ClaimButton" type="TextureButton" parent="Panel" unique_id=1202631593]
 unique_name_in_owner = true
-layout_mode = 2
-horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.541, 0.329, 0.094, 1)
-theme_override_font_sizes/font_size = 18
-text = "章节越高，收益越大"
+texture_filter = 1
+custom_minimum_size = Vector2(215, 85)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -107.5
+offset_top = -129.0
+offset_right = 107.5
+offset_bottom = -44.0
+grow_horizontal = 2
+grow_vertical = 0
+scale = Vector2(0.8, 0.8)
+texture_normal = ExtResource("5_btn_claim")
+texture_pressed = ExtResource("5_btn_claim")
+texture_hover = ExtResource("5_btn_claim")
+ignore_texture_size = true
+stretch_mode = 0
 
-[node name="ClaimRow" type="CenterContainer" parent="Panel/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ClaimButton" type="Button" parent="Panel/VBox/ClaimRow"]
-unique_name_in_owner = true
-layout_mode = 2
-custom_minimum_size = Vector2(220, 60)
+[node name="Label" type="Label" parent="Panel/ClaimButton" unique_id=898770251]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_colors/font_color = Color(0.231, 0.149, 0.071, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 30
 text = "领取"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="CloseHintLabel" type="Label" parent="."]
+[node name="CloseHintLabel" type="Label" parent="." unique_id=1452219675]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 12
@@ -144,13 +464,12 @@ offset_top = -60.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
-mouse_filter = 2
-horizontal_alignment = 1
 theme_override_colors/font_color = Color(1, 1, 1, 0.72)
 theme_override_font_sizes/font_size = 16
 text = "点击空白处以关闭"
+horizontal_alignment = 1
 
-[node name="ClaimedFloatLabel" type="Label" parent="."]
+[node name="ClaimedFloatLabel" type="Label" parent="." unique_id=1741366827]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -161,10 +480,9 @@ anchor_right = 0.5
 anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.965, 0.753, 0.302, 1)
 theme_override_colors/font_outline_color = Color(0.231, 0.149, 0.071, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 28
-text = "+0 金币"
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 32
+text = "领取成功"
+horizontal_alignment = 1

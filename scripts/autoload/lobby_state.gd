@@ -925,24 +925,47 @@ func get_player_preview_attributes() -> Dictionary:
 	var base_hp := int(GameConfig.get_player_value("base_hp", 100))
 	var base_crit := float(GameConfig.get_player_value("base_crit_rate", 0.08))
 	var base_move_speed := float(GameConfig.get_player_value("move_speed", 60))
+	var base_crit_damage := float(GameConfig.get_player_value("base_crit_damage", 1.6))
+	var base_ki := float(GameConfig.get_player_value("base_ki", 234))
+	var base_ki_regen := float(GameConfig.get_player_value("ki_regen_speed", 135.0))
 	var equip := get_equipment_totals()
-	var final_attack := base_attack + float(equip.get("attack", 0.0))
-	var final_hp := base_hp + int(equip.get("max_hp", 0))
-	var final_crit := base_crit + float(equip.get("crit_rate", 0.0))
-	var final_move_speed := base_move_speed + float(equip.get("move_speed", 0.0))
+	var equip_attack := float(equip.get("attack", 0.0))
+	var equip_hp := int(equip.get("max_hp", 0))
+	var equip_crit := float(equip.get("crit_rate", 0.0))
+	var equip_move_speed := float(equip.get("move_speed", 0.0))
+	var equip_crit_damage_pct := float(equip.get("crit_damage", 0.0))
+	var equip_max_ki_pct := float(equip.get("max_ki_pct", 0.0))
+	var equip_ki_regen_pct := float(equip.get("ki_regen_pct", 0.0))
+	var final_attack := base_attack + equip_attack
+	var final_hp := base_hp + equip_hp
+	var final_crit := base_crit + equip_crit
+	var final_move_speed := base_move_speed + equip_move_speed
+	# 暴击伤害 / 气力上限 / 气力回复：基础值 × (1 + 装备百分比)，与 player.gd 一致（不复利）
+	var final_crit_damage := base_crit_damage * (1.0 + equip_crit_damage_pct)
+	var final_max_ki := base_ki * (1.0 + equip_max_ki_pct)
+	var final_ki_regen := base_ki_regen * (1.0 + equip_ki_regen_pct)
 	var power := _calc_battle_power(final_attack, final_hp, final_crit, int(equip.get("item_power", 0)))
 	return {
 		"base_attack": base_attack,
 		"base_hp": base_hp,
 		"base_crit_rate": base_crit,
-		"equip_attack": float(equip.get("attack", 0.0)),
-		"equip_hp": int(equip.get("max_hp", 0)),
-		"equip_crit_rate": float(equip.get("crit_rate", 0.0)),
-		"equip_move_speed": float(equip.get("move_speed", 0.0)),
+		"base_crit_damage": base_crit_damage,
+		"base_ki": base_ki,
+		"base_ki_regen": base_ki_regen,
+		"equip_attack": equip_attack,
+		"equip_hp": equip_hp,
+		"equip_crit_rate": equip_crit,
+		"equip_move_speed": equip_move_speed,
+		"equip_crit_damage_pct": equip_crit_damage_pct,
+		"equip_max_ki_pct": equip_max_ki_pct,
+		"equip_ki_regen_pct": equip_ki_regen_pct,
 		"attack": final_attack,
 		"hp": final_hp,
 		"crit_rate": final_crit,
 		"move_speed": final_move_speed,
+		"crit_damage": final_crit_damage,
+		"max_ki": final_max_ki,
+		"ki_regen": final_ki_regen,
 		"battle_power": power,
 	}
 

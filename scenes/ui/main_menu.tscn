@@ -25,6 +25,7 @@
 [ext_resource type="Texture2D" uid="uid://1c502dmq7bvx" path="res://assets/ui/icons/system/icon_battle.png" id="24_icon_battle"]
 [ext_resource type="Texture2D" uid="uid://b5jswlstcnaii" path="res://assets/ui/decorations/deco_line03.png" id="25_deco_line03"]
 [ext_resource type="Texture2D" uid="uid://bo77nl6j5kr33" path="res://assets/ui/panels/bar_stage.png" id="26_bar_stage"]
+[ext_resource type="Texture2D" uid="uid://dew2rvfiqajfo" path="res://assets/ui/buttons/btn_green.png" id="26_btn_green"]
 [ext_resource type="Texture2D" uid="uid://b7q4h31naave3" path="res://assets/ui/panels/bar_stage_fill.png" id="27_bar_stage_fill"]
 [ext_resource type="Texture2D" uid="uid://ctha28r28avk6" path="res://assets/ui/decorations/deco_bar_stage.png" id="28_deco_bar_stage"]
 [ext_resource type="Texture2D" uid="uid://1xwxebyapgp1" path="res://assets/ui/decorations/deco_bar_stage02.png" id="29_deco_bar_stage02"]
@@ -246,23 +247,30 @@ text = "开始"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ScoutEntryButton" type="Button" parent="Content/StagePanel/StageViewport" unique_id=990001101]
+[node name="ScoutEntryButton" type="TextureButton" parent="Content/StagePanel/StageViewport" unique_id=990001101]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(180, 68)
+texture_filter = 1
+custom_minimum_size = Vector2(215, 85)
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -90.0
-offset_top = -296.0
-offset_right = 90.0
+offset_left = -107.5
+offset_top = -313.0
+offset_right = 107.5
 offset_bottom = -228.0
 grow_horizontal = 2
 grow_vertical = 0
+scale = Vector2(0.8, 0.8)
 focus_mode = 0
 mouse_default_cursor_shape = 2
+texture_normal = ExtResource("26_btn_green")
+texture_pressed = ExtResource("26_btn_green")
+texture_hover = ExtResource("26_btn_green")
+ignore_texture_size = true
+stretch_mode = 0
 
 [node name="Row" type="HBoxContainer" parent="Content/StagePanel/StageViewport/ScoutEntryButton" unique_id=990001102]
 layout_mode = 1
@@ -693,7 +701,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 26
 text = "0"
 horizontal_alignment = 1
@@ -885,6 +893,8 @@ anchor_bottom = 1.0
 offset_left = 6.0
 offset_top = 5.0
 offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("27_bar_stage_fill")
 expand_mode = 1

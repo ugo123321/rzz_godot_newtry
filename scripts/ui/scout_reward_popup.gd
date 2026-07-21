@@ -3,100 +3,140 @@ extends Control
 class_name ScoutRewardPopup
 
 # 侦察挂机收益 popup（会话内累计金币）
-# - 节点结构在 scout_reward_popup.tscn；本脚本只做程序化样式（9-slice stylebox / 字体）+ 信号 + 刷新
+# - 节点结构 / 贴图 / 字号 / 位置全部在 scout_reward_popup.tscn（引擎可编辑，策划可直接在编辑器里拖）
+# - 本脚本只做：信号连接 + 淡入淡出动效 + 动态数值刷新（已侦察时长 / 每小时 / 待领数 / 槽位金币数）+ 领取逻辑 + i18n 文案
 # - 由 main_menu.tscn 直接实例化挂在主菜单根节点下
-# - @tool：让编辑器打开 scout_reward_popup.tscn 时也能看到完整样式（_ready 套 stylebox + 文案）
+# - @tool：让编辑器打开 scout_reward_popup.tscn 时也能套上文案（_ready → _apply_texts）
 # - 领取按钮把 LobbyState.get_scout_pending_gold() 加到金币；无冷却，可反复领
-# - 参考 UI：cankao/11.jpg（主题 = 侦察收益 / 已侦察 hh:mm:ss / 187 每小时 / 领取按钮）
 
-const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
-const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
-
-const PANEL_MARGIN := 48.0
-const PANEL_MIN_SIZE := Vector2(420.0, 560.0)
 const REFRESH_INTERVAL := 1.0
 const CLAIMED_FLOAT_DURATION := 1.2
+const SHOW_DURATION := 0.18
+const HIDE_DURATION := 0.15
+const PRESS_SCALE := 0.9
 
 @onready var _overlay: ColorRect = %Overlay
-@onready var _panel: PanelContainer = %Panel
-@onready var _vbox: VBoxContainer = %VBox
+@onready var _panel: Control = %Panel
 @onready var _title_label: Label = %TitleLabel
 @onready var _subtitle_label: Label = %SubtitleLabel
 @onready var _elapsed_label: Label = %ElapsedLabel
-@onready var _hourly_icon: TextureRect = %HourlyIcon
 @onready var _hourly_label: Label = %HourlyLabel
-@onready var _item_slot: PanelContainer = %ItemSlot
-@onready var _item_empty_label: Label = %ItemEmptyLabel
 @onready var _hint_label: Label = %HintLabel
-@onready var _claim_button: Button = %ClaimButton
+@onready var _claim_button: TextureButton = %ClaimButton
+@onready var _claim_label: Label = get_node_or_null("Panel/ClaimButton/Label") as Label
+@onready var _item_template: Control = %ItemTemplate
 @onready var _close_hint_label: Label = %CloseHintLabel
 @onready var _claimed_float_label: Label = %ClaimedFloatLabel
 
+# 侦察可获得的道具列表（数据驱动）。
+# 每项 = {icon: 道具 icon 贴图, get_count: 返回当前可领取数量}。
+# 数量 > 0 的才依次放进 Slot_0..Slot_14；数量 = 0 的不出现（槽位空）。
+# 未来新增侦察道具：在这里加一项即可，UI 自动从下一个空槽位开始放。
+const GOLD_ICON := preload("res://assets/ui/icons/currency/icon_cur_gold.png")
+const SLOT_COUNT := 15
+var _scout_item_defs: Array = []
+
 var _refresh_accum := 0.0
 var _claimed_float_time := 0.0
+var _active_tween: Tween = null
+var _closing := false
+var _claim_pressed := false
+var _claim_base_scale := Vector2.ONE
 
 
 func _ready() -> void:
-	# @tool：编辑器里也套程序化 stylebox + 文案 + 连信号，这样打开 tscn 能看到完整 popup。
-	_apply_runtime_styling()
+	_build_scout_item_defs()
+	_apply_texts()
 	if _overlay != null and not _overlay.gui_input.is_connected(_on_overlay_input):
 		_overlay.gui_input.connect(_on_overlay_input)
-	if _claim_button != null and not _claim_button.pressed.is_connected(_on_claim_pressed):
-		_claim_button.pressed.connect(_on_claim_pressed)
-	if not resized.is_connected(_on_root_resized):
-		resized.connect(_on_root_resized)
+	if _claim_button != null:
+		if not _claim_button.pressed.is_connected(_on_claim_pressed):
+			_claim_button.pressed.connect(_on_claim_pressed)
+		if not _claim_button.button_down.is_connected(_on_claim_button_down):
+			_claim_button.button_down.connect(_on_claim_button_down)
+		if not _claim_button.button_up.is_connected(_on_claim_button_up):
+			_claim_button.button_up.connect(_on_claim_button_up)
+		call_deferred("_cache_claim_button_pivot")
 	if is_instance_valid(EventBus) and not EventBus.language_changed.is_connected(_on_language_changed):
 		EventBus.language_changed.connect(_on_language_changed)
-	_apply_texts()
+	if not resized.is_connected(_on_root_resized):
+		resized.connect(_on_root_resized)
+	# 工具态：编辑器里也刷新一次文案，便于查看
+	if Engine.is_editor_hint():
+		_refresh_dynamic_labels()
+
+
+# 领取按钮按下缩放（以中心为轴心），松开归位。基础 scale 来自 .tscn（编辑器里可调）。
+func _cache_claim_button_pivot() -> void:
+	if _claim_button == null or _claim_button.size.x <= 0.0:
+		return
+	_claim_button.pivot_offset = _claim_button.size * 0.5
+	_claim_base_scale = _claim_button.scale
+	_update_claim_button_scale()
+
+
+func _on_claim_button_down() -> void:
+	_claim_pressed = true
+	_update_claim_button_scale()
+
+
+func _on_claim_button_up() -> void:
+	_claim_pressed = false
+	_update_claim_button_scale()
+
+
+func _update_claim_button_scale() -> void:
+	if _claim_button == null:
+		return
+	_claim_button.scale = _claim_base_scale * (PRESS_SCALE if _claim_pressed else 1.0)
+
+
+# 侦察可获得道具清单。当前只有金币；未来加新道具在此 append 一项即可。
+func _build_scout_item_defs() -> void:
+	if not _scout_item_defs.is_empty():
+		return
+	_scout_item_defs = [
+		{"icon": GOLD_ICON, "get_count": Callable(self, "_get_pending_gold")},
+	]
+
+
+func _get_pending_gold() -> int:
+	if not is_instance_valid(LobbyState):
+		return 0
+	return maxi(0, LobbyState.get_scout_pending_gold())
 
 
 func setup() -> void:
-	# 运行时由 main_menu._ready 调一次：归位全屏 + 隐藏（样式/信号已在 _ready 处理）。
+	# 运行时由 main_menu._ready 调一次：归位全屏 + 隐藏。
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_apply_texts()
-
-
-# 节点结构已在 scout_reward_popup.tscn；这里只套 .tscn 表达不了的程序化 stylebox / 字体。
-func _apply_runtime_styling() -> void:
+	if _overlay != null:
+		_overlay.modulate.a = 0.0
 	if _panel != null:
-		var panel_style := UiStyle.make_dialog_stylebox(Color.WHITE, 24)
-		if panel_style != null:
-			_panel.add_theme_stylebox_override("panel", panel_style)
-			_panel.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	if _item_slot != null:
-		var slot_style := UiStyle.make_tooltip_stylebox(Color(0.92, 0.83, 0.62, 1.0), 16)
-		if slot_style != null:
-			_item_slot.add_theme_stylebox_override("panel", slot_style)
-		else:
-			var fb := StyleBoxFlat.new()
-			fb.bg_color = Color(0.88, 0.76, 0.5, 1.0)
-			fb.set_corner_radius_all(10)
-			fb.set_content_margin_all(16.0)
-			_item_slot.add_theme_stylebox_override("panel", fb)
-	if _claim_button != null:
-		UiStyle.apply_primary_button(_claim_button, Color("#efb840"), 12)
-		_claim_button.add_theme_color_override("font_color", Color("#3b2612"))
-		PixelUi.apply_ui_font(_claim_button)
-	for lbl in [_title_label, _subtitle_label, _elapsed_label, _hourly_label, \
-			_item_empty_label, _hint_label, _close_hint_label, _claimed_float_label]:
-		if lbl != null:
-			PixelUi.apply_ui_font(lbl)
+		_panel.modulate.a = 0.0
+		_panel.scale = Vector2.ONE
+	_apply_texts()
 
 
 func show_popup() -> void:
 	_sync_root_size()
 	_apply_texts()
 	_refresh_dynamic_labels()
-	_relayout_panel()
 	visible = true
 	move_to_front()
+	_closing = false
 	_refresh_accum = 0.0
+	_play_show_tween()
 
 
 func hide_popup() -> void:
-	visible = false
+	if not visible:
+		return
+	if Engine.is_editor_hint():
+		visible = false
+		return
+	_play_hide_tween()
 
 
 func _on_overlay_input(event: InputEvent) -> void:
@@ -110,32 +150,57 @@ func _sync_root_size() -> void:
 		size = vp
 
 
-func _relayout_panel() -> void:
-	if _panel == null:
-		return
-	var vp := size
-	if vp.x <= 0.0 or vp.y <= 0.0:
-		vp = get_viewport_rect().size
-	var panel_size := Vector2(
-		clampf(vp.x - PANEL_MARGIN * 2.0, PANEL_MIN_SIZE.x, vp.x),
-		clampf(vp.y * 0.70, PANEL_MIN_SIZE.y, vp.y - PANEL_MARGIN * 2.0)
-	)
-	var center := vp * 0.5
-	_panel.position = center - panel_size * 0.5
-	_panel.size = panel_size
-
-
 func _on_root_resized() -> void:
-	# 编辑器里保持场景里 Panel 的静态锚点（preset 8 居中 + min_size），不按视口重排。
 	if Engine.is_editor_hint():
 		return
 	_sync_root_size()
-	_relayout_panel()
 
 
 func _on_language_changed(_lang: String) -> void:
 	_apply_texts()
 	_refresh_dynamic_labels()
+
+
+func _play_show_tween() -> void:
+	if _active_tween != null and _active_tween.is_valid():
+		_active_tween.kill()
+	if _overlay != null:
+		_overlay.modulate.a = 0.0
+	if _panel != null:
+		_panel.pivot_offset = _panel.size * 0.5
+		_panel.scale = Vector2(0.92, 0.92)
+		_panel.modulate.a = 0.0
+	_active_tween = create_tween()
+	_active_tween.set_parallel(true)
+	if _overlay != null:
+		_active_tween.tween_property(_overlay, "modulate:a", 1.0, SHOW_DURATION) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if _panel != null:
+		_active_tween.tween_property(_panel, "modulate:a", 1.0, SHOW_DURATION) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_active_tween.tween_property(_panel, "scale", Vector2.ONE, SHOW_DURATION) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _play_hide_tween() -> void:
+	if _closing:
+		return
+	_closing = true
+	if _active_tween != null and _active_tween.is_valid():
+		_active_tween.kill()
+	_active_tween = create_tween()
+	_active_tween.set_parallel(true)
+	if _overlay != null:
+		_active_tween.tween_property(_overlay, "modulate:a", 0.0, HIDE_DURATION) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	if _panel != null:
+		_active_tween.tween_property(_panel, "modulate:a", 0.0, HIDE_DURATION) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		_active_tween.tween_property(_panel, "scale", Vector2(0.96, 0.96), HIDE_DURATION) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	_active_tween.chain().tween_callback(func():
+		visible = false
+		_closing = false)
 
 
 func _apply_texts() -> void:
@@ -145,8 +210,6 @@ func _apply_texts() -> void:
 		_title_label.text = LanguageManager.tr_ui("UI_SCOUT_TITLE")
 	if _subtitle_label != null:
 		_subtitle_label.text = LanguageManager.tr_ui("UI_SCOUT_SUBTITLE")
-	if _item_empty_label != null:
-		_item_empty_label.text = LanguageManager.tr_ui("UI_SCOUT_ITEM_EMPTY")
 	if _hint_label != null:
 		_hint_label.text = LanguageManager.tr_ui("UI_SCOUT_HINT_HIGHER")
 	if _close_hint_label != null:
@@ -164,12 +227,59 @@ func _refresh_dynamic_labels() -> void:
 	if _hourly_label != null:
 		_hourly_label.text = LanguageManager.tr_ui("UI_SCOUT_HOURLY_FMT") % hourly
 	if _claim_button != null:
-		if pending > 0:
-			_claim_button.disabled = false
-			_claim_button.text = LanguageManager.tr_ui("UI_SCOUT_CLAIM_BTN")
-		else:
-			_claim_button.disabled = true
-			_claim_button.text = LanguageManager.tr_ui("UI_SCOUT_CLAIM_DISABLED")
+		var can_claim := pending > 0
+		_claim_button.disabled = not can_claim
+		# 暂无可领 → 整个按钮置灰（TextureButton 的 disabled 不自动灰化，手动 modulate）
+		_claim_button.modulate = Color(0.35, 0.35, 0.35, 1.0) if not can_claim else Color.WHITE
+		if _claim_label != null:
+			_claim_label.text = LanguageManager.tr_ui("UI_SCOUT_CLAIM_BTN") if can_claim \
+				else LanguageManager.tr_ui("UI_SCOUT_CLAIM_DISABLED")
+	_refresh_slot_items()
+
+
+# 把 "数量 > 0" 的可领取道具依次放进 Slot_0..Slot_14；数量 = 0 的不放（槽位空）。
+# 每次 refresh 先清掉槽位里上次放的实例，再按当前数量重新放置。
+func _refresh_slot_items() -> void:
+	_clear_slot_items()
+	if _item_template == null:
+		return
+	var slot_idx := 0
+	for def in _scout_item_defs:
+		if slot_idx >= SLOT_COUNT:
+			break
+		var count: int = maxi(0, int((def.get("get_count") as Callable).call()))
+		if count <= 0:
+			continue
+		var icon_tex: Texture2D = def.get("icon") as Texture2D
+		_place_item_in_slot(slot_idx, icon_tex, count)
+		slot_idx += 1
+
+
+func _clear_slot_items() -> void:
+	for i in SLOT_COUNT:
+		var slot := get_node_or_null("Panel/SlotsLayer/Slot_%d" % i) as Control
+		if slot == null:
+			continue
+		for child in slot.get_children():
+			child.queue_free()
+
+
+# 复制 ItemTemplate（带 ItemIcon + CountLabel 的样式），铺满目标槽位，写入 icon 和数量文字。
+func _place_item_in_slot(slot_idx: int, icon_tex: Texture2D, count: int) -> void:
+	var slot := get_node_or_null("Panel/SlotsLayer/Slot_%d" % slot_idx) as Control
+	if slot == null or _item_template == null:
+		return
+	var tpl := _item_template.duplicate()
+	tpl.visible = true
+	tpl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tpl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(tpl)
+	var icon := tpl.get_node_or_null("ItemIcon") as TextureRect
+	if icon != null and icon_tex != null:
+		icon.texture = icon_tex
+	var lbl := tpl.get_node_or_null("CountLabel") as Label
+	if lbl != null:
+		lbl.text = str(count)
 
 
 func _on_claim_pressed() -> void:
@@ -182,11 +292,10 @@ func _on_claim_pressed() -> void:
 	_show_claimed_float(reward)
 
 
-func _show_claimed_float(reward: int) -> void:
+func _show_claimed_float(_reward: int) -> void:
 	if _claimed_float_label == null:
 		return
-	_claimed_float_label.text = LanguageManager.tr_ui("UI_SCOUT_CLAIMED_FMT") % reward
-	# 从领取按钮上方开始
+	_claimed_float_label.text = LanguageManager.tr_ui("UI_SCOUT_CLAIMED_OK")
 	var start_pos := Vector2(size.x * 0.5, size.y * 0.5)
 	if _claim_button != null:
 		var rect := _claim_button.get_global_rect()

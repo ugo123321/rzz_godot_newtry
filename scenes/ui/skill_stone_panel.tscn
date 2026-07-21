@@ -773,8 +773,8 @@ offset_top = 252.0
 offset_right = 535.0
 offset_bottom = 400.0
 mouse_filter = 2
-theme_override_font_sizes/normal_font_size = 20
-theme_override_font_sizes/bold_font_size = 20
+theme_override_font_sizes/normal_font_size = 24
+theme_override_font_sizes/bold_font_size = 24
 bbcode_enabled = true
 
 [node name="ActionBtn" type="TextureButton" parent="DetailPopup/Panel" unique_id=332056413]
