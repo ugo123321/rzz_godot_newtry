@@ -986,10 +986,14 @@ func _update_v6_demon_scythes(delta: float, player: BattlePlayer, monsters: Arra
 		s["pos"] = new_pos
 		s["spin"] = float(s.get("spin", 0.0)) + SCYTHE_SPIN_SPEED * delta
 		s["life"] = float(s.life) - delta
+		# 镰刀撞阻挡石/深坑/未解锁锁定块 → 火花消失（贯通模式下也终止）
+		var _blocked_by_terrain: bool = battle and battle.has_method("is_bullet_blocked_at") and battle.is_bullet_blocked_at(new_pos)
 		# 命中扫描：圆形碰撞（镰刀本体）
 		_scythe_hit_pos(s, player, monsters, new_pos)
-		# 出屏 / 寿命结束 → 移除
-		if _is_out_of_playfield(new_pos) or float(s.life) <= 0.0:
+		# 出屏 / 寿命结束 / 被地形阻挡 → 移除
+		if _blocked_by_terrain or _is_out_of_playfield(new_pos) or float(s.life) <= 0.0:
+			if _blocked_by_terrain and battle and battle.particles:
+				battle.particles.hit_spark(new_pos, false)
 			v6_demon_scythes.remove_at(i)
 		else:
 			v6_demon_scythes[i] = s
@@ -1468,6 +1472,11 @@ func _update_shurikens(delta: float, player: BattlePlayer, monsters: Array) -> v
 				remove = true
 		if not remove:
 			s["pos"] = s.pos + s.vel * delta
+			# 子弹撞阻挡石/深坑/未解锁锁定块 → 火花消失（remove=true，后续 if not remove 检查自动跳过）
+			if battle and battle.has_method("is_bullet_blocked_at") and battle.is_bullet_blocked_at(Vector2(s.pos)):
+				if battle.particles:
+					battle.particles.hit_spark(Vector2(s.pos), false)
+				remove = true
 			if _projectile_kind(s) == "auto":
 				if not bool(s.get("returning", false)) and not _auto_outbound_mirror_pending(s, player):
 					s["life"] = float(s.life) - delta

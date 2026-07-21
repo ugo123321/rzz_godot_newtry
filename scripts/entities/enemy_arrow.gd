@@ -185,6 +185,10 @@ func update_arrow(delta: float) -> void:
 	global_position += velocity * delta
 	if _try_hit_player():
 		return
+	# 子弹撞到阻挡石/深坑/未解锁锁定块/箭块 → 在格边火花消失
+	if _battle and _battle.has_method("is_bullet_blocked_at") and _battle.is_bullet_blocked_at(global_position):
+		destroy_blocked(global_position - velocity * delta, global_position)
+		return
 	if _try_bounce():
 		return
 	if not _battle.is_in_bounds(global_position):

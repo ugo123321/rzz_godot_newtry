@@ -13,6 +13,7 @@ const AUTO_BULLET_RELEASE_RATIO := 0.42
 const PATH_LINE_WIDTH := 6.0
 const PATH_LINE_COLOR := Color(1.0, 0.85, 0.2, 0.9)
 const PATH_LINE_COLOR_ATTACK := Color(1.0, 0.85, 0.2, 0.35)
+const PATH_LINE_COLOR_BLOCKED := Color(1.0, 0.3, 0.3, 0.95)  # 画线触碰阻挡块/深坑时整线标红
 const PATH_HIT_PAD_RATIO := 0.68
 const DRAW_START_FX_SCALE := 1.3
 const TRIGGER_RING_VISUAL_SCALE := 0.6
@@ -38,6 +39,11 @@ var ki := 234.0
 var ki_regen_speed := 135.0
 var basic_attack_speed := 2.0
 var next_turn_ki_bonus := 0.0
+
+# 局内货币（钥匙 / 银币）：run-scoped，reset_for_new_run 清零，不写盘、不跨局。
+# 钥匙：解锁锁定块 / 锁闭宝箱，每次消耗 1 把；银币：本轮只收集无消耗出口。
+var keys := 0
+var silver := 0
 
 var combo_count := 0.0
 var combo_hit_count := 0
@@ -674,6 +680,42 @@ func consume_ki_by_distance(distance: float) -> bool:
 		return false
 	ki -= cost
 	return true
+
+
+# === 局内货币：钥匙 / 银币（run-scoped，不写盘）===
+func add_key(n: int = 1) -> void:
+	if n <= 0:
+		return
+	keys += n
+	EventBus.emit_signal("key_changed", keys)
+
+
+func has_key() -> bool:
+	return keys > 0
+
+
+# 消耗 1 把钥匙；成功返回 true，无钥匙返回 false。
+func spend_key() -> bool:
+	if keys <= 0:
+		return false
+	keys -= 1
+	EventBus.emit_signal("key_changed", keys)
+	return true
+
+
+func get_keys() -> int:
+	return keys
+
+
+func add_silver(n: int) -> void:
+	if n <= 0:
+		return
+	silver += n
+	EventBus.emit_signal("silver_changed", silver)
+
+
+func get_silver() -> int:
+	return silver
 
 
 func invalidate_path() -> void:
@@ -1595,6 +1637,9 @@ func update_joystick_locomotion(dir: Vector2, delta: float, battle: Node) -> voi
 	var speed := base_move * move_speed_penalty_mult * water_mult
 	var next_pos := global_position + dir.normalized() * speed * delta
 	var blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(next_pos)
+	# 阻挡石块 / 深坑 / 未解锁锁定块 / 箭块：阻挡移动（与树一样不让你走上去）
+	if not blocked and battle != null and battle.has_method("is_move_blocked_at") and battle.is_move_blocked_at(next_pos):
+		blocked = true
 	if battle != null and battle.has_method("is_in_bounds") and battle.is_in_bounds(next_pos) and not blocked:
 		global_position = next_pos
 		home_position = global_position
@@ -1661,6 +1706,8 @@ func reset_for_new_run() -> void:
 	_load_base_stats()
 	hp = max_hp
 	ki = ki_max
+	keys = 0
+	silver = 0
 	home_position = global_position
 	begin_stage()
 	_rebuild_upgrades()
@@ -1755,7 +1802,20 @@ func _update_new_upgrade_states(_delta: float) -> void:
 
 
 func _apply_path_line_color() -> void:
+	if path_preview_invalid:
+		path_line.default_color = PATH_LINE_COLOR_BLOCKED
+		return
 	path_line.default_color = PATH_LINE_COLOR_ATTACK if state == State.ATTACKING else PATH_LINE_COLOR
+
+
+# 画线触碰阻挡块/深坑时把整条预览线标红（path_input 检测到阻挡时调用）。
+# 整体切色，不逐段重绘，避免破坏 sr=24 拖尾渲染。每次画线开始时由 path_input 复位。
+var path_preview_invalid := false
+func set_preview_invalid(v: bool) -> void:
+	if path_preview_invalid == v:
+		return
+	path_preview_invalid = v
+	_apply_path_line_color()
 
 
 func _update_path_line() -> void:

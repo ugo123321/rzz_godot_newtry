@@ -20,6 +20,13 @@ const ForgeSettlementPopupScript = preload("res://scripts/ui/forge_settlement_po
 const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
 const TreeSpawnerScript = preload("res://scripts/systems/tree_spawner.gd")
 const PortalSpawnerScript = preload("res://scripts/systems/portal_spawner.gd")
+const FieldElementRegistryScript = preload("res://scripts/systems/field_element_registry.gd")
+const LevelLayoutLoaderScript = preload("res://scripts/systems/level_layout_loader.gd")
+const ArrowBlockScript = preload("res://scripts/entities/arrow_block.gd")
+const LockedBlockScript = preload("res://scripts/entities/locked_block.gd")
+const FixedPortalScript = preload("res://scripts/entities/fixed_portal.gd")
+const ChestNormalScript = preload("res://scripts/entities/chest_normal.gd")
+const ChestLockedScript = preload("res://scripts/entities/chest_locked.gd")
 const BuildHouseDirectorScript = preload("res://scripts/systems/build_house_director.gd")
 const AttrForgeDirectorScript = preload("res://scripts/systems/attr_forge_director.gd")
 const WoodDropScript = preload("res://scripts/entities/wood_drop.gd")
@@ -84,6 +91,7 @@ var build_house
 var attr_forge
 var tree_container: Node2D
 var portal_container: Node2D
+var field_elements: Node  # FieldElementRegistry：放置元素格注册表（箭块/锁定块/宝箱/固定传送门）
 var wood_drops_container: Node2D
 var build_house_container: Node2D
 var attr_forge_container: Node2D
@@ -255,6 +263,8 @@ func _ready() -> void:
 	portal_container.name = "Portals"
 	portal_container.z_index = 4
 	$Entities.add_child(portal_container)
+	field_elements = FieldElementRegistryScript.new()
+	$Entities.add_child(field_elements)  # name "FieldElements" 由 _ready 设；z=2（Trees 之上 WoodDrops 之下）
 	build_house_container = Node2D.new()
 	build_house_container.name = "BuildHouse"
 	build_house_container.z_index = 30
@@ -538,6 +548,8 @@ func _start_run() -> void:
 		_sync_background_layer()
 		_refresh_stage_ambience()
 	_apply_stage_meta(true)
+	# 关卡编辑器布局：若该关配置了 layout_number，载入对应 user://levels/<编号>.json 放置元素/地块。
+	_apply_stage_layout_if_any(stage_index)
 	if not skip_world_setup and tree_spawner:
 		if get_stage_theme(stage_index) == "":
 			tree_spawner.begin(self)
@@ -914,6 +926,40 @@ func is_blocked_by_tree(pos: Vector2) -> bool:
 	return false
 
 
+# 子弹/投掷物是否在 world_pos 处被地形（深坑/阻挡石）或放置元素（箭块/锁定块未解锁）阻挡。
+func is_bullet_blocked_at(world_pos: Vector2) -> bool:
+	if terrain and terrain.has_method("is_blocking_for_movement"):
+		var ts: int = TerrainBackground.TILE_SIZE
+		var col := int(world_pos.x / ts)
+		var row := int(world_pos.y / ts)
+		if terrain.is_blocking_for_movement(col, row):
+			return true
+	if field_elements and field_elements.has_method("has_bullet_blocking_at"):
+		var ts2: int = TerrainBackground.TILE_SIZE
+		var col := int(world_pos.x / ts2)
+		var row := int(world_pos.y / ts2)
+		if field_elements.has_bullet_blocking_at(col, row):
+			return true
+	return false
+
+
+# 玩家移动是否在 world_pos 处被阻挡石/深坑/未解锁锁定块/箭块挡住。
+func is_move_blocked_at(world_pos: Vector2) -> bool:
+	if terrain and terrain.has_method("is_blocking_for_movement"):
+		var ts: int = TerrainBackground.TILE_SIZE
+		var col := int(world_pos.x / ts)
+		var row := int(world_pos.y / ts)
+		if terrain.is_blocking_for_movement(col, row):
+			return true
+	if field_elements and field_elements.has_method("has_move_blocking_at"):
+		var ts2: int = TerrainBackground.TILE_SIZE
+		var col := int(world_pos.x / ts2)
+		var row := int(world_pos.y / ts2)
+		if field_elements.has_move_blocking_at(col, row):
+			return true
+	return false
+
+
 func _nudge_player_out_of_trees() -> void:
 	if player == null:
 		return
@@ -1012,6 +1058,85 @@ func _on_lottery_exit_complete() -> void:
 	_portal_active_pause = false
 	if portal_spawner:
 		portal_spawner.begin()
+
+
+# === 关卡编辑器布局载入 ===
+# 读取 user://levels/<编号>.json，按 elements 列表放置地块/元素。
+# 纯地块（water/pit/stone_floor/blocking_stone）走 terrain.set_tile；其余走对应 FieldElement 实体。
+# stage→编号 绑定属未来工作（在 stages.json 加 layout_number 字段）；此处通过编号直接载入。
+const _TILE_LAYOUT_TYPES := ["water", "pit", "stone_floor", "blocking_stone"]
+
+func _apply_level_layout(number) -> void:
+	if not LevelLayoutLoaderScript:
+		return
+	var layout: Dictionary = LevelLayoutLoaderScript.load_layout(number)
+	if layout.is_empty():
+		return
+	var elements: Array = layout.get("elements", [])
+	if elements.is_empty():
+		return
+	for elem in elements:
+		if not (elem is Dictionary):
+			continue
+		var t: String = String(elem.get("type", ""))
+		var col: int = int(elem.get("col", 0))
+		var row: int = int(elem.get("row", 0))
+		var facing: String = String(elem.get("facing", "up"))
+		if _TILE_LAYOUT_TYPES.has(t):
+			if terrain and terrain.has_method("set_tile"):
+				terrain.set_tile(col, row, t)
+			continue
+		_spawn_field_element(t, col, row, facing)
+
+
+# 按 kind 实例化一个放置元素到 field_elements 容器，并注册到注册表。
+func _spawn_field_element(kind: String, col: int, row: int, facing: String) -> Node:
+	var elem: Node = null
+	match kind:
+		"arrow_single", "arrow_cross":
+			var b := ArrowBlockScript.new()
+			field_elements.add_child(b)
+			b.setup_block(col, row, kind, facing)
+			b.register_self(self)
+			elem = b
+		"locked_block":
+			var b := LockedBlockScript.new()
+			field_elements.add_child(b)
+			b.setup_block(col, row)
+			b.register_self(self)
+			elem = b
+		"fixed_portal":
+			var p := FixedPortalScript.new()
+			portal_container.add_child(p)
+			p.setup(_cell_center(col, row))
+			elem = p
+		"chest_normal":
+			var c := ChestNormalScript.new()
+			field_elements.add_child(c)
+			c.setup_chest(col, row, kind)
+			elem = c
+		"chest_locked":
+			var c := ChestLockedScript.new()
+			field_elements.add_child(c)
+			c.setup_chest(col, row, kind)
+			elem = c
+		_:
+			push_warning("battle._spawn_field_element: unknown kind '%s'" % kind)
+	return elem
+
+
+func _cell_center(col: int, row: int) -> Vector2:
+	var ts: int = TerrainBackground.TILE_SIZE
+	return Vector2((col + 0.5) * float(ts), (row + 0.5) * float(ts))
+
+
+# 读 stages.json 的 layout_number 字段（未来策划在该列填编号控制地图出现），有则载入对应布局。
+func _apply_stage_layout_if_any(stage_idx: int) -> void:
+	var stage_dict: Dictionary = GameConfig.get_stage(stage_idx)
+	var num = stage_dict.get("layout_number", "")
+	if num == null or String(num).strip_edges().is_empty():
+		return
+	_apply_level_layout(num)
 
 
 func apply_debug_settings(target_level: int, target_stage: int) -> void:

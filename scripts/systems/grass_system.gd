@@ -31,8 +31,8 @@ func init_field(world_w: float, world_h: float, play_area_bottom: float, safe_zo
 			var rr := float(safe_zone.get("r", 0.0)) + exclusion_pad
 			if dx * dx + dy * dy <= rr * rr:
 				continue
-		# 不在水格里生成（如果传了 terrain）
-		if terrain and terrain.has_method("get_tile_at_world") and terrain.get_tile_at_world(x, y) == "water":
+		# 不在水/深坑/阻挡石/石地板上生成（如果传了 terrain）
+		if terrain and terrain.has_method("is_spawn_avoid_tile") and terrain.is_spawn_avoid_tile(terrain.get_tile_at_world(x, y)):
 			continue
 		blades.append({
 			"x": x,

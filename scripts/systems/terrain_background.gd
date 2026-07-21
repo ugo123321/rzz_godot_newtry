@@ -29,6 +29,16 @@ const TYPE_CASTLE := "castle"
 const TYPE_PALACE := "palace"
 const TYPE_PALACE_CORRIDOR := "palace_corridor"
 
+# 局内特殊地块（与水地块同 40px 尺寸；由 set_tile 写入 grid 后过程化烘焙）
+const TYPE_PIT := "pit"                  # 深坑：阻挡移动 + 子弹 + 画线（标红失败）
+const TYPE_STONE_FLOOR := "stone_floor"  # 石地板：可通行，但怪物/树/草不在其上生成
+const TYPE_BLOCKING_STONE := "blocking_stone"  # 阻挡石块：阻挡移动 + 子弹 + 画线
+
+# 阻挡移动/子弹/画线的地块类型集合（water 不在内 —— water 走 path_input 的额外 ki 消耗逻辑）
+const BLOCKING_TILE_TYPES := [TYPE_PIT, TYPE_BLOCKING_STONE]
+# 怪物/树/草生成时需避让的地块类型集合（含水 + 阻挡 + 石地板）
+const SPAWN_AVOID_TILE_TYPES := [TYPE_WATER, TYPE_PIT, TYPE_BLOCKING_STONE, TYPE_STONE_FLOOR]
+
 # 段索引 → 地面 tile 类型：每 4 关一段（打造/主题/boss 关会 override）
 # 段 7 是 boss 前一关（idx=28）的专用火把长廊过渡地面
 const SEGMENT_TERRAIN_MAP := {
@@ -224,6 +234,36 @@ const TILE_DATA := {
 		"deco_kind": "ember",
 		"deco_palette": [Color("#c85030"), Color("#f08040"), Color("#501818")],
 	},
+	"pit": {
+		# 深坑：3 档深色，无装饰 —— 视觉上是地面上的黑洞
+		"base": Color("#0c0a12"),
+		"shade": Color("#060409"),
+		"highlight": Color("#14101c"),
+		"speckle_chance": 0.05,
+		"deco_chance": 0.0,
+		"deco_kind": "crack",
+		"deco_palette": [Color("#1a1424"), Color("#000000"), Color("#221830")],
+	},
+	"stone_floor": {
+		# 石地板：可通行，灰冷 4 档 + 微裂纹（怪物/树/草不在其上生成）
+		"base": Color("#8a8d92"),
+		"shade": Color("#72757a"),
+		"highlight": Color("#a4a8ae"),
+		"speckle_chance": 0.035,
+		"deco_chance": 0.05,
+		"deco_kind": "crack",
+		"deco_palette": [Color("#5c5f64"), Color("#4a4d52"), Color("#6c6f74")],
+	},
+	"blocking_stone": {
+		# 阻挡石块：灰棕 4 档 + 深轮廓块状 —— 阻挡移动/子弹/画线
+		"base": Color("#6a6058"),
+		"shade": Color("#4a423a"),
+		"highlight": Color("#8a7e72"),
+		"speckle_chance": 0.06,
+		"deco_chance": 0.08,
+		"deco_kind": "chunk",
+		"deco_palette": [Color("#3a342c"), Color("#9a8e82"), Color("#524840")],
+	},
 }
 
 var _texture: ImageTexture
@@ -280,6 +320,30 @@ func get_tile_at_world(world_x: float, world_y: float) -> String:
 	var col := int(floor(world_x / float(TILE_SIZE)))
 	var row := int(floor(world_y / float(TILE_SIZE)))
 	return get_tile(col, row)
+
+
+# 局内特殊地块：是否阻挡（用于移动 / 画线 / 子弹统一查询）。
+# water 不算阻挡（走 path_input 的额外 ki 消耗逻辑），pit / blocking_stone 算。
+func is_blocking_tile(tile_type: String) -> bool:
+	return BLOCKING_TILE_TYPES.has(tile_type)
+
+
+# 坐标版本：越界或空串返回 false（不阻挡）。
+func is_blocking_for_line(col: int, row: int) -> bool:
+	return is_blocking_tile(get_tile(col, row))
+
+
+func is_blocking_for_movement(col: int, row: int) -> bool:
+	return is_blocking_tile(get_tile(col, row))
+
+
+# 怪物 / 树 / 草生成时的避让判定：water / pit / blocking_stone / stone_floor 都避开。
+func is_spawn_avoid_tile(tile_type: String) -> bool:
+	return SPAWN_AVOID_TILE_TYPES.has(tile_type)
+
+
+func is_spawn_avoid_at(col: int, row: int) -> bool:
+	return is_spawn_avoid_tile(get_tile(col, row))
 
 
 func iter_water_cells() -> Array:
@@ -653,6 +717,24 @@ func _paint_decoration(img: Image, x: int, y: int, data: Dictionary, rng: Random
 			img.fill_rect(Rect2i(x, y - PIXEL, PIXEL, PIXEL), gilt_col)
 			if palette.size() >= 3:
 				img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), palette[palette.size() - 1])  # 中心高亮
+		"crack":
+			# 深坑 / 石地板裂纹：从中心向随机方向延伸的 2-3 段暗线（模拟裂缝）
+			var crack_col: Color = palette[rng.randi() % palette.size()]
+			var len_px: int = rng.randi_range(2, 3)
+			if rng.randf() < 0.5:
+				for i in range(len_px):
+					img.fill_rect(Rect2i(x + i * PIXEL, y, PIXEL, PIXEL), crack_col)
+			else:
+				for i in range(len_px):
+					img.fill_rect(Rect2i(x, y + i * PIXEL, PIXEL, PIXEL), crack_col)
+			if palette.size() >= 2:
+				img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), palette[1])  # 裂缝深处更暗
+		"chunk":
+			# 阻挡石块的块状纹理：2×2 深色块 + 1 点高光（凸出岩石质感）
+			var chunk_col: Color = palette[rng.randi() % palette.size()]
+			img.fill_rect(Rect2i(x, y, PIXEL * 2, PIXEL * 2), chunk_col)
+			if palette.size() >= 2:
+				img.fill_rect(Rect2i(x, y, PIXEL, PIXEL), palette[1])  # 高光
 		_:
 			pass
 

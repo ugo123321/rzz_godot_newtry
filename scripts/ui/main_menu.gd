@@ -4,7 +4,9 @@ class_name MainMenu
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 const ScoutRewardPopupT = preload("res://scripts/ui/scout_reward_popup.gd")
+const SettingsPopupScript = preload("res://scripts/ui/settings_popup.gd")
 const LOADING_SCENE := "res://scenes/ui/loading_screen.tscn"
+const LEVEL_EDITOR_SCENE := "res://scenes/level_editor.tscn"
 
 enum Tab {
 	GACHA,
@@ -159,6 +161,7 @@ func _ready() -> void:
 	_connect_tab_row_layout()
 	_setup_start_button()
 	_setup_top_bar()
+	_setup_settings_button()
 	_setup_scout_entry()
 	_connect_top_bar_signals()
 	_apply_static_texts()
@@ -199,6 +202,10 @@ func _apply_static_texts() -> void:
 		var label := _start_button.get_node_or_null("Label") as Label
 		if label != null:
 			label.text = LanguageManager.tr_ui("UI_MAIN_START")
+	# 右上角设置按钮文案随语言刷新
+	var settings_btn := get_node_or_null("TopBarBg/MarginContainer/TopBar/SettingsButton") as Button
+	if settings_btn != null:
+		settings_btn.text = LanguageManager.tr_ui("UI_SETTINGS_TITLE")
 	# 占位面板（抽奖/副本/成就 — "敬请期待"）
 	var gacha_ph := get_node_or_null("Content/GachaPanel/Placeholder") as Label
 	if gacha_ph != null:
@@ -801,6 +808,33 @@ func _setup_top_bar() -> void:
 		_top_gold_label.text = str(LobbyState.gold)
 	if _top_gem_label != null:
 		_top_gem_label.text = "0"
+
+
+# 主界面右上角设置按钮（代码构建，加进 TopBar HBox 最右侧）→ 弹设置弹窗 → 关卡编辑器入口。
+func _setup_settings_button() -> void:
+	var top_bar := get_node_or_null("TopBarBg/MarginContainer/TopBar")
+	if top_bar == null:
+		return
+	var btn := Button.new()
+	btn.name = "SettingsButton"
+	btn.text = LanguageManager.tr_ui("UI_SETTINGS_TITLE")
+	PixelUi.apply_ui_font(btn)
+	btn.add_theme_font_size_override("font_size", 18)
+	UiStyle.apply_primary_button(btn, Color("#5a6a90"), 8)
+	btn.custom_minimum_size = Vector2(72, 0)
+	btn.pressed.connect(_on_settings_pressed)
+	top_bar.add_child(btn)
+
+
+func _on_settings_pressed() -> void:
+	var popup := SettingsPopupScript.new()
+	popup.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(popup)
+	popup.level_editor_requested.connect(_on_level_editor_pressed)
+
+
+func _on_level_editor_pressed() -> void:
+	get_tree().change_scene_to_file(LEVEL_EDITOR_SCENE)
 
 
 func _setup_scout_entry() -> void:

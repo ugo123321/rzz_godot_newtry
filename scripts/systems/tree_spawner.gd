@@ -79,8 +79,8 @@ func _pick_tree_pos(w: float, h: float, safe: Vector2, terrain = null) -> Vector
 		var pos := Vector2(x, y)
 		if pos.distance_to(safe) < 200.0:
 			continue
-		# 不在水格里生成
-		if terrain and terrain.has_method("get_tile_at_world") and terrain.get_tile_at_world(x, y) == "water":
+		# 不在水/深坑/阻挡石/石地板上生成
+		if terrain and terrain.has_method("is_spawn_avoid_tile") and terrain.is_spawn_avoid_tile(terrain.get_tile_at_world(x, y)):
 			continue
 		var clash := false
 		for t in trees:

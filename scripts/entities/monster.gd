@@ -77,11 +77,7 @@ var slow_pct_active := 0.0
 var proximity_slow_pct := 0.0  # sr=50 无下限术式：每帧由 dispatcher 写入（按到玩家距离线性插值）
 var petrify_timer := 0.0        # sr=51 念力全场石化：>0 时怪物完全定身，anim modulate 变石灰色（视觉优先级最高）
 
-# 水地块：与玩家一致的浅蓝染色 + 移速减速；视觉优先级最低（被所有元素状态压过）
-var on_water_terrain := false
-var water_tint_timer := 0.0
-const WATER_SLOW_MULT := 0.55
-const WATER_TINT_FADE := 0.2
+# 冰减速状态着色（slow_timer > 0 时用）—— 水地块不再对怪物减速/染色（局内特殊地块只影响玩家）
 const WATER_TINT_COLOR := Color(0.65, 0.85, 1.0, 1.0)
 const WATER_TINT_BLEND := 0.45
 
@@ -533,10 +529,7 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 	if not alive or dying or player == null:
 		return
 	_update_status_effects(delta)
-	_check_water_under_feet(battle)
-	if water_tint_timer > 0.0:
-		water_tint_timer = maxf(0.0, water_tint_timer - delta)
-		_apply_status_tint()
+	_apply_status_tint()
 	if spawn_lock_timer > 0.0:
 		spawn_lock_timer = maxf(0.0, spawn_lock_timer - delta)
 		return
@@ -563,8 +556,7 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 		if dist > stop_dist:
 			# 冰减速 + sr=50 无下限术式：取叠加最大减速
 			var eff_slow: float = clampf(slow_pct_active + proximity_slow_pct - slow_pct_active * proximity_slow_pct, 0.0, 0.95)
-			var water_mult: float = WATER_SLOW_MULT if on_water_terrain else 1.0
-			var eff_speed: float = move_speed * maxf(0.0, 1.0 - eff_slow) * water_mult
+			var eff_speed: float = move_speed * maxf(0.0, 1.0 - eff_slow)
 			var dir: Vector2 = to_player.normalized()
 			var step_len: float = eff_speed * delta
 			var next_pos := global_position + dir * step_len
@@ -906,25 +898,9 @@ func _apply_status_tint() -> void:
 	if slow_timer > 0.0:
 		anim_sprite.modulate = base_tint.lerp(WATER_TINT_COLOR, WATER_TINT_BLEND)
 		return
-	# 踩水浅蓝（与玩家一致；fade-out 用 timer 衰减强度）
-	if water_tint_timer > 0.0:
-		var blend: float = WATER_TINT_BLEND * (water_tint_timer / WATER_TINT_FADE)
-		anim_sprite.modulate = base_tint.lerp(WATER_TINT_COLOR, blend)
-		return
 	# 都没有则恢复 baseline
 	anim_sprite.modulate = base_tint
 
-
-func _check_water_under_feet(battle: Node) -> void:
-	on_water_terrain = false
-	if battle == null:
-		return
-	var t = battle.terrain if "terrain" in battle else null
-	if t == null or not t.has_method("get_tile_at_world"):
-		return
-	if t.get_tile_at_world(global_position.x, global_position.y) == "water":
-		on_water_terrain = true
-		water_tint_timer = WATER_TINT_FADE
 
 
 # 隐形精英：spawn tween 结束后，4 秒内把 self.modulate.a 渐变到 PHANTOM_MIN_ALPHA。

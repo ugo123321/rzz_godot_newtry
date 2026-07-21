@@ -300,6 +300,16 @@ func _pick_spawn_pos(battle: Node) -> Vector2:
 			pos = Vector2(MathUtils.rand_range(26.0, w - 26.0), MathUtils.rand_range(88.0, h - 120.0))
 		if MathUtils.dist(pos, safe) < 140.0:
 			continue
+		# 地形避让：不在水/深坑/阻挡石/石地板上刷怪；也不与放置元素（宝箱/传送门/箭块/锁定块）重叠
+		if battle.terrain and battle.terrain.has_method("is_spawn_avoid_at"):
+			var ts: int = TerrainBackground.TILE_SIZE
+			var col := int(pos.x / ts)
+			var row := int(pos.y / ts)
+			if battle.terrain.is_spawn_avoid_at(col, row):
+				continue
+			var fe = battle.field_elements if "field_elements" in battle else null
+			if fe and fe.has_method("has_blocking_at") and fe.has_blocking_at(col, row):
+				continue
 		var ok := true
 		for m in get_active_monsters():
 			if MathUtils.dist(pos, m.global_position) < 20.0:

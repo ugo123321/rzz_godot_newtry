@@ -23,6 +23,8 @@ var _last_ki_draw := -1.0
 var _redraw_timer := 0.0
 var _gold := 0
 var _wood := 0
+var _keys := 0
+var _silver := 0
 var _coin_icon: Texture2D
 var _countdown_remaining := 0.0
 var _countdown_show := false
@@ -48,6 +50,8 @@ func _ready() -> void:
 	EventBus.exp_changed.connect(_on_exp_changed)
 	EventBus.gold_changed.connect(_on_gold_changed)
 	EventBus.wood_changed.connect(_on_wood_changed)
+	EventBus.key_changed.connect(_on_key_changed)
+	EventBus.silver_changed.connect(_on_silver_changed)
 	EventBus.stage_countdown_changed.connect(_on_countdown_changed)
 	EventBus.tower_height_changed.connect(_on_tower_height_changed)
 	EventBus.player_damaged.connect(_on_player_damaged)
@@ -277,6 +281,8 @@ func _draw() -> void:
 		viewport_size = get_viewport_rect().size
 
 	_draw_gold_widget()
+	_draw_key_widget()
+	_draw_silver_widget()
 
 	if _countdown_show:
 		_draw_countdown(viewport_size)
@@ -352,6 +358,65 @@ func _draw_gold_widget() -> void:
 		Vector2(_scaled(34.0), _scaled(19.0)),
 		PixelUi.snap_pixel_font_size(int(round(_scaled(10.0)))),
 		Color("#ffe090"),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		VERTICAL_ALIGNMENT_CENTER
+	)
+
+
+# 钥匙 widget：金钥匙像素 icon + 数量。叠在金币下方。
+func _draw_key_widget() -> void:
+	if _keys <= 0:
+		return
+	var ix := _scaled(12.0)
+	var iy := _scaled(34.0)
+	var isz := _scaled(18.0)
+	var c_base := Color("#d8b850")
+	var c_shade := Color("#9a7a30")
+	var c_rim := Color("#2a1808")
+	# 钥匙头（圆）
+	var head_c := Vector2(ix + isz * 0.35, iy + isz * 0.35)
+	draw_circle(head_c, isz * 0.22, c_base)
+	draw_arc(head_c, isz * 0.22, 0.0, TAU, 16, c_rim, 1.5)
+	draw_circle(head_c, isz * 0.09, c_shade)
+	# 杆
+	draw_rect(Rect2(ix + isz * 0.5, iy + isz * 0.32, isz * 0.45, isz * 0.12), c_base, true)
+	draw_rect(Rect2(ix + isz * 0.78, iy + isz * 0.44, isz * 0.17, isz * 0.12), c_base, true)
+	PixelUi.draw_pixel_text(
+		self,
+		str(_keys),
+		Vector2(_scaled(34.0), _scaled(43.0)),
+		PixelUi.snap_pixel_font_size(int(round(_scaled(10.0)))),
+		Color("#ffe090"),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		VERTICAL_ALIGNMENT_CENTER
+	)
+
+
+# 银币 widget：带齿银币像素 icon + 数量。叠在钥匙下方。
+func _draw_silver_widget() -> void:
+	if _silver <= 0:
+		return
+	var ix := _scaled(12.0)
+	var iy := _scaled(58.0)
+	var isz := _scaled(18.0)
+	var c_base := Color("#9aa0a8")
+	var c_shade := Color("#6c7278")
+	var c_high := Color("#d0d6dc")
+	var c_rim := Color("#3a3e44")
+	var cc := Vector2(ix + isz * 0.5, iy + isz * 0.5)
+	draw_circle(cc, isz * 0.42, c_base)
+	draw_arc(cc, isz * 0.42, 0.0, TAU, 20, c_rim, 1.5)
+	draw_arc(cc, isz * 0.3, 0.0, TAU, 16, c_high, 1.5)
+	# 中心刻印十字
+	var n := isz * 0.13
+	draw_rect(Rect2(cc.x - n * 0.2, cc.y - n, n * 0.4, n * 2.0), c_shade, true)
+	draw_rect(Rect2(cc.x - n, cc.y - n * 0.2, n * 2.0, n * 0.4), c_shade, true)
+	PixelUi.draw_pixel_text(
+		self,
+		str(_silver),
+		Vector2(_scaled(34.0), _scaled(67.0)),
+		PixelUi.snap_pixel_font_size(int(round(_scaled(10.0)))),
+		Color("#e8eef2"),
 		HORIZONTAL_ALIGNMENT_LEFT,
 		VERTICAL_ALIGNMENT_CENTER
 	)
@@ -452,6 +517,16 @@ func _on_gold_changed(total_gold: int) -> void:
 
 func _on_wood_changed(total_wood: int) -> void:
 	_wood = total_wood
+	queue_redraw()
+
+
+func _on_key_changed(total_keys: int) -> void:
+	_keys = total_keys
+	queue_redraw()
+
+
+func _on_silver_changed(total_silver: int) -> void:
+	_silver = total_silver
 	queue_redraw()
 
 

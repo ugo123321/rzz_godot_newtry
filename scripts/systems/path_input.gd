@@ -4,6 +4,7 @@ class_name PathInput
 const WATER_KI_PER_TILE := 4.0  # 画线每穿越一个水格的额外气消耗（去重后）
 
 var drawing := false
+var line_invalid := false  # 本段画线是否触碰阻挡块/深坑 → 提交时丢弃
 var battle
 
 
@@ -28,6 +29,8 @@ func handle_start(screen_pos: Vector2) -> void:
 		return
 	# 画线末释放类奖励（sr=22 / sr=26 / sr=27 / sr=46）：新一次画线开始 → 清掉上次遗留的「气力耗尽」标记
 	player.slash_end_ki_drained = false
+	line_invalid = false
+	player.set_preview_invalid(false)
 	drawing = true
 	battle.enter_bullet_time()
 	player.start_bullet_time()
@@ -64,9 +67,36 @@ func handle_move(screen_pos: Vector2) -> void:
 		player.ki = maxf(0.0, player.ki - float(water_count) * WATER_KI_PER_TILE)
 		if player.ki <= 0.01:
 			player.slash_end_ki_drained = true
+	# 阻挡块/深坑/锁定块/箭块：触碰即整线标红，提交时丢弃
+	if _segment_hits_blocking(battle.terrain, last, pos):
+		line_invalid = true
+		player.set_preview_invalid(true)
 	player.add_path_point(pos)
 	if battle.buff_orbs:
 		battle.buff_orbs.check_path_segment(last, pos)
+
+
+# 段是否触碰"画线阻挡"格：地形 pit/blocking_stone + 放置元素锁定块/箭块（registry.has_line_blocking_at）。
+func _segment_hits_blocking(terrain, a: Vector2, b: Vector2) -> bool:
+	if terrain == null or not terrain.has_method("is_blocking_for_line"):
+		return false
+	var ts: float = float(TerrainBackground.TILE_SIZE)
+	var dist: float = a.distance_to(b)
+	if dist < 0.01:
+		return false
+	var step_px: float = ts * 0.5
+	var samples: int = maxi(1, int(ceil(dist / step_px)))
+	var fe = battle.field_elements if battle and "field_elements" in battle else null
+	for i in range(samples + 1):
+		var t: float = float(i) / float(samples)
+		var p: Vector2 = a.lerp(b, t)
+		var col: int = int(floor(p.x / ts))
+		var row: int = int(floor(p.y / ts))
+		if terrain.is_blocking_for_line(col, row):
+			return true
+		if fe and fe.has_method("has_line_blocking_at") and fe.has_line_blocking_at(col, row):
+			return true
+	return false
 
 
 func _count_water_tiles_on_segment(terrain, a: Vector2, b: Vector2) -> int:
@@ -97,16 +127,29 @@ func handle_end() -> void:
 	var player: BattlePlayer = battle.player
 	if player == null or player.state != BattlePlayer.State.BULLET_TIME:
 		drawing = false
+		line_invalid = false
 		return
 	drawing = false
+	# 画线触碰阻挡块/深坑 → 本次画线失败，丢弃不提交
+	if line_invalid:
+		line_invalid = false
+		player.set_preview_invalid(false)
+		battle.hud.show_message(LanguageManager.tr_ui("UI_BATTLE_LINE_BLOCKED"), 1.2)
+		player.invalidate_path()
+		battle.exit_bullet_time(true)
+		return
 	if player.attack_path.size() < 2:
 		battle.exit_bullet_time(true)
 		return
+	player.set_preview_invalid(false)
 	battle.exit_bullet_time(false)
 
 
 func cancel_active() -> void:
 	drawing = false
+	line_invalid = false
 	var player: BattlePlayer = battle.player
-	if player and player.state == BattlePlayer.State.BULLET_TIME:
-		battle.exit_bullet_time(true)
+	if player:
+		player.set_preview_invalid(false)
+		if player.state == BattlePlayer.State.BULLET_TIME:
+			battle.exit_bullet_time(true)
