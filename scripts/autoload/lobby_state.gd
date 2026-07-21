@@ -3,6 +3,12 @@ extends Node
 
 var stage_index: int = 0
 
+# 玩家显示名（主界面信息卡）。no-savedata，会话内不变；后续接入存档/改名时改这里。
+var player_name: String = "player001"
+# 会话内最高到达关卡（1-based 计数；no-savedata，每次启动重置为 1）。
+# battle stage_cleared 时推进；主界面进度条据此显示「当前/总数」。
+var highest_stage_reached: int = 1
+
 var _pending_launch := false
 
 const SLOT_WEAPON := "weapon"
@@ -79,6 +85,16 @@ func _ready() -> void:
 	_scout_last_settle_unix = int(Time.get_unix_time_from_system())
 	call_deferred("_emit_all_state")
 	_grant_test_items()
+	# 关卡通关 → 推进最高到达关卡（主界面进度条数据源）。
+	if EventBus != null and not EventBus.stage_cleared.is_connected(_on_stage_cleared):
+		EventBus.stage_cleared.connect(_on_stage_cleared)
+
+
+# stage_idx_0based 通关 → 解锁下一关；highest_stage_reached 为 1-based 计数。
+func _on_stage_cleared(stage_idx_0based: int) -> void:
+	var unlocked := stage_idx_0based + 2
+	if unlocked > highest_stage_reached:
+		highest_stage_reached = unlocked
 
 
 # 测试用：debug 构建启动时赠送 15 件随机装备 + 15 块随机技能石，供合成 / 技能石 / 装备页调试。

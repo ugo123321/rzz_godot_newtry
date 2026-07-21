@@ -48,7 +48,7 @@ const DEFAULT_TAB := Tab.STAGE
 @export var stage_icon_base_scale := 1.0
 @export var stage_icon_pulse_amount := 0.035
 @export var stage_icon_pulse_speed := 1.1
-@export var tab_selected_lift := 14.0
+@export var tab_selected_lift := 12.0
 @export var tab_lift_duration := 0.22
 @export var tab_focus_pulse_speed := 4.2
 @export var start_button_pressed_scale := 0.9
@@ -60,7 +60,7 @@ const DEFAULT_TAB := Tab.STAGE
 
 @onready var _content: MarginContainer = $Content
 @onready var _bottom_bar: Control = $BottomBar
-@onready var _top_bar_bg: TextureRect = get_node_or_null("TopBarBg")
+@onready var _top_hud: Control = get_node_or_null("TopHud")
 @onready var _background: TextureRect = %Background
 @onready var _bottom_bg: TextureRect = %BottomBg
 @onready var _tab_focus: TextureRect = %TabFocus
@@ -74,12 +74,22 @@ const DEFAULT_TAB := Tab.STAGE
 @onready var _tab_labels: Array[Label] = [
 	%TabGacha/TabLabel, %TabEquipment/TabLabel, %TabStage/TabLabel, %TabDungeon/TabLabel, %TabAchievement/TabLabel,
 ]
-@onready var _top_gold_label: Label = $TopBarBg/MarginContainer/TopBar/GoldBar/Value
-@onready var _top_gem_label: Label = $TopBarBg/MarginContainer/TopBar/GemBar/Value
-@onready var _top_gold_bg: TextureRect = $TopBarBg/MarginContainer/TopBar/GoldBar/Bg
-@onready var _top_gem_bg: TextureRect = $TopBarBg/MarginContainer/TopBar/GemBar/Bg
-@onready var _top_gold_icon: TextureRect = $TopBarBg/MarginContainer/TopBar/GoldBar/Icon
-@onready var _top_gem_icon: TextureRect = $TopBarBg/MarginContainer/TopBar/GemBar/Icon
+@onready var _top_gold_label: Label = $TopHud/GoldBar/Value
+@onready var _top_gold_bg: TextureRect = $TopHud/GoldBar/Bg
+@onready var _top_gold_icon: TextureRect = $TopHud/GoldBar/Icon
+@onready var _options_button: TextureButton = $TopHud/OptionsButton
+@onready var _mission_button: TextureButton = $TopHud/MissionButton
+@onready var _player_name_label: Label = $TopHud/PlayerInfoCard/NameLabel
+@onready var _battle_value_label: Label = $TopHud/PlayerInfoCard/BattleValue
+@onready var _stage_progress_hud: Control = $StageProgressHud
+@onready var _progress_fill: TextureRect = $StageProgressHud/ProgressBar/BarStage/Fill
+@onready var _progress_label: Label = $StageProgressHud/ProgressBar/BarStage/ProgressLabel
+@onready var _next_chapter_label: Label = $StageProgressHud/ProgressBar/DecoBarRight/NextChapterNum
+# 用于飞入动效的容器载体（整组飞入，子节点跟随）
+@onready var _gold_bar: Control = $TopHud/GoldBar
+@onready var _player_info_card: Control = $TopHud/PlayerInfoCard
+@onready var _deco_line: TextureRect = $StageProgressHud/DecoLine
+@onready var _progress_bar_group: Control = $StageProgressHud/ProgressBar
 @onready var _panels: Array[Control] = [
 	%GachaPanel, %EquipmentPanel, %StagePanel, %DungeonPanel, %AchievementPanel,
 ]
@@ -121,6 +131,8 @@ const STAGE_INTRO_TOTAL := 0.50         # 总归位时长：所有元素都在�
 const STAGE_INTRO_MIN_DUR := 0.18       # 单元素最短飞入时长（保险，避免末尾 duration 过小）
 var _stage_intro_playing := false
 var _stage_intro_orig_pos: Dictionary = {}   # 记录元素原始 position，飞入后归位用
+# TopHud 元素常驻跨 tab，仅首次进关卡页时飞入一次，避免切回时已可见的元素闪烁。
+var _top_hud_intro_played := false
 
 
 func _ui_scale() -> float:
@@ -202,10 +214,6 @@ func _apply_static_texts() -> void:
 		var label := _start_button.get_node_or_null("Label") as Label
 		if label != null:
 			label.text = LanguageManager.tr_ui("UI_MAIN_START")
-	# 右上角设置按钮文案随语言刷新
-	var settings_btn := get_node_or_null("TopBarBg/MarginContainer/TopBar/SettingsButton") as Button
-	if settings_btn != null:
-		settings_btn.text = LanguageManager.tr_ui("UI_SETTINGS_TITLE")
 	# 占位面板（抽奖/副本/成就 — "敬请期待"）
 	var gacha_ph := get_node_or_null("Content/GachaPanel/Placeholder") as Label
 	if gacha_ph != null:
@@ -407,9 +415,20 @@ func _select_tab(tab_index: int) -> void:
 		var panel := _panels[i] if i < _panels.size() else null
 		if panel != null:
 			panel.visible = i == _current_tab
-	# 装备页顶部有自己的标题，隐藏主菜单共用货币栏；其余页保留
-	if _top_bar_bg != null:
-		_top_bar_bg.visible = _current_tab != Tab.EQUIPMENT
+	# 装备页顶部有自己的标题，隐藏主菜单共用 HUD；其余页保留
+	if _top_hud != null:
+		_top_hud.visible = _current_tab != Tab.EQUIPMENT
+	# 关卡进度 HUD 仅在关卡 tab 显示
+	if _stage_progress_hud != null:
+		_stage_progress_hud.visible = _current_tab == Tab.STAGE
+	# 玩家信息卡 / 选项 / 任务按钮只在关卡页显示，其余页隐藏
+	var stage_tab := _current_tab == Tab.STAGE
+	if _player_info_card != null:
+		_player_info_card.visible = stage_tab
+	if _options_button != null:
+		_options_button.visible = stage_tab
+	if _mission_button != null:
+		_mission_button.visible = stage_tab
 	_apply_tab_button_visuals()
 	call_deferred("_refresh_tab_layout_state")
 	call_deferred("_update_tab_focus")
@@ -542,6 +561,7 @@ func _refresh_chapter_display() -> void:
 		name_text = LanguageManager.tr_ui("UI_MAIN_DEFAULT_CHAPTER")
 	_chapter_label.text = name_text
 	_chapter_desc.text = LanguageManager.localize_field(chapter, "description_en", "description")
+	_refresh_stage_progress()
 
 
 func _get_selected_chapter_id() -> int:
@@ -626,9 +646,15 @@ func _play_stage_intro() -> void:
 	# 收集所有飞入项：mover=位移载体，fadee=淡入目标（null=不淡入，纯位移），from_bottom=飞入方向。
 	# 开始按钮包在 MarginContainer 里 → 位移载体用它的 Wrap；开始按钮去掉淡入 → fadee=null。
 	var items: Array = []
-	for c in [_chapter_label, _chapter_desc, _stage_icon]:
+	# 随关卡 tab 显隐的元素：每次切回都飞入（切走时已隐藏，不会闪烁）。
+	for c in [_chapter_label, _stage_icon, _deco_line, _progress_bar_group, _player_info_card, _options_button, _mission_button]:
 		if c != null:
 			items.append({"mover": c, "fadee": c, "from_bottom": false})
+	# 货币槽跨 tab 常驻（除装备页外），仅首次飞入一次，避免切回时已可见的元素闪烁。
+	if not _top_hud_intro_played:
+		if _gold_bar != null:
+			items.append({"mover": _gold_bar, "fadee": _gold_bar, "from_bottom": false})
+		_top_hud_intro_played = true
 	if _chapter_prev != null:
 		items.append({"mover": _chapter_prev, "fadee": _chapter_prev, "from_bottom": true})
 	if _chapter_next != null:
@@ -806,24 +832,51 @@ func _cache_stage_visual_state() -> void:
 func _setup_top_bar() -> void:
 	if _top_gold_label != null:
 		_top_gold_label.text = str(LobbyState.gold)
-	if _top_gem_label != null:
-		_top_gem_label.text = "0"
+	_refresh_player_info()
 
 
-# 主界面右上角设置按钮（代码构建，加进 TopBar HBox 最右侧）→ 弹设置弹窗 → 关卡编辑器入口。
+# 主界面右上角按钮：OptionsButton(btn_menu) 弹设置弹窗（含关卡编辑器入口）；
+# MissionButton(btn_mission) 暂无功能，后续任务系统再接。
 func _setup_settings_button() -> void:
-	var top_bar := get_node_or_null("TopBarBg/MarginContainer/TopBar")
-	if top_bar == null:
+	if _options_button != null:
+		_options_button.pressed.connect(_on_settings_pressed)
+	if _mission_button != null:
+		_mission_button.pressed.connect(_on_mission_pressed)
+
+
+func _on_mission_pressed() -> void:
+	pass  # 任务系统后续开发
+
+
+# 玩家信息卡：名字 + 战力。战力随装备变化，由 equipment_changed 触发刷新。
+func _refresh_player_info() -> void:
+	if _player_name_label != null:
+		var pname := LobbyState.player_name
+		if pname.is_empty():
+			pname = "player001"
+		_player_name_label.text = pname
+	if _battle_value_label != null:
+		var attrs := LobbyState.get_player_preview_attributes()
+		_battle_value_label.text = str(int(attrs.get("battle_power", 0)))
+
+
+# 关卡进度：本章 X/总数 + 填充比例 + 下一章编号。依赖菜单选中章 + 会话最高到达。
+func _refresh_stage_progress() -> void:
+	if GameConfig.chapters.is_empty():
 		return
-	var btn := Button.new()
-	btn.name = "SettingsButton"
-	btn.text = LanguageManager.tr_ui("UI_SETTINGS_TITLE")
-	PixelUi.apply_ui_font(btn)
-	btn.add_theme_font_size_override("font_size", 18)
-	UiStyle.apply_primary_button(btn, Color("#5a6a90"), 8)
-	btn.custom_minimum_size = Vector2(72, 0)
-	btn.pressed.connect(_on_settings_pressed)
-	top_bar.add_child(btn)
+	var chapter: Dictionary = GameConfig.chapters[clampi(_chapter_list_index, 0, GameConfig.chapters.size() - 1)]
+	var chapter_id := int(chapter.get("chapter_id", 1))
+	var total := int(chapter.get("stages_per_chapter", 30))
+	var first := _first_stage_index_for_chapter(chapter_id)  # 0-based
+	# highest_stage_reached 为 1-based 计数；映射到本章内的当前进度。
+	var current := clampi(LobbyState.highest_stage_reached - first, 1, total)
+	if _progress_label != null:
+		_progress_label.text = "%d/%d" % [current, total]
+	if _progress_fill != null:
+		var pct := 0.0 if total <= 0 else clampf(float(current) / float(total), 0.0, 1.0)
+		_progress_fill.anchor_right = pct
+	if _next_chapter_label != null:
+		_next_chapter_label.text = str(chapter_id + 1)
 
 
 func _on_settings_pressed() -> void:
@@ -868,6 +921,9 @@ func _connect_top_bar_signals() -> void:
 		return
 	if not EventBus.gold_changed.is_connected(_on_gold_changed):
 		EventBus.gold_changed.connect(_on_gold_changed)
+	# 装备变化 → 战力刷新（玩家信息卡）
+	if not EventBus.equipment_changed.is_connected(_refresh_player_info):
+		EventBus.equipment_changed.connect(_refresh_player_info)
 
 
 func _on_gold_changed(total_gold: int) -> void:
@@ -878,12 +934,8 @@ func _on_gold_changed(total_gold: int) -> void:
 func _apply_top_bar_textures() -> void:
 	if _top_gold_bg != null and top_money_bg_texture != null:
 		_top_gold_bg.texture = top_money_bg_texture
-	if _top_gem_bg != null and top_money_bg_texture != null:
-		_top_gem_bg.texture = top_money_bg_texture
 	if _top_gold_icon != null and top_gold_icon_texture != null:
 		_top_gold_icon.texture = top_gold_icon_texture
-	if _top_gem_icon != null and top_gem_icon_texture != null:
-		_top_gem_icon.texture = top_gem_icon_texture
 
 
 func _build_start_adventure_button_texture(pressed: bool) -> Texture2D:

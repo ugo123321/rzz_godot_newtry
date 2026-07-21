@@ -655,12 +655,7 @@ func _ensure_slot_parts(btn: TextureButton) -> void:
 		lbl.add_theme_font_size_override("font_size", LEVEL_FONT_SIZE)
 		lbl.add_theme_color_override("font_color", Color.WHITE)
 		lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-		lbl.add_theme_constant_override("outline_size", 3)
-		# 黑色投影 shadow（右下偏移 2px，加粗投影）
-		lbl.add_theme_color_override("font_shadow_color", Color.BLACK)
-		lbl.add_theme_constant_override("shadow_outline_size", 4)
-		lbl.add_theme_constant_override("shadow_offset_x", 2)
-		lbl.add_theme_constant_override("shadow_offset_y", 2)
+		lbl.add_theme_constant_override("outline_size", 10)
 		lbl.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		btn.add_child(lbl)
 

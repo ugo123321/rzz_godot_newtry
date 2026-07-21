@@ -8,7 +8,6 @@
 [ext_resource type="Texture2D" uid="uid://beanu6i8q6j37" path="res://assets/ui/battle/mission_forest.png" id="6_mission"]
 [ext_resource type="Texture2D" uid="uid://bd3mrpph35vf0" path="res://assets/ui/battle/start_button.png" id="7_start"]
 [ext_resource type="Texture2D" uid="uid://3no6q1s1w2lg" path="res://assets/ui/battle/money_bg.png" id="8_money_bg"]
-[ext_resource type="Texture2D" uid="uid://sbf4ecwcov5t" path="res://assets/ui/icons/currency/icon_cur_gem.png" id="9_1_gem_icon"]
 [ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="9_gold_icon"]
 [ext_resource type="Texture2D" uid="uid://ddi8qdpland64" path="res://assets/ui/bottom/normal_button.png" id="10_tab_normal"]
 [ext_resource type="Texture2D" uid="uid://bq8prrawx0dx0" path="res://assets/ui/icons/nav/icon_nav_gacha.png" id="12_tab_shop"]
@@ -20,6 +19,18 @@
 [ext_resource type="PackedScene" uid="uid://dlxbn1sl1yrmi" path="res://scenes/ui/lucky_spin_panel.tscn" id="18_lucky_spin"]
 [ext_resource type="PackedScene" uid="uid://scoutpopup01" path="res://scenes/ui/scout_reward_popup.tscn" id="19_scout_popup"]
 [ext_resource type="Texture2D" uid="uid://dfsd7vuuv3n1l" path="res://assets/ui/icons/system/icon_detail.png" id="20_scout_icon"]
+[ext_resource type="Texture2D" uid="uid://be3i841lr6o4" path="res://assets/ui/panels/panel_profile.png" id="21_profile"]
+[ext_resource type="Texture2D" uid="uid://bwakdgywrpgus" path="res://assets/ui/panels/panel_avatar.png" id="22_avatar_frame"]
+[ext_resource type="Texture2D" uid="uid://fsieudtof2q" path="res://assets/ui/icons/avatar/avatar01.png" id="23_avatar01"]
+[ext_resource type="Texture2D" uid="uid://1c502dmq7bvx" path="res://assets/ui/icons/system/icon_battle.png" id="24_icon_battle"]
+[ext_resource type="Texture2D" uid="uid://b5jswlstcnaii" path="res://assets/ui/decorations/deco_line03.png" id="25_deco_line03"]
+[ext_resource type="Texture2D" uid="uid://bo77nl6j5kr33" path="res://assets/ui/panels/bar_stage.png" id="26_bar_stage"]
+[ext_resource type="Texture2D" uid="uid://b7q4h31naave3" path="res://assets/ui/panels/bar_stage_fill.png" id="27_bar_stage_fill"]
+[ext_resource type="Texture2D" uid="uid://ctha28r28avk6" path="res://assets/ui/decorations/deco_bar_stage.png" id="28_deco_bar_stage"]
+[ext_resource type="Texture2D" uid="uid://1xwxebyapgp1" path="res://assets/ui/decorations/deco_bar_stage02.png" id="29_deco_bar_stage02"]
+[ext_resource type="Texture2D" uid="uid://bwe5h5wc6iirn" path="res://assets/ui/buttons/btn_menu.png" id="30_btn_menu"]
+[ext_resource type="Texture2D" uid="uid://dajiwq7i11kkc" path="res://assets/ui/buttons/btn_mission.png" id="31_btn_mission"]
+[ext_resource type="Texture2D" uid="uid://dmiqjpo2kdw8q" path="res://assets/ui/icons/stage/episode01.png" id="32_episode01"]
 
 [node name="MainMenu" type="Control" unique_id=230988136]
 custom_minimum_size = Vector2(720, 1280)
@@ -60,13 +71,13 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_bottom = -168.0
+offset_bottom = -150.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 0
 theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 0
-theme_override_constants/margin_bottom = -20
+theme_override_constants/margin_bottom = -60
 
 [node name="GachaPanel" parent="Content" unique_id=453598787 instance=ExtResource("18_lucky_spin")]
 unique_name_in_owner = true
@@ -160,7 +171,7 @@ offset_bottom = -155.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("6_mission")
+texture = ExtResource("32_episode01")
 expand_mode = 1
 
 [node name="ChapterPrev" type="TextureButton" parent="Content/StagePanel/StageViewport" unique_id=1147793490]
@@ -241,8 +252,8 @@ custom_minimum_size = Vector2(180, 68)
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
-anchor_right = 0.5
 anchor_top = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -90.0
 offset_top = -296.0
@@ -250,8 +261,8 @@ offset_right = 90.0
 offset_bottom = -228.0
 grow_horizontal = 2
 grow_vertical = 0
-mouse_default_cursor_shape = 2
 focus_mode = 0
+mouse_default_cursor_shape = 2
 
 [node name="Row" type="HBoxContainer" parent="Content/StagePanel/StageViewport/ScoutEntryButton" unique_id=990001102]
 layout_mode = 1
@@ -265,20 +276,19 @@ theme_override_constants/separation = 8
 alignment = 1
 
 [node name="Icon" type="TextureRect" parent="Content/StagePanel/StageViewport/ScoutEntryButton/Row" unique_id=990001103]
-layout_mode = 2
 custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
 mouse_filter = 2
+texture = ExtResource("20_scout_icon")
 expand_mode = 1
 stretch_mode = 5
-texture = ExtResource("20_scout_icon")
 
 [node name="ScoutLabel" type="Label" parent="Content/StagePanel/StageViewport/ScoutEntryButton/Row" unique_id=990001104]
 layout_mode = 2
-vertical_alignment = 1
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.059, 0.141, 0.063, 1)
 theme_override_font_sizes/font_size = 26
 text = "侦察"
+vertical_alignment = 1
 
 [node name="ChapterLine" type="TextureRect" parent="Content/StagePanel/StageViewport" unique_id=1220847887]
 unique_name_in_owner = true
@@ -300,22 +310,9 @@ texture = ExtResource("4_decor_main")
 expand_mode = 1
 flip_h = true
 
-[node name="ChapterName" type="Label" parent="Content/StagePanel/StageViewport" unique_id=729538341]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_top = 85.0
-offset_right = 688.0
-offset_bottom = 119.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 24
-text = "Battle 1"
-horizontal_alignment = 1
-
 [node name="ChapterDesc" type="Label" parent="Content/StagePanel/StageViewport" unique_id=1169332738]
 unique_name_in_owner = true
+visible = false
 layout_mode = 0
 offset_left = 12.0
 offset_top = 167.0
@@ -354,13 +351,13 @@ size_flags_vertical = 3
 layout_mode = 1
 
 [node name="BottomBar" type="Control" parent="." unique_id=372677655]
-custom_minimum_size = Vector2(0, 168)
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -168.0
+offset_top = -150.0
 grow_horizontal = 2
 grow_vertical = 0
 
@@ -370,6 +367,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 60.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("5_decor_wave")
@@ -402,7 +400,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 5.0
+offset_top = 60.0
 offset_bottom = 30.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -427,10 +425,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -31.0
-offset_top = -43.0
-offset_right = 31.0
-offset_bottom = 19.0
+offset_left = -38.0
+offset_top = -60.0
+offset_right = 38.0
+offset_bottom = 16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -472,10 +470,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -31.0
-offset_top = -43.0
-offset_right = 31.0
-offset_bottom = 19.0
+offset_left = -38.0
+offset_top = -60.0
+offset_right = 38.0
+offset_bottom = 16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -517,10 +515,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -31.0
-offset_top = -43.0
-offset_right = 31.0
-offset_bottom = 19.0
+offset_left = -38.0
+offset_top = -60.0
+offset_right = 38.0
+offset_bottom = 16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -562,10 +560,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -31.0
-offset_top = -43.0
-offset_right = 31.0
-offset_bottom = 19.0
+offset_left = -38.0
+offset_top = -60.0
+offset_right = 38.0
+offset_bottom = 16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -607,10 +605,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -31.0
-offset_top = -43.0
-offset_right = 31.0
-offset_bottom = 19.0
+offset_left = -38.0
+offset_top = -60.0
+offset_right = 38.0
+offset_bottom = 16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -634,39 +632,7 @@ theme_override_font_sizes/font_size = 30
 text = "图鉴"
 horizontal_alignment = 1
 
-[node name="TopBarBg" type="TextureRect" parent="." unique_id=1062283630]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -360.0
-offset_right = 360.0
-offset_bottom = 84.0
-grow_horizontal = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-expand_mode = 1
-
-[node name="MarginContainer" type="MarginContainer" parent="TopBarBg" unique_id=865535812]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 30
-theme_override_constants/margin_top = 0
-
-[node name="TopBar" type="HBoxContainer" parent="TopBarBg/MarginContainer" unique_id=1832171002]
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="GoldBar" type="Control" parent="TopBarBg/MarginContainer/TopBar" unique_id=197577220]
-custom_minimum_size = Vector2(180, 45)
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="Bg" type="TextureRect" parent="TopBarBg/MarginContainer/TopBar/GoldBar" unique_id=1435181746]
+[node name="TopHud" type="Control" parent="." unique_id=1985904209]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -674,100 +640,323 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+
+[node name="GoldBar" type="Control" parent="TopHud" unique_id=1034679052]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(167, 43)
+layout_mode = 1
+anchors_preset = 0
+offset_left = 17.0
+offset_top = 15.0
+offset_right = 184.0
+offset_bottom = 58.0
+mouse_filter = 2
+
+[node name="Bg" type="TextureRect" parent="TopHud/GoldBar" unique_id=301936999]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("8_money_bg")
 expand_mode = 1
+stretch_mode = 5
 
-[node name="Icon" type="TextureRect" parent="TopBarBg/MarginContainer/TopBar/GoldBar" unique_id=1188380432]
+[node name="Icon" type="TextureRect" parent="TopHud/GoldBar" unique_id=69546282]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(40, 40)
+custom_minimum_size = Vector2(35, 35)
 layout_mode = 1
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 6.0
-offset_top = -11.0
-offset_right = 28.0
-offset_bottom = 11.0
-grow_vertical = 2
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 40.0
+offset_bottom = 40.0
 mouse_filter = 2
 texture = ExtResource("9_gold_icon")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Value" type="Label" parent="TopBarBg/MarginContainer/TopBar/GoldBar" unique_id=29249098]
+[node name="Value" type="Label" parent="TopHud/GoldBar" unique_id=1712069643]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_right = -10.0
-offset_bottom = 1.0
+offset_left = 44.0
+offset_top = 2.0
+offset_right = -8.0
+offset_bottom = -2.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 26
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="GemBar" type="Control" parent="TopBarBg/MarginContainer/TopBar" unique_id=694785780]
-visible = false
-custom_minimum_size = Vector2(139, 31)
-layout_mode = 2
-size_flags_vertical = 4
+[node name="PlayerInfoCard" type="Control" parent="TopHud" unique_id=733048350]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(337, 83)
+layout_mode = 1
+anchors_preset = 0
+offset_left = 25.0
+offset_top = 83.0
+offset_right = 362.0
+offset_bottom = 166.0
+mouse_filter = 2
 
-[node name="Bg" type="TextureRect" parent="TopBarBg/MarginContainer/TopBar/GemBar" unique_id=2137566285]
+[node name="Panel" type="TextureRect" parent="TopHud/PlayerInfoCard" unique_id=1627217437]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("8_money_bg")
-expand_mode = 1
-
-[node name="Icon" type="TextureRect" parent="TopBarBg/MarginContainer/TopBar/GemBar" unique_id=932388855]
-layout_mode = 1
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 6.0
-offset_top = -11.0
-offset_right = 28.0
-offset_bottom = 11.0
-grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("9_1_gem_icon")
+texture = ExtResource("21_profile")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Value" type="Label" parent="TopBarBg/MarginContainer/TopBar/GemBar" unique_id=205499942]
+[node name="AvatarFrame" type="TextureRect" parent="TopHud/PlayerInfoCard" unique_id=527668609]
+custom_minimum_size = Vector2(83, 83)
+layout_mode = 1
+offset_left = -5.0
+offset_top = -2.0
+offset_right = 78.0
+offset_bottom = 89.0
+mouse_filter = 2
+texture = ExtResource("22_avatar_frame")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Avatar" type="TextureRect" parent="TopHud/PlayerInfoCard/AvatarFrame" unique_id=19345907]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -34.0
+offset_top = -34.0
+offset_right = 34.0
+offset_bottom = 34.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("23_avatar01")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="TopHud/PlayerInfoCard" unique_id=837737103]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 95.0
+offset_top = 9.0
+offset_right = 330.0
+offset_bottom = 47.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 24
+text = "player001"
+vertical_alignment = 1
+
+[node name="BattleIcon" type="TextureRect" parent="TopHud/PlayerInfoCard" unique_id=1743983555]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 1
+offset_left = 96.0
+offset_top = 52.0
+offset_right = 118.0
+offset_bottom = 74.0
+mouse_filter = 2
+texture = ExtResource("24_icon_battle")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BattleValue" type="Label" parent="TopHud/PlayerInfoCard" unique_id=843225007]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 126.0
+offset_top = 44.0
+offset_right = 331.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 22
+text = "0"
+vertical_alignment = 1
+
+[node name="OptionsButton" type="TextureButton" parent="TopHud" unique_id=1131622126]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(57, 58)
+layout_mode = 1
+offset_left = 644.0
+offset_top = 83.0
+offset_right = 701.0
+offset_bottom = 141.0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("30_btn_menu")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="MissionButton" type="TextureButton" parent="TopHud" unique_id=1742531630]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(65, 67)
+layout_mode = 1
+offset_left = 636.0
+offset_top = 191.0
+offset_right = 701.0
+offset_bottom = 258.0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("31_btn_mission")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="StageProgressHud" type="Control" parent="." unique_id=1883905266]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_right = -10.0
-offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ChapterName" type="Label" parent="StageProgressHud" unique_id=246012397]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -87.0
+offset_top = 220.0
+offset_right = 93.0
+offset_bottom = 260.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 27
+text = "Battle 1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DecoLine" type="TextureRect" parent="StageProgressHud" unique_id=1093744372]
+layout_mode = 1
+offset_left = 211.0
+offset_top = 256.0
+offset_right = 510.0
+offset_bottom = 283.0
+mouse_filter = 2
+texture = ExtResource("25_deco_line03")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ProgressBar" type="Control" parent="StageProgressHud" unique_id=1710717737]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 232.0
+offset_top = 286.0
+mouse_filter = 2
+
+[node name="BarStage" type="TextureRect" parent="StageProgressHud/ProgressBar" unique_id=854033177]
+layout_mode = 1
+offset_left = 24.0
+offset_top = 13.0
+offset_right = 251.0
+offset_bottom = 49.0
+mouse_filter = 2
+texture = ExtResource("26_bar_stage")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Fill" type="TextureRect" parent="StageProgressHud/ProgressBar/BarStage" unique_id=2732295]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 5.0
+offset_bottom = -5.0
+mouse_filter = 2
+texture = ExtResource("27_bar_stage_fill")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ProgressLabel" type="Label" parent="StageProgressHud/ProgressBar/BarStage" unique_id=1805158213]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = -16.0
+offset_right = 60.0
+offset_bottom = 16.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 16
-text = "0"
+theme_override_constants/shadow_outline_size = 4
+theme_override_font_sizes/font_size = 26
+text = "0/30"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ScoutRewardPopup" parent="." instance=ExtResource("19_scout_popup")]
-unique_name_in_owner = true
-visible = false
+[node name="DecoBarRight" type="TextureRect" parent="StageProgressHud/ProgressBar" unique_id=480470098]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+offset_left = 218.0
+offset_right = 277.0
+offset_bottom = 59.0
+mouse_filter = 2
+texture = ExtResource("29_deco_bar_stage02")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DecoBarLeft" type="TextureRect" parent="StageProgressHud/ProgressBar/DecoBarRight" unique_id=1127014963]
+layout_mode = 1
+offset_left = -218.0
+offset_top = 7.0
+offset_right = -167.0
+offset_bottom = 56.0
+mouse_filter = 2
+texture = ExtResource("28_deco_bar_stage")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NextChapterNum" type="Label" parent="StageProgressHud/ProgressBar/DecoBarRight" unique_id=585617635]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -30.0
+offset_top = -20.0
+offset_right = 30.0
+offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 4
+theme_override_font_sizes/font_size = 30
+text = "2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ScoutRewardPopup" parent="." unique_id=490801249 instance=ExtResource("19_scout_popup")]
+visible = false
+layout_mode = 1

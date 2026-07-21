@@ -5,7 +5,6 @@
 [ext_resource type="Texture2D" uid="uid://delski8cut3gg" path="res://assets/ui/equipment/equipment_slot01.png" id="3_equip_slot"]
 [ext_resource type="Texture2D" uid="uid://df7j70y6h34yk" path="res://assets/ui/icons/system/icon_power.png" id="4_power"]
 [ext_resource type="Texture2D" uid="uid://dfsd7vuuv3n1l" path="res://assets/ui/icons/system/icon_detail.png" id="5_detail"]
-[ext_resource type="Texture2D" path="res://assets/ui/icons/system/icon_equipment.png" id="40_equip_title"]
 [ext_resource type="Texture2D" uid="uid://d2jqm4ulnf41r" path="res://assets/ui/equipment/information_bg.png" id="6_info_bg"]
 [ext_resource type="Texture2D" uid="uid://bqydu488pwhpf" path="res://assets/ui/icons/system/icon_attack.png" id="7_sword"]
 [ext_resource type="Texture2D" uid="uid://de1rwjnxwv63r" path="res://assets/ui/icons/system/icon_hp.png" id="8_heart"]
@@ -17,15 +16,16 @@
 [ext_resource type="Texture2D" uid="uid://dv30osu0fjlyh" path="res://assets/ui/decorations/deco_line.png" id="18_deco_line"]
 [ext_resource type="Texture2D" uid="uid://cctv7df2ybypv" path="res://assets/ui/panels/top_bg.png" id="19_top_bg"]
 [ext_resource type="Texture2D" uid="uid://byj4bey4r4rya" path="res://assets/ui/buttons/btn_dismantle02.png" id="20_disman02"]
-[ext_resource type="Texture2D" path="res://assets/ui/panels/popup01.png" id="30_popup01"]
-[ext_resource type="Texture2D" path="res://assets/ui/decorations/deco_rare_common.png" id="31_deco_common"]
-[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_blue.png" id="32_btn_blue"]
-[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_red.png" id="33_btn_red"]
-[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_green.png" id="34_btn_green"]
-[ext_resource type="Texture2D" path="res://assets/ui/equipment/slot_bg_white.png" id="35_slotbg_white"]
-[ext_resource type="Texture2D" path="res://assets/ui/equipment/sort_bg.png" id="36_sortbg"]
-[ext_resource type="Texture2D" path="res://assets/ui/equipment/sort_icon_sord.png" id="37_sort_sord"]
-[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="38_gold"]
+[ext_resource type="Texture2D" uid="uid://b01xpa2d67vo" path="res://assets/ui/panels/popup01.png" id="30_popup01"]
+[ext_resource type="Texture2D" uid="uid://k6eedbsvyfnb" path="res://assets/ui/decorations/deco_rare_common.png" id="31_deco_common"]
+[ext_resource type="Texture2D" uid="uid://e86mlai64t6a" path="res://assets/ui/buttons/btn_blue.png" id="32_btn_blue"]
+[ext_resource type="Texture2D" uid="uid://cyd8cpojffdie" path="res://assets/ui/buttons/btn_red.png" id="33_btn_red"]
+[ext_resource type="Texture2D" uid="uid://dew2rvfiqajfo" path="res://assets/ui/buttons/btn_green.png" id="34_btn_green"]
+[ext_resource type="Texture2D" uid="uid://bjbhw6n7kmune" path="res://assets/ui/equipment/slot_bg_white.png" id="35_slotbg_white"]
+[ext_resource type="Texture2D" uid="uid://ddc14n5jrwpkl" path="res://assets/ui/equipment/sort_bg.png" id="36_sortbg"]
+[ext_resource type="Texture2D" uid="uid://xdgoda11ob1i" path="res://assets/ui/equipment/sort_icon_sord.png" id="37_sort_sord"]
+[ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="38_gold"]
+[ext_resource type="Texture2D" uid="uid://dtyk4lhuwo6f8" path="res://assets/ui/icons/system/icon_equipment.png" id="40_equip_title"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_hpsfa"]
 load_path = "res://.godot/imported/small_bg.png-e3d49fedff66e0cd06d87351020374cd.ctex"
@@ -101,7 +101,6 @@ offset_left = 345.0
 offset_top = 50.0
 offset_right = 505.0
 offset_bottom = 105.0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
 theme_override_font_sizes/font_size = 30
 text = "装备"
@@ -123,7 +122,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 1021.0
+offset_top = 1087.0
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 4
@@ -579,11 +578,9 @@ offset_left = 89.0
 offset_top = 16.0
 offset_right = 211.0
 offset_bottom = 48.0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.545, 0.361, 0.271, 1)
 theme_override_font_sizes/font_size = 22
 text = "0"
-horizontal_alignment = 0
 vertical_alignment = 1
 
 [node name="HpCapsule" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow" unique_id=1270289332]
@@ -621,11 +618,9 @@ offset_left = 89.0
 offset_top = 16.0
 offset_right = 211.0
 offset_bottom = 48.0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.545, 0.361, 0.271, 1)
 theme_override_font_sizes/font_size = 22
 text = "0"
-horizontal_alignment = 0
 vertical_alignment = 1
 
 [node name="SpeedCapsule" type="Control" parent="Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow" unique_id=1144561937]
@@ -663,11 +658,9 @@ offset_left = 89.0
 offset_top = 16.0
 offset_right = 211.0
 offset_bottom = 48.0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.545, 0.361, 0.271, 1)
 theme_override_font_sizes/font_size = 22
 text = "0"
-horizontal_alignment = 0
 vertical_alignment = 1
 
 [node name="Control" type="Control" parent="Frame/RootMargin/BaseRoot" unique_id=644179113]
@@ -814,7 +807,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 26
 text = "技能石"
 horizontal_alignment = 1
@@ -838,7 +833,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 26
 text = "合成"
 horizontal_alignment = 1
@@ -857,7 +854,6 @@ layout_mode = 2
 
 [node name="DetailPopup" type="Control" parent="." unique_id=1781527274]
 unique_name_in_owner = true
-visible = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -874,7 +870,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.4)
 
 [node name="Panel" type="TextureRect" parent="DetailPopup" unique_id=10110002]
@@ -908,7 +903,6 @@ offset_left = 36.0
 offset_top = 39.0
 offset_right = 162.0
 offset_bottom = 165.0
-mouse_filter = 0
 texture_normal = ExtResource("15_np2w0")
 ignore_texture_size = true
 stretch_mode = 0
@@ -982,7 +976,6 @@ offset_left = 204.0
 offset_top = 51.0
 offset_right = 571.0
 offset_bottom = 95.0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
 theme_override_font_sizes/font_size = 35
 vertical_alignment = 1
@@ -994,14 +987,9 @@ offset_left = 204.0
 offset_top = 99.0
 offset_right = 571.0
 offset_bottom = 135.0
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_outline_size = 4
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 26
 vertical_alignment = 1
 
@@ -1012,7 +1000,6 @@ offset_left = 44.0
 offset_top = 218.0
 offset_right = 200.0
 offset_bottom = 250.0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
 theme_override_font_sizes/font_size = 26
 text = "属性"
@@ -1028,7 +1015,6 @@ mouse_filter = 2
 theme_override_font_sizes/normal_font_size = 22
 theme_override_font_sizes/bold_font_size = 22
 bbcode_enabled = true
-text = ""
 
 [node name="BtnEquip" type="TextureButton" parent="DetailPopup/Panel" unique_id=10110013]
 unique_name_in_owner = true
@@ -1038,7 +1024,6 @@ offset_left = 59.0
 offset_top = 468.0
 offset_right = 274.0
 offset_bottom = 553.0
-mouse_filter = 0
 texture_normal = ExtResource("32_btn_blue")
 ignore_texture_size = true
 stretch_mode = 0
@@ -1050,14 +1035,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_outline_size = 3
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 28
 text = "穿戴"
 horizontal_alignment = 1
@@ -1071,7 +1051,6 @@ offset_left = 59.0
 offset_top = 468.0
 offset_right = 274.0
 offset_bottom = 553.0
-mouse_filter = 0
 texture_normal = ExtResource("33_btn_red")
 ignore_texture_size = true
 stretch_mode = 0
@@ -1083,14 +1062,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_outline_size = 3
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 28
 text = "卸下"
 horizontal_alignment = 1
@@ -1104,7 +1078,6 @@ offset_left = 289.0
 offset_top = 468.0
 offset_right = 504.0
 offset_bottom = 553.0
-mouse_filter = 0
 texture_normal = ExtResource("34_btn_green")
 ignore_texture_size = true
 stretch_mode = 0
@@ -1129,14 +1102,9 @@ alignment = 1
 [node name="TitleLabel" type="Label" parent="DetailPopup/Panel/BtnUpgrade/VBox" unique_id=10110019]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_outline_size = 3
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 24
 text = "升级"
 horizontal_alignment = 1
@@ -1160,10 +1128,9 @@ stretch_mode = 5
 [node name="CostLabel" type="Label" parent="DetailPopup/Panel/BtnUpgrade/VBox/GoldRow" unique_id=10110022]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 2
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 18
 text = "0/0"
 vertical_alignment = 1

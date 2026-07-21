@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://dlxbn1sl1yrmi"]
+[gd_scene format=3 uid="uid://dlxbn1sl1yrmi"]
 
 [ext_resource type="Script" uid="uid://b2qf3y24cdav3" path="res://scripts/ui/lucky_spin_panel.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://cwu7oyvy74gvu" path="res://assets/ui/panels/lucky_spin.png" id="2_wheel"]
@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="5_gold"]
 [ext_resource type="Script" uid="uid://bl01sv52m1x7t" path="res://scripts/ui/scrolling_background.gd" id="6_scroll_bg_script"]
 [ext_resource type="Texture2D" uid="uid://bek2hl55br6mf" path="res://assets/ui/backgrounds/spin_bg.png" id="7_spin_bg"]
-[ext_resource type="Texture2D" path="res://assets/ui/buttons/btn_orange.png" id="8_btn_orange"]
+[ext_resource type="Texture2D" uid="uid://ctugv2y5dgghv" path="res://assets/ui/buttons/btn_orange.png" id="8_btn_orange"]
 
 [node name="LuckySpinPanel" type="Control" unique_id=1701175268]
 texture_filter = 1
@@ -19,7 +19,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="BgColor" type="ColorRect" parent="."]
+[node name="BgColor" type="ColorRect" parent="." unique_id=1190091188]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -144,7 +144,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
 theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
-theme_override_constants/outline_size = 3
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 34
 text = "10"
 horizontal_alignment = 1
@@ -170,7 +170,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
 theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
-theme_override_constants/outline_size = 3
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 34
 text = "20"
 horizontal_alignment = 1
@@ -196,7 +196,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
 theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
-theme_override_constants/outline_size = 3
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 34
 text = "30"
 horizontal_alignment = 1
@@ -222,7 +222,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
 theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
-theme_override_constants/outline_size = 3
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 34
 text = "40"
 horizontal_alignment = 1
@@ -248,7 +248,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
 theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
-theme_override_constants/outline_size = 3
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 34
 text = "50"
 horizontal_alignment = 1
@@ -274,7 +274,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
 theme_override_colors/font_outline_color = Color(0.2, 0.13, 0.05, 1)
-theme_override_constants/outline_size = 3
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 34
 text = "60"
 horizontal_alignment = 1
@@ -325,12 +325,11 @@ offset_top = 980.0
 offset_right = 120.0
 offset_bottom = 1064.0
 grow_horizontal = 2
-mouse_filter = 0
 texture_normal = ExtResource("8_btn_orange")
 ignore_texture_size = true
 stretch_mode = 0
 
-[node name="VBox" type="VBoxContainer" parent="SpinBtn"]
+[node name="VBox" type="VBoxContainer" parent="SpinBtn" unique_id=1579753432]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -348,29 +347,24 @@ mouse_filter = 2
 theme_override_constants/separation = 2
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="SpinBtn/VBox"]
+[node name="TitleLabel" type="Label" parent="SpinBtn/VBox" unique_id=10413417]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_outline_size = 3
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
+theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 24
 text = "抽取"
 horizontal_alignment = 1
 
-[node name="GoldRow" type="HBoxContainer" parent="SpinBtn/VBox"]
+[node name="GoldRow" type="HBoxContainer" parent="SpinBtn/VBox" unique_id=2017117227]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="GoldIcon" type="TextureRect" parent="SpinBtn/VBox/GoldRow"]
+[node name="GoldIcon" type="TextureRect" parent="SpinBtn/VBox/GoldRow" unique_id=970295455]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(24, 24)
 layout_mode = 2
@@ -379,13 +373,12 @@ texture = ExtResource("5_gold")
 expand_mode = 5
 stretch_mode = 5
 
-[node name="CostLabel" type="Label" parent="SpinBtn/VBox/GoldRow"]
+[node name="CostLabel" type="Label" parent="SpinBtn/VBox/GoldRow" unique_id=2090173336]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 2
+theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 18
 text = "0/0"
 vertical_alignment = 1

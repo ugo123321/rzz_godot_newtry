@@ -214,7 +214,7 @@ func _build_layout_from_code() -> void:
 	_draw_label.add_theme_font_size_override("font_size", 26)
 	_draw_label.add_theme_color_override("font_color", Color("#ffffff"))
 	_draw_label.add_theme_color_override("font_outline_color", Color("#2a1808"))
-	_draw_label.add_theme_constant_override("outline_size", 4)
+	_draw_label.add_theme_constant_override("outline_size", 10)
 	_draw_label.anchor_left = 0.0
 	_draw_label.anchor_right = 1.0
 	_draw_label.anchor_top = 0.0
@@ -229,7 +229,7 @@ func _build_layout_from_code() -> void:
 	_cost_label.add_theme_font_size_override("font_size", 20)
 	_cost_label.add_theme_color_override("font_color", Color("#fff4a0"))
 	_cost_label.add_theme_color_override("font_outline_color", Color("#3a2408"))
-	_cost_label.add_theme_constant_override("outline_size", 4)
+	_cost_label.add_theme_constant_override("outline_size", 10)
 	_cost_label.anchor_left = 0.0
 	_cost_label.anchor_right = 1.0
 	_cost_label.anchor_top = 0.5
