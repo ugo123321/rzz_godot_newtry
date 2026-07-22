@@ -21,6 +21,7 @@ const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
 const TreeSpawnerScript = preload("res://scripts/systems/tree_spawner.gd")
 const PortalSpawnerScript = preload("res://scripts/systems/portal_spawner.gd")
 const FieldElementRegistryScript = preload("res://scripts/systems/field_element_registry.gd")
+const MonsterNavigatorScript = preload("res://scripts/systems/monster_navigator.gd")
 const LevelLayoutLoaderScript = preload("res://scripts/systems/level_layout_loader.gd")
 const ArrowBlockScript = preload("res://scripts/entities/arrow_block.gd")
 const LockedBlockScript = preload("res://scripts/entities/locked_block.gd")
@@ -92,6 +93,7 @@ var attr_forge
 var tree_container: Node2D
 var portal_container: Node2D
 var field_elements: Node  # FieldElementRegistry：放置元素格注册表（箭块/锁定块/宝箱/固定传送门）
+var _navigator: Node = null  # MonsterNavigator：怪物 A* 网格寻路（懒创建）
 var wood_drops_container: Node2D
 var build_house_container: Node2D
 var attr_forge_container: Node2D
@@ -265,6 +267,8 @@ func _ready() -> void:
 	$Entities.add_child(portal_container)
 	field_elements = FieldElementRegistryScript.new()
 	$Entities.add_child(field_elements)  # name "FieldElements" 由 _ready 设；z=2（Trees 之上 WoodDrops 之下）
+	if field_elements.has_signal("blocking_cells_changed"):
+		field_elements.blocking_cells_changed.connect(_invalidate_nav)
 	build_house_container = Node2D.new()
 	build_house_container.name = "BuildHouse"
 	build_house_container.z_index = 30
@@ -419,6 +423,7 @@ func _enter_wait_start() -> void:
 		terrain.setup_for_stage(stage_index, _get_safe_zone())
 	if water_overlay:
 		water_overlay.refresh_from_terrain()
+	_invalidate_nav()
 	_sync_background_layer()
 	_refresh_stage_ambience()
 	intro_label.visible = false
@@ -550,6 +555,7 @@ func _start_run() -> void:
 	_apply_stage_meta(true)
 	# 关卡编辑器布局：若该关配置了 layout_number，载入对应 user://levels/<编号>.json 放置元素/地块。
 	_apply_stage_layout_if_any(stage_index)
+	_invalidate_nav()
 	if not skip_world_setup and tree_spawner:
 		if get_stage_theme(stage_index) == "":
 			tree_spawner.begin(self)
@@ -958,6 +964,19 @@ func is_move_blocked_at(world_pos: Vector2) -> bool:
 		if field_elements.has_move_blocking_at(col, row):
 			return true
 	return false
+
+
+func get_monster_navigator() -> Node:
+	if _navigator == null:
+		_navigator = MonsterNavigatorScript.new()
+		add_child(_navigator)
+		_navigator.configure(terrain, field_elements)
+	return _navigator
+
+
+func _invalidate_nav() -> void:
+	if _navigator != null and _navigator.has_method("mark_dirty"):
+		_navigator.mark_dirty()
 
 
 func _nudge_player_out_of_trees() -> void:
