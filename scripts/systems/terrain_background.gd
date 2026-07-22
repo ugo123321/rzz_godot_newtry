@@ -316,6 +316,14 @@ func get_tile(col: int, row: int) -> String:
 	return String(_grid[row][col])
 
 
+func get_rows() -> int:
+	return _rows
+
+
+func get_cols() -> int:
+	return _cols
+
+
 func get_tile_at_world(world_x: float, world_y: float) -> String:
 	var col := int(floor(world_x / float(TILE_SIZE)))
 	var row := int(floor(world_y / float(TILE_SIZE)))
