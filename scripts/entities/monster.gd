@@ -4,6 +4,9 @@ class_name BattleMonster
 const HP_BAR_Y_OFFSET := 9.0
 const MELEE_REACH_PAD := 6.0
 const MELEE_STOP_PAD := 2.0
+const NAV_REPATH_SEC := 0.30      # 路径重算间隔
+const NAV_WP_REACH_PX := 20.0     # 距 waypoint 小于此值视为抵达（半格）
+const NAV_STUCK_SEC := 0.60       # 连续被挡超此时 → 强制 repath
 
 var kind_id := "NORMAL"
 var display_name := ""
@@ -38,6 +41,11 @@ var stage_index_cached := 0
 var frozen_timer := 0.0
 var vulnerable_mark := false
 var path_target_hit_count := 0
+var _nav_path: PackedVector2Array = PackedVector2Array()
+var _nav_wp_idx: int = 0
+var _nav_repath_timer: float = 0.0
+var _nav_stuck_timer: float = 0.0
+var _nav_last_player_cell: Vector2i = Vector2i(-1, -1)
 
 # === v2 易伤/抗性字段 (默认 0，待 debuff/精英差异化时填充；v==1 路径完全忽略) ===
 # VULN 层：同层加和。final ×= (1 + vuln_physical + 对应元素的 vuln_*)
@@ -557,18 +565,26 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 			# 冰减速 + sr=50 无下限术式：取叠加最大减速
 			var eff_slow: float = clampf(slow_pct_active + proximity_slow_pct - slow_pct_active * proximity_slow_pct, 0.0, 0.95)
 			var eff_speed: float = move_speed * maxf(0.0, 1.0 - eff_slow)
-			var dir: Vector2 = to_player.normalized()
 			var step_len: float = eff_speed * delta
+			# A* 网格寻路：朝当前 waypoint 走，地块墙由路径绕开；树仍由下方微碰撞滑步兜底。
+			# 注意传 scaled delta（battle._process 传 time-scaled delta，慢动作时 repath 节奏也跟着慢）。
+			var steer_target := _nav_steer_target(delta, battle, player)
+			var to_target: Vector2 = steer_target - global_position
+			var dir: Vector2 = to_target.normalized() if to_target.length_squared() > 0.0001 else to_player.normalized()
 			var next_pos := global_position + dir * step_len
-			var blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(next_pos)
+			var blocked: bool = _is_pos_blocked(battle, next_pos)
 			if blocked:
+				_nav_stuck_timer += delta
+				if _nav_stuck_timer > NAV_STUCK_SEC:
+					_nav_path.clear()
+					_nav_repath_timer = 0.0
 				# 双向 perp 都试：选可通且更靠近玩家的一边
 				var perp_a := Vector2(-dir.y, dir.x)
 				var perp_b := -perp_a
 				var alt_a := global_position + perp_a * step_len
 				var alt_b := global_position + perp_b * step_len
-				var alt_a_blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(alt_a)
-				var alt_b_blocked: bool = battle != null and battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(alt_b)
+				var alt_a_blocked: bool = _is_pos_blocked(battle, alt_a)
+				var alt_b_blocked: bool = _is_pos_blocked(battle, alt_b)
 				if not alt_a_blocked and not alt_b_blocked:
 					global_position = alt_a if alt_a.distance_to(player.global_position) <= alt_b.distance_to(player.global_position) else alt_b
 				elif not alt_a_blocked:
@@ -581,6 +597,7 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 					if escape_dir != Vector2.ZERO:
 						global_position += escape_dir * step_len
 			else:
+				_nav_stuck_timer = 0.0
 				global_position = next_pos
 			if not preserve_anim:
 				_play_anim(SpriteHelper.ANIM_WALK)
@@ -901,6 +918,52 @@ func _apply_status_tint() -> void:
 	# 都没有则恢复 baseline
 	anim_sprite.modulate = base_tint
 
+
+# 怪物移动位置是否被阻挡：树（is_blocked_by_tree）+ 地块/元素（is_move_blocked_at：深坑/阻挡石/锁定块/箭块）。
+func _is_pos_blocked(battle: Node, pos: Vector2) -> bool:
+	if battle == null:
+		return false
+	if battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(pos):
+		return true
+	if battle.has_method("is_move_blocked_at") and battle.is_move_blocked_at(pos):
+		return true
+	return false
+
+
+
+# A* waypoint 转向目标：repath 节奏到 / 玩家格变 / 路径空 → 重算；推到首个未抵达 waypoint；
+# 共线 lookahead 平滑（往后看最多 3 个，方向夹角 < ~15° 取更远）。无路径回落直冲玩家。
+func _nav_steer_target(delta: float, battle: Node, player: BattlePlayer) -> Vector2:
+	if player == null:
+		return global_position
+	if battle == null or not battle.has_method("get_monster_navigator"):
+		return player.global_position
+	var nav = battle.get_monster_navigator()
+	if nav == null:
+		return player.global_position
+	_nav_repath_timer -= delta
+	var pcell: Vector2i = nav.world_to_cell(player.global_position)
+	if _nav_repath_timer <= 0.0 or _nav_path.is_empty() or pcell != _nav_last_player_cell:
+		_nav_path = nav.find_path_world(global_position, player.global_position)
+		_nav_wp_idx = 0
+		_nav_repath_timer = NAV_REPATH_SEC
+		_nav_last_player_cell = pcell
+	var reach_px: float = GameConfig.scale_world(NAV_WP_REACH_PX)
+	while _nav_wp_idx < _nav_path.size() and global_position.distance_to(_nav_path[_nav_wp_idx]) < reach_px:
+		_nav_wp_idx += 1
+	if _nav_wp_idx >= _nav_path.size():
+		return player.global_position
+	var target: Vector2 = _nav_path[_nav_wp_idx]
+	var base_dir: Vector2 = (target - global_position).normalized()
+	var lim: int = mini(_nav_wp_idx + 4, _nav_path.size())
+	for i in range(_nav_wp_idx + 1, lim):
+		var cand: Vector2 = _nav_path[i]
+		var cand_dir: Vector2 = (cand - global_position).normalized()
+		if base_dir.dot(cand_dir) > 0.966:  # cos15° ≈ 0.966
+			target = cand
+		else:
+			break
+	return target
 
 
 # 隐形精英：spawn tween 结束后，4 秒内把 self.modulate.a 渐变到 PHANTOM_MIN_ALPHA。
