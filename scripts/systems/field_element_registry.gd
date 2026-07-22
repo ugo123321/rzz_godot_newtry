@@ -10,6 +10,8 @@ class_name FieldElementRegistry
 
 var _by_cell: Dictionary = {}  # key = col*10000+row -> {entity, line, move, bullet}
 
+signal blocking_cells_changed  # 注册/注销阻挡格时 emit，供 MonsterNavigator 标 dirty
+
 
 func _ready() -> void:
 	name = "FieldElements"
@@ -26,10 +28,12 @@ func register(col: int, row: int, entity: Node, line: bool, move: bool, bullet: 
 		"move": bool(prev.get("move", false)) or move,
 		"bullet": bool(prev.get("bullet", false)) or bullet,
 	}
+	blocking_cells_changed.emit()
 
 
 func unregister(col: int, row: int) -> void:
 	_by_cell.erase(col * 10000 + row)
+	blocking_cells_changed.emit()
 
 
 func has_blocking_at(col: int, row: int) -> bool:
@@ -62,3 +66,4 @@ func entity_at(col: int, row: int) -> Node:
 
 func clear() -> void:
 	_by_cell.clear()
+	blocking_cells_changed.emit()
