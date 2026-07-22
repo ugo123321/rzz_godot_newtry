@@ -925,7 +925,10 @@ func _is_pos_blocked(battle: Node, pos: Vector2) -> bool:
 		return false
 	if battle.has_method("is_blocked_by_tree") and battle.is_blocked_by_tree(pos):
 		return true
-	if battle.has_method("is_move_blocked_at") and battle.is_move_blocked_at(pos):
+	# 用 hitbox_radius（默认 13）而非 is_move_blocked_at 的默认 20——
+	# 默认 20 把怪当 40px 宽，在 1 格（40px）缺口里 stop=40 零余量，怪会被钉在缺口边缘进不去；
+	# 用 hitbox 后 stop=20+13=33，留 7px 余量，怪能穿 1 格缺口。
+	if battle.has_method("is_move_blocked_at") and battle.is_move_blocked_at(pos, hitbox_radius):
 		return true
 	return false
 
