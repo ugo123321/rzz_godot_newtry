@@ -16,7 +16,11 @@ var _rows: int = 0
 var _dirty: bool = true
 
 
-func _ready() -> void:
+# 幂等地初始化 _astar。Godot 4 的 _ready 对运行时 add_child 的节点是延迟的（同帧不会触发），
+# 故不能在 _ready 里建 _astar——configure() 紧跟 add_child 调用，会撞 null。改由本方法按需初始化。
+func _ensure_astar() -> void:
+	if _astar != null:
+		return
 	_astar = AStarGrid2D.new()
 	_astar.cell_size = Vector2(TILE_SIZE, TILE_SIZE)
 	_astar.offset = Vector2(TILE_SIZE * 0.5, TILE_SIZE * 0.5)  # 路径点 = 格中心 world 坐标
@@ -24,7 +28,12 @@ func _ready() -> void:
 	_astar.jumping_enabled = false  # 不许贴角斜穿两个阻挡格
 
 
+func _ready() -> void:
+	_ensure_astar()
+
+
 func configure(terrain: Node, field_elements: Node) -> void:
+	_ensure_astar()
 	_terrain = terrain
 	_field_elements = field_elements
 	_refresh_size()
@@ -36,10 +45,12 @@ func _refresh_size() -> void:
 		_cols = 0
 		_rows = 0
 		_astar.region = Rect2i(0, 0, 1, 1)
+		_astar.update()  # 改 region 后必须 update()，否则 set_point_solid 报 "Grid is not initialized"
 		return
 	_rows = _terrain.get_rows()
 	_cols = _terrain.get_cols()
 	_astar.region = Rect2i(0, 0, maxi(1, _cols), maxi(1, _rows))
+	_astar.update()
 
 
 func mark_dirty() -> void:
@@ -72,8 +83,7 @@ func _flush_if_dirty() -> void:
 
 # from_world -> to_world 的世界坐标 waypoint 数组。起点/终点 solid 或无路径 → 空数组（调用方回落直冲玩家）。
 func find_path_world(from_world: Vector2, to_world: Vector2) -> PackedVector2Array:
-	if _astar == null:
-		return PackedVector2Array()
+	_ensure_astar()
 	_flush_if_dirty()
 	var from_cell := world_to_cell(from_world)
 	var to_cell := world_to_cell(to_world)
