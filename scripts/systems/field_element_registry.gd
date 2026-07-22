@@ -15,7 +15,7 @@ signal blocking_cells_changed  # 注册/注销阻挡格时 emit，供 MonsterNav
 
 func _ready() -> void:
 	name = "FieldElements"
-	z_index = 2  # 在 Trees(z0) 之上、WoodDrops(z3) 之下偏后
+	z_index = -1  # 沉到怪物/玩家(z0)之下、地形(z-5)/草地(z-4)之上：地块元素是"踩在地面"的，不该盖住单位
 
 
 func register(col: int, row: int, entity: Node, line: bool, move: bool, bullet: bool) -> void:
@@ -54,6 +54,22 @@ func has_move_blocking_at(col: int, row: int) -> bool:
 	return not entry.is_empty() and bool(entry.get("move", false))
 
 
+# 半径版移动阻挡：mover 中心与任一 move-blocking 元素中心的距离 < (块体半径 + mover 半径) 即挡。
+# 块体半径 = 半格 20（特殊块填满一格）。用半径而非格中心，避免 mover 身体视觉重叠进块里。
+const BLOCK_BODY_RADIUS := 20.0
+func is_move_blocked_radius(world_pos: Vector2, mover_radius: float) -> bool:
+	var stop := BLOCK_BODY_RADIUS + mover_radius
+	for entry in _by_cell.values():
+		if not bool(entry.get("move", false)):
+			continue
+		var e = entry.get("entity")
+		if e == null or not is_instance_valid(e):
+			continue
+		if world_pos.distance_to(e.global_position) < stop:
+			return true
+	return false
+
+
 func has_bullet_blocking_at(col: int, row: int) -> bool:
 	var entry: Dictionary = _by_cell.get(col * 10000 + row, {})
 	return not entry.is_empty() and bool(entry.get("bullet", false))
@@ -62,6 +78,18 @@ func has_bullet_blocking_at(col: int, row: int) -> bool:
 func entity_at(col: int, row: int) -> Node:
 	var entry: Dictionary = _by_cell.get(col * 10000 + row, {})
 	return entry.get("entity", null)
+
+
+# 所有 move-blocking 的实体（供怪物脱困推力遍历）。跳过已失效的实例。
+func get_move_blocking_entities() -> Array:
+	var out: Array = []
+	for entry in _by_cell.values():
+		if not bool(entry.get("move", false)):
+			continue
+		var e = entry.get("entity")
+		if e != null and is_instance_valid(e):
+			out.append(e)
+	return out
 
 
 func clear() -> void:

@@ -4,6 +4,9 @@ class_name TerrainBackground
 const TILE_SIZE := 40
 const PIXEL := 2
 
+# 石地板美术素材（40×40，与 TILE_SIZE 对齐）：_paint_tile 直接 blit，不再过程化绘制。
+const STONE_FLOOR_TEX := preload("res://assets/ui/terrains/stone_floor.png")
+
 # 水簇生成参数（第 2 关起 stage_index >= 1 才启用）
 const WATER_TILES_PER_CLUSTER_BASE := 85    # 单簇基础约 55 格（之前 35 偏稀疏）
 const WATER_CLUSTER_MIN_LEN := 6             # 河流最短 6 格
@@ -273,10 +276,12 @@ var _cols := 0
 var _rows := 0
 var _grid: Array = []
 var _current_theme := ""
+var _stone_floor_img: Image = null
 
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_stone_floor_img = STONE_FLOOR_TEX.get_image()
 
 
 func setup_for_stage(stage_index: int, safe_zone: Dictionary = {}) -> void:
@@ -306,6 +311,17 @@ func set_tile(col: int, row: int, tile_type: String) -> void:
 		push_warning("TerrainBackground: unknown tile type '%s'" % tile_type)
 		return
 	_grid[row][col] = tile_type
+	_rebake_texture()
+	queue_redraw()
+
+
+# 整片 grid 重置为某类型（如 grass）后只烘焙一次；用于编辑器"恢复初始"。
+func clear_all_tiles(tile_type: String) -> void:
+	if not TILE_DATA.has(tile_type):
+		tile_type = TYPE_GRASS
+	for r in range(_rows):
+		for c in range(_cols):
+			_grid[r][c] = tile_type
 	_rebake_texture()
 	queue_redraw()
 
@@ -429,12 +445,8 @@ func _build_grid(stage_index: int, safe_zone: Dictionary) -> void:
 		for c in range(_cols):
 			row[c] = _pick_tile_type_for(stage_index, c, r)
 		_grid[r] = row
-	# 第 2 关起（stage_index >= 1）随机生成水簇，覆盖 grass；主题关、打造关、Boss 关都不生水
-	var stage_dict: Dictionary = GameConfig.get_stage(stage_index)
-	var is_forge_stage := str(stage_dict.get("room_type", "")) == "attr_forge"
-	var is_boss_stage := str(stage_dict.get("boss_id", "")) != ""
-	if stage_index >= 1 and _current_theme.is_empty() and not is_forge_stage and not is_boss_stage:
-		_generate_water_clusters(stage_index, safe_zone)
+	# 随机水簇生成已停用：水改为关卡编辑器布局放置（_apply_level_layout 走 set_tile）。
+	# 保留 _generate_water_clusters 函数体以备需要，但 _build_grid 不再调用。
 
 
 func _generate_water_clusters(_stage_index: int, safe_zone: Dictionary) -> void:
@@ -581,6 +593,11 @@ func _paint_tile(img: Image, col: int, row: int, tile_type: String) -> void:
 	var w := mini(TILE_SIZE, _world_w - ox)
 	var h := mini(TILE_SIZE, _world_h - oy)
 	if w <= 0 or h <= 0:
+		return
+	# 石地板走美术素材：先铺底色（防素材边缘透明露黑），再 blit stone_floor.png
+	if tile_type == TYPE_STONE_FLOOR and _stone_floor_img != null:
+		img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))
+		img.blit_rect(_stone_floor_img, Rect2i(0, 0, w, h), Vector2i(ox, oy))
 		return
 	img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))
 	var seed_v: int = (col * 73856093) ^ (row * 19349663) ^ hash(tile_type)

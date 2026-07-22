@@ -17,6 +17,9 @@ const LockedBlockScript := preload("res://scripts/entities/locked_block.gd")
 const FixedPortalScript := preload("res://scripts/entities/fixed_portal.gd")
 const ChestNormalScript := preload("res://scripts/entities/chest_normal.gd")
 const ChestLockedScript := preload("res://scripts/entities/chest_locked.gd")
+const PitBlockScript := preload("res://scripts/entities/pit_block.gd")
+const BlockingStoneBlockScript := preload("res://scripts/entities/blocking_stone_block.gd")
+const PlacedTreeScript := preload("res://scripts/entities/placed_tree.gd")
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 
@@ -38,9 +41,11 @@ const ELEMENT_KINDS := [
 	{"type": "fixed_portal", "label": "UI_LEVEL_ELEM_FIXED_PORTAL"},
 	{"type": "chest_normal", "label": "UI_LEVEL_ELEM_CHEST_NORMAL"},
 	{"type": "chest_locked", "label": "UI_LEVEL_ELEM_CHEST_LOCKED"},
+	{"type": "tree", "label": "UI_LEVEL_ELEM_TREE"},
 ]
 const FACINGS := ["up", "down", "left", "right"]
-const TILE_PLACEMENT_TYPES := ["water", "pit", "stone_floor", "blocking_stone"]
+# 地板类（水地板 / 石地板）：作为底面 terrain 画上去，不占格 —— 可在其上放其他地块/元素。
+const TILE_PLACEMENT_TYPES := ["water", "stone_floor"]
 
 var _field: Node2D  # TerrainBackground 实例容器
 var _terrain: Node
@@ -66,6 +71,64 @@ func _ready() -> void:
 	_build_ui()
 	_apply_texts()
 	EventBus.language_changed.connect(_on_language_changed)
+	# 从战斗测试返回（editor_test_mode 仍为 true）→ 恢复测试前的布局；否则空场地。
+	if LobbyState and LobbyState.editor_test_mode:
+		_load_layout("__editor_test__")
+		LobbyState.editor_test_mode = false  # 恢复后清标记，避免后续正常开战斗误判
+	# _build_field 已是 fresh 草地；_load_layout 会在此之上叠加保存的元素/地块
+
+
+# 「测试」：保存当前布局到 __editor_test__ → 切到真实战斗场景跑（真玩家+真怪物AI+真战斗+地块生效）。
+# 战斗里点「停止测试」回到本编辑器并恢复布局。
+func _start_test() -> void:
+	# 先把当前布局（含未编号）保存到固定测试编号
+	var arr: Array = []
+	for ov in _tile_overrides:
+		arr.append({"type": String(ov.type), "col": int(ov.col), "row": int(ov.row), "facing": "up"})
+	for e in _elements:
+		if is_instance_valid(e) and e is FieldElement:
+			arr.append(e.serialize())
+	LevelLayoutLoaderScript.save_layout("__editor_test__", arr)
+	LobbyState.request_battle_launch(0)  # 正常开战斗（会清 editor_test_mode）
+	LobbyState.editor_test_mode = true   # 再标记为编辑器测试，让战斗载入 __editor_test__ 布局 + 显示停止按钮
+	LobbyState.editor_test_layout = "__editor_test__"
+	LobbyState.editor_test_stage = 0
+	get_tree().change_scene_to_file("res://scenes/battle/battle.tscn")
+
+
+# 从布局文件载入并重建 _tile_overrides + _elements（测试返回时恢复编辑现场）。
+func _load_layout(number) -> void:
+	var layout: Dictionary = LevelLayoutLoaderScript.load_layout(number)
+	if layout.is_empty():
+		return
+	# 清空当前现场
+	for e in _elements:
+		if is_instance_valid(e):
+			e.queue_free()
+	_elements.clear()
+	_tile_overrides.clear()
+	var elements: Array = layout.get("elements", [])
+	for elem in elements:
+		if not (elem is Dictionary):
+			continue
+		var t: String = String(elem.get("type", ""))
+		var col: int = int(elem.get("col", 0))
+		var row: int = int(elem.get("row", 0))
+		var facing: String = String(elem.get("facing", "up"))
+		if TILE_PLACEMENT_TYPES.has(t):
+			_terrain.set_tile(col, row, t)
+			_tile_overrides.append({"col": col, "row": row, "type": t})
+			continue
+		var e: Node = _instantiate_element(t)
+		if e == null:
+			continue
+		e.cell_col = col
+		e.cell_row = row
+		e.global_position = _cell_center(col, row)
+		if e is ArrowBlock:
+			e.set_facing(facing)
+		_field.add_child(e)
+		_elements.append(e)
 
 
 func _build_field() -> void:
@@ -196,6 +259,8 @@ func _on_options_pressed() -> void:
 	# 自定义内容：4 个按钮 + 编号 LineEdit
 	var vbox := VBoxContainer.new()
 	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_EXIT"), _on_exit_pressed))
+	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_TEST"), _start_test))
+	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RESET"), _reset_all))
 	# 编号栏
 	var hbox := HBoxContainer.new()
 	var lbl := Label.new()
@@ -244,8 +309,21 @@ func _make_menu_button(text: String, cb: Callable) -> Button:
 	return b
 
 
+# 恢复初始状态：清空所有已放置元素 + 地块覆盖，地形回草地，退出画笔/编辑。
+func _reset_all() -> void:
+	_exit_brush()
+	_exit_edit_mode(false)
+	for e in _elements:
+		if is_instance_valid(e):
+			e.queue_free()
+	_elements.clear()
+	_tile_overrides.clear()
+	# 地形整片重画为草地（只烘焙一次）
+	_terrain.clear_all_tiles(TerrainBackgroundScript.TYPE_GRASS)
+	_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RESET_DONE"))
+
+
 func _on_exit_pressed() -> void:
-	# 退出确认
 	var dlg := ConfirmationDialog.new()
 	dlg.title = LanguageManager.tr_ui("UI_LEVEL_EDITOR_EXIT")
 	dlg.dialog_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_EXIT_CONFIRM")
@@ -333,6 +411,10 @@ func _brush_hint_text() -> String:
 
 
 # === 画笔绘制：在 (col,row) 放置当前画笔元素/地块；不覆盖已有元素或地块覆盖 ===
+# 放大后的特殊实体种类：放置时强制 3×3 间隔（不能紧贴另一个实体）。
+const BIG_ENTITY_KINDS := ["arrow_single", "arrow_cross", "blocking_stone", "locked_block", "chest_normal", "chest_locked"]
+
+
 func _paint_at(col: int, row: int) -> void:
 	if _brush_kind == "":
 		return
@@ -344,6 +426,7 @@ func _paint_at(col: int, row: int) -> void:
 		_terrain.set_tile(col, row, _brush_kind)
 		_tile_overrides.append({"col": col, "row": row, "type": _brush_kind})
 		return
+	# 放大实体相邻可紧贴放置（不强制间隔），靠 1 格 no-overlap 规则避免重叠同格
 	var elem: Node = _instantiate_element(_brush_kind)
 	if elem == null:
 		return
@@ -356,14 +439,25 @@ func _paint_at(col: int, row: int) -> void:
 	_elements.append(elem)
 
 
+# 3×3 范围内是否已有实体（保留备用，当前放置不强制间隔 —— 相邻紧贴）。
+func _entity_nearby_3x3(col: int, row: int) -> bool:
+	for dc in range(-1, 2):
+		for dr in range(-1, 2):
+			if _element_at(col + dc, row + dr) != null:
+				return true
+	return false
+
+
 func _cell_occupied(col: int, row: int) -> bool:
+	# 实体（含飞箭块/锁定块/深坑/阻挡石/宝箱/传送门）占格
 	for e in _elements:
 		if is_instance_valid(e) and e is FieldElement:
 			if e.cell_col == col and e.cell_row == row:
 				return true
+	# 地板类覆盖（水/石地板）不占格 —— 可在其上叠放其他地块/元素
 	for ov in _tile_overrides:
 		if int(ov.col) == col and int(ov.row) == row:
-			return true
+			return false  # 地板不阻挡后续放置
 	return false
 
 
@@ -381,9 +475,21 @@ func _instantiate_element(kind_type: String) -> Node:
 			var b := LockedBlockScript.new()
 			b.setup_block(0, 0)
 			return b
+		"pit":
+			var b := PitBlockScript.new()
+			b.setup_block(0, 0)
+			return b
+		"blocking_stone":
+			var b := BlockingStoneBlockScript.new()
+			b.setup_block(0, 0)
+			return b
+		"tree":
+			var t := PlacedTreeScript.new()
+			t.setup_tree(0, 0)
+			return t
 		"fixed_portal":
 			var p := FixedPortalScript.new()
-			p.setup(Vector2(0, 0))
+			p.setup_portal(0, 0)
 			return p
 		"chest_normal":
 			var c := ChestNormalScript.new()
@@ -524,7 +630,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_exit_brush()
 			get_viewport().set_input_as_handled()
 			return
-		# 左键按下：若点中已有实体 → 进编辑模式；若点中已放置地块 → 删除地块；否则开始绘制
+		# 左键按下：点中已有实体 → 进编辑模式；否则开始绘制（地板上可叠放，不删除地板）
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			var mp := _mouse_world()
 			var col := int(mp.x / TILE_SIZE)
@@ -535,11 +641,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				_begin_edit_existing(hit)
 				get_viewport().set_input_as_handled()
 				return
-			var ov := _tile_override_at(col, row)
-			if not ov.is_empty():
-				_remove_tile_override(col, row)
-				get_viewport().set_input_as_handled()
-				return
+			# 地板（水/石地板）不占格 → 直接在其上绘制：实体叠在地板上，地板类覆盖替换底面
 			_painting = true
 			_paint_at(col, row)
 			get_viewport().set_input_as_handled()

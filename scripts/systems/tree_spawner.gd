@@ -15,10 +15,18 @@ func reset() -> void:
 	active = false
 
 
+# 编辑器布局生成的树注册进来，让 get_active_trees / is_blocked_by_tree 能识别。
+func register_tree(t: Node) -> void:
+	if t == null:
+		return
+	trees.append(t)
+
+
 func begin(battle: Node) -> void:
+	# 随机树生成已停用：树改为关卡编辑器布局放置（battle._apply_level_layout 生成真实 BattleTree）。
+	# 保留函数签名供 battle.gd 多处调用，不做任何随机刷树。
 	reset()
-	active = true
-	_spawn_wave(battle)
+	active = false
 
 
 func stop() -> void:

@@ -298,6 +298,13 @@ func _escape_dir_from_trees(battle: Node) -> Vector2:
 	return push.normalized()
 
 
+# 统一脱困方向（树 + 地形墙 + 放置块元素）。委托 battle.get_monster_escape_dir。
+func _escape_dir(battle: Node, mover_radius: float) -> Vector2:
+	if battle == null or not battle.has_method("get_monster_escape_dir"):
+		return Vector2.ZERO
+	return battle.get_monster_escape_dir(global_position, mover_radius)
+
+
 func _melee_attack_range(player: BattlePlayer) -> float:
 	if player == null:
 		return GameConfig.scale_world(30.0)
@@ -592,10 +599,11 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 				elif not alt_b_blocked:
 					global_position = alt_b
 				else:
-					# 两边 perp 都堵：被树夹住或卡在树根，沿"远离最近树"方向脱困
-					var escape_dir := _escape_dir_from_trees(battle)
+					# 两边 perp 都堵：被树/地块墙/放置块夹住，沿统一 escape 推力脱困。
+					# 用更大步长快速脱困，避免卡在死角龟速蹭（step_len 仅 1~2px）。
+					var escape_dir := _escape_dir(battle, hitbox_radius)
 					if escape_dir != Vector2.ZERO:
-						global_position += escape_dir * step_len
+						global_position += escape_dir * maxf(step_len, 4.0)
 			else:
 				_nav_stuck_timer = 0.0
 				global_position = next_pos
@@ -948,7 +956,9 @@ func _nav_steer_target(delta: float, battle: Node, player: BattlePlayer) -> Vect
 	var pcell: Vector2i = nav.world_to_cell(player.global_position)
 	if _nav_repath_timer <= 0.0 or _nav_path.is_empty() or pcell != _nav_last_player_cell:
 		_nav_path = nav.find_path_world(global_position, player.global_position)
-		_nav_wp_idx = 0
+		# path[0] 是怪自身所在格的中心；对角绕行时怪常站在格角（离中心 >reach 且在行进反方向），
+		# 若从 0 开始会每次 repath 都往回追 path[0] 形成来回震荡。跳过起点格，直接朝 path[1]。
+		_nav_wp_idx = 1 if _nav_path.size() > 1 else 0
 		_nav_repath_timer = NAV_REPATH_SEC
 		_nav_last_player_cell = pcell
 	var reach_px: float = GameConfig.scale_world(NAV_WP_REACH_PX)
@@ -963,6 +973,9 @@ func _nav_steer_target(delta: float, battle: Node, player: BattlePlayer) -> Vect
 		var cand: Vector2 = _nav_path[i]
 		var cand_dir: Vector2 = (cand - global_position).normalized()
 		if base_dir.dot(cand_dir) > 0.966:  # cos15° ≈ 0.966
+			# 禁止贴墙切角：直线到该 waypoint 若贴墙则不跳过中间点
+			if nav.has_method("segment_too_close_to_solid") and nav.segment_too_close_to_solid(global_position, cand):
+				break
 			target = cand
 		else:
 			break

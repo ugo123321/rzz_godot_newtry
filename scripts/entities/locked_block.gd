@@ -5,7 +5,7 @@ class_name LockedBlock
 # 未解锁时与阻挡石块效果一致：阻挡移动 + 画线 + 子弹。解锁后消失（变空地）。
 # 对敌人无效（敌人撞上也不会解锁，但敌人本身不会在此格刷出 / 不受地块影响）。
 
-const TRIGGER_RADIUS := 28.0
+const TRIGGER_RADIUS := 38.0  # 玩家进入该格内时解锁（< 一格 40）
 
 var _t := 0.0
 
@@ -35,7 +35,7 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	# 阻挡石块底 + 像素钥匙 icon + 外发光（CLAUDE.md §9 多色分层 + 呼吸闪烁）
-	var s: float = 18.0
+	var s: float = 20.0  # 填满一格（40px）：相邻块边对边贴着
 	var pulse: float = 0.85 + 0.15 * (0.5 + 0.5 * sin(_t * 4.5))
 	var c_body := Color("#5a4838") * pulse
 	var c_shade := Color("#3a2c20") * pulse

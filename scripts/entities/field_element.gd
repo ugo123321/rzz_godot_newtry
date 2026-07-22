@@ -31,7 +31,7 @@ func setup(col: int, row: int, p_kind: String, p_facing: String = "up") -> void:
 	facing = p_facing
 	# 以格中心为锚点（FieldElement 的 global_position 即格中心）。
 	global_position = _cell_center(col, row)
-	z_index = 3
+	z_index = 0  # 容器(FieldElements z=-1)已沉到怪物/玩家之下；元素自身 z=0 → 有效 z=-1
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 

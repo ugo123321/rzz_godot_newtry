@@ -28,6 +28,8 @@ const LockedBlockScript = preload("res://scripts/entities/locked_block.gd")
 const FixedPortalScript = preload("res://scripts/entities/fixed_portal.gd")
 const ChestNormalScript = preload("res://scripts/entities/chest_normal.gd")
 const ChestLockedScript = preload("res://scripts/entities/chest_locked.gd")
+const PitBlockScript = preload("res://scripts/entities/pit_block.gd")
+const BlockingStoneBlockScript = preload("res://scripts/entities/blocking_stone_block.gd")
 const BuildHouseDirectorScript = preload("res://scripts/systems/build_house_director.gd")
 const AttrForgeDirectorScript = preload("res://scripts/systems/attr_forge_director.gd")
 const WoodDropScript = preload("res://scripts/entities/wood_drop.gd")
@@ -74,6 +76,7 @@ var soul_orb_manager: SoulOrbManager
 var afterimages_overlay
 var terrain: TerrainBackground
 var pause_menu: PauseMenu
+var _editor_test_btn: Button  # 编辑器测试模式：停止测试按钮
 var fail_animator: StageFailAnimator
 var particles
 var blood_stains
@@ -211,6 +214,7 @@ func _ready() -> void:
 	pause_menu.name = "PauseMenu"
 	$UI.add_child(pause_menu)
 	pause_menu.setup(self)
+	_setup_editor_test_button()
 	fail_animator = StageFailAnimator.new()
 	add_child(fail_animator)
 	fail_animator.setup(self)
@@ -263,10 +267,10 @@ func _ready() -> void:
 	$Entities.add_child(wood_drops_container)
 	portal_container = Node2D.new()
 	portal_container.name = "Portals"
-	portal_container.z_index = 4
+	portal_container.z_index = -1  # 沉到怪物/玩家(z0)之下：传送门是"踩上去"的地面元素，不应盖住单位
 	$Entities.add_child(portal_container)
 	field_elements = FieldElementRegistryScript.new()
-	$Entities.add_child(field_elements)  # name "FieldElements" 由 _ready 设；z=2（Trees 之上 WoodDrops 之下）
+	$Entities.add_child(field_elements)  # name "FieldElements" 由 _ready 设；z=-1（沉到怪物/玩家之下，地形/草地之上）
 	if field_elements.has_signal("blocking_cells_changed"):
 		field_elements.blocking_cells_changed.connect(_invalidate_nav)
 	build_house_container = Node2D.new()
@@ -334,6 +338,9 @@ func _ready() -> void:
 	terrain.setup_for_stage(0, _get_safe_zone())
 	water_overlay.refresh_from_terrain()
 	_sync_background_layer()
+	# 怪物按脚 Y 排序：影子烘焙在角色帧贴图里(与身体同帧同 z)，不开 y-sort 时按生成顺序绘制，
+	# 后生成的怪整帧(含脚下影子)会盖住先生成的怪。开 y_sort 后脚下方的怪画在更上层，影子不再错盖。
+	monster_container.y_sort_enabled = true
 	_refresh_stage_ambience()
 	upgrade_popup.setup(self, upgrades)
 	upgrade_popup.upgrade_picked.connect(_on_upgrade_picked)
@@ -932,6 +939,66 @@ func is_blocked_by_tree(pos: Vector2) -> bool:
 	return false
 
 
+# 怪物被夹住时的脱困推力方向：把所有"正在阻挡移动"的来源（树 + 地形墙 + 放置块元素）
+# 的反向推力相加并归一。返回 ZERO 表示无推力来源。
+# 单位推力来源半径：树 = get_block_radius()；地块墙/块元素 = 半格 20（与 is_move_blocked_radius 的 BLOCK_BODY_RADIUS 一致）。
+func get_monster_escape_dir(from_pos: Vector2, mover_radius: float) -> Vector2:
+	var push := Vector2.ZERO
+	# 树
+	for t in get_active_trees():
+		if not is_instance_valid(t):
+			continue
+		var to_self: Vector2 = from_pos - t.global_position
+		var d: float = to_self.length()
+		if d <= 0.0001:
+			push += Vector2(1.0, 0.0)
+			continue
+		var r: float = t.get_block_radius() + mover_radius
+		if d < r + 8.0:
+			var weight: float = 1.0 - clampf(d / (r + 8.0), 0.0, 1.0)
+			push += to_self / d * (0.4 + weight)
+	# 放置块元素（锁定块/箭块/阻挡石实体等，move-blocking）
+	if field_elements and field_elements.has_method("get_move_blocking_entities"):
+		const BLOCK_R := 20.0
+		for e in field_elements.get_move_blocking_entities():
+			if not is_instance_valid(e):
+				continue
+			var to_self2: Vector2 = from_pos - e.global_position
+			var d2: float = to_self2.length()
+			if d2 <= 0.0001:
+				push += Vector2(-1.0, 0.0)
+				continue
+			var r2: float = BLOCK_R + mover_radius
+			if d2 < r2 + 8.0:
+				var weight2: float = 1.0 - clampf(d2 / (r2 + 8.0), 0.0, 1.0)
+				push += to_self2 / d2 * (0.4 + weight2)
+	# 地形墙（深坑/阻挡石格）：把格中心当半径 20 的阻挡圆
+	if terrain and terrain.has_method("is_blocking_for_movement"):
+		const TS := 40
+		const BR := 20.0
+		var cc := int(from_pos.x / TS)
+		var cr := int(from_pos.y / TS)
+		for dr in range(-1, 2):
+			for dc in range(-1, 2):
+				var nc := cc + dc
+				var nr := cr + dr
+				if not terrain.is_blocking_for_movement(nc, nr):
+					continue
+				var center := Vector2(nc * TS + TS * 0.5, nr * TS + TS * 0.5)
+				var to_self3: Vector2 = from_pos - center
+				var d3: float = to_self3.length()
+				if d3 <= 0.0001:
+					push += Vector2(-1.0, 0.0)
+					continue
+				var r3: float = BR + mover_radius
+				if d3 < r3 + 8.0:
+					var weight3: float = 1.0 - clampf(d3 / (r3 + 8.0), 0.0, 1.0)
+					push += to_self3 / d3 * (0.4 + weight3)
+	if push == Vector2.ZERO:
+		return Vector2.ZERO
+	return push.normalized()
+
+
 # 子弹/投掷物是否在 world_pos 处被地形（深坑/阻挡石）或放置元素（箭块/锁定块未解锁）阻挡。
 func is_bullet_blocked_at(world_pos: Vector2) -> bool:
 	if terrain and terrain.has_method("is_blocking_for_movement"):
@@ -949,19 +1016,17 @@ func is_bullet_blocked_at(world_pos: Vector2) -> bool:
 	return false
 
 
-# 玩家移动是否在 world_pos 处被阻挡石/深坑/未解锁锁定块/箭块挡住。
-func is_move_blocked_at(world_pos: Vector2) -> bool:
+# 玩家/怪物移动是否在 world_pos 处被阻挡石/深坑/未解锁锁定块/箭块挡住。
+# 用半径版（块体半径 20 + mover 半径），避免身体视觉重叠进块里。
+func is_move_blocked_at(world_pos: Vector2, mover_radius: float = 20.0) -> bool:
 	if terrain and terrain.has_method("is_blocking_for_movement"):
 		var ts: int = TerrainBackground.TILE_SIZE
 		var col := int(world_pos.x / ts)
 		var row := int(world_pos.y / ts)
 		if terrain.is_blocking_for_movement(col, row):
 			return true
-	if field_elements and field_elements.has_method("has_move_blocking_at"):
-		var ts2: int = TerrainBackground.TILE_SIZE
-		var col := int(world_pos.x / ts2)
-		var row := int(world_pos.y / ts2)
-		if field_elements.has_move_blocking_at(col, row):
+	if field_elements and field_elements.has_method("is_move_blocked_radius"):
+		if field_elements.is_move_blocked_radius(world_pos, mover_radius):
 			return true
 	return false
 
@@ -1081,9 +1146,10 @@ func _on_lottery_exit_complete() -> void:
 
 # === 关卡编辑器布局载入 ===
 # 读取 user://levels/<编号>.json，按 elements 列表放置地块/元素。
-# 纯地块（water/pit/stone_floor/blocking_stone）走 terrain.set_tile；其余走对应 FieldElement 实体。
+# 地板类（水地板/石地板）走 terrain.set_tile 作为底面；其余（含深坑/阻挡石）走对应 FieldElement 实体，
+# 这样"水地板上放深坑/阻挡石"能同时保留地板与阻挡实体两层。
 # stage→编号 绑定属未来工作（在 stages.json 加 layout_number 字段）；此处通过编号直接载入。
-const _TILE_LAYOUT_TYPES := ["water", "pit", "stone_floor", "blocking_stone"]
+const _TILE_LAYOUT_TYPES := ["water", "stone_floor"]
 
 func _apply_level_layout(number) -> void:
 	if not LevelLayoutLoaderScript:
@@ -1124,10 +1190,30 @@ func _spawn_field_element(kind: String, col: int, row: int, facing: String) -> N
 			b.setup_block(col, row)
 			b.register_self(self)
 			elem = b
+		"pit":
+			var b := PitBlockScript.new()
+			field_elements.add_child(b)
+			b.setup_block(col, row)
+			b.register_self(self)
+			elem = b
+		"blocking_stone":
+			var b := BlockingStoneBlockScript.new()
+			field_elements.add_child(b)
+			b.setup_block(col, row)
+			b.register_self(self)
+			elem = b
+		"tree":
+			# 真实 BattleTree 进 tree_container：可被砍、is_blocked_by_tree 挡路
+			var t := BattleTreeScript.new()
+			tree_container.add_child(t)
+			t.setup(_cell_center(col, row), stage_index)
+			if tree_spawner:
+				tree_spawner.register_tree(t)  # 让 get_active_trees / is_blocked_by_tree 识别
+			elem = t
 		"fixed_portal":
 			var p := FixedPortalScript.new()
 			portal_container.add_child(p)
-			p.setup(_cell_center(col, row))
+			p.setup_portal(col, row)
 			elem = p
 		"chest_normal":
 			var c := ChestNormalScript.new()
@@ -1150,12 +1236,36 @@ func _cell_center(col: int, row: int) -> Vector2:
 
 
 # 读 stages.json 的 layout_number 字段（未来策划在该列填编号控制地图出现），有则载入对应布局。
+# 编辑器「测试」模式：直接载入 LobbyState.editor_test_layout（编辑器自动保存到 __editor_test__）。
 func _apply_stage_layout_if_any(stage_idx: int) -> void:
+	if LobbyState and LobbyState.editor_test_mode and not LobbyState.editor_test_layout.is_empty():
+		_apply_level_layout(LobbyState.editor_test_layout)
+		return
 	var stage_dict: Dictionary = GameConfig.get_stage(stage_idx)
 	var num = stage_dict.get("layout_number", "")
 	if num == null or String(num).strip_edges().is_empty():
 		return
 	_apply_level_layout(num)
+
+
+# 编辑器测试模式：在战斗 UI 右上角加「停止测试」按钮，点击回关卡编辑器并恢复布局。
+func _setup_editor_test_button() -> void:
+	if not (LobbyState and LobbyState.editor_test_mode):
+		return
+	_editor_test_btn = Button.new()
+	_editor_test_btn.text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_STOP_TEST")
+	_editor_test_btn.add_theme_font_size_override("font_size", 20)
+	_editor_test_btn.offset_left = 540.0
+	_editor_test_btn.offset_top = 12.0
+	_editor_test_btn.offset_right = 700.0
+	_editor_test_btn.offset_bottom = 52.0
+	_editor_test_btn.pressed.connect(_on_stop_test)
+	$UI.add_child(_editor_test_btn)
+
+
+func _on_stop_test() -> void:
+	# 不在此清 editor_test_mode —— 留给编辑器 _ready 检测以恢复测试布局，恢复后清。
+	get_tree().change_scene_to_file("res://scenes/level_editor.tscn")
 
 
 func apply_debug_settings(target_level: int, target_stage: int) -> void:
@@ -1982,22 +2092,9 @@ func _prespawn_next_stage_world(next_index: int) -> void:
 
 
 func _spawn_prespawn_trees(container: Node2D, stage_idx: int, w: float, h: float) -> Array:
-	var count := int(GameConfig.get_tuning("tree_count_per_wave", 5))
-	# 装备 jungle_armor 传奇：树木数量翻倍
-	if LobbyState and LobbyState.get_active_equipment_flags().get("tree_x2", false):
-		count *= 2
-	var safe := Vector2(w * 0.5, h * 0.58)
-	var placed: Array = []
-	for n in range(count):
-		var pos := _pick_prespawn_tree_pos(w, h, safe, placed)
-		var tree = BattleTreeScript.new()
-		container.add_child(tree)
-		tree.setup(pos, stage_idx)
-		# setup() 内部用 global_position = pos 把树定到了"当前世界坐标"。
-		# 我们要的是"下一关本地坐标"（即 NextStageRoot 局部空间），所以这里强制覆盖为 LOCAL。
-		tree.position = pos
-		placed.append(tree)
-	return placed
+	# 随机树预生成已停用：树改为关卡编辑器布局放置（_apply_level_layout）。
+	# 保留函数签名供 _prespawn_next_stage_world 调用，返回空数组。
+	return []
 
 
 func _pick_prespawn_tree_pos(w: float, h: float, safe: Vector2, placed: Array) -> Vector2:

@@ -5,7 +5,7 @@ class_name ChestNormal
 # 不阻挡移动/画线/子弹（玩家碰上去就开，参考 LotteryPortal 的 proximity 触发）。
 # 对敌人无效（敌人不会触发）。
 
-const TRIGGER_RADIUS := 30.0  # 约一格(40)的 0.75
+const TRIGGER_RADIUS := 38.0  # 玩家进入该格内时开（< 一格 40）
 const ChestResultPopupScript := preload("res://scripts/ui/chest_result_popup.gd")
 
 var _t := 0.0
@@ -53,7 +53,7 @@ func _show_popup(amount: int, kind: String) -> void:
 
 func _draw() -> void:
 	# 过程化像素宝箱：箱体 + 盖 + 锁板 + 金边（CLAUDE.md §9 多色分层 + 呼吸闪烁）
-	var s: float = 16.0
+	var s: float = 20.0  # 填满一格（40px）：相邻块边对边贴着
 	var pulse: float = 0.85 + 0.15 * (0.5 + 0.5 * sin(_t * 4.0))
 	var c_body := Color("#7a5028") * pulse
 	var c_shade := Color("#5a3818") * pulse

@@ -1,10 +1,10 @@
-extends Node2D
+extends FieldElement
 class_name FixedPortal
 
 # 固定抽奖传送门：与随机刷出的 LotteryPortal 效果一致，但无倒计时、固定存在。
 # 碰撞后进入抽奖页面（battle.on_portal_entered → reward_wheel 流程），碰撞后传送门消失。
 # 销毁交给 battle._on_lottery_exit_complete 处理（与 LotteryPortal 一致）。
-# 由关卡编辑器 / battle._apply_level_layout 放置。
+# 由关卡编辑器 / battle._apply_level_layout 放置。继承 FieldElement 以获得 cell_col/row/serialize。
 
 const PortalVisualsScript := preload("res://scripts/utils/portal_visuals.gd")
 
@@ -16,10 +16,11 @@ var _consumed := false
 var stored_position: Vector2 = Vector2.ZERO
 
 
-func setup(pos: Vector2) -> void:
-	global_position = pos
-	stored_position = pos
-	z_index = 4
+# 编辑器/战斗统一入口：按格放置，stored_position = 格中心（落回原地用）。
+func setup_portal(col: int, row: int) -> void:
+	setup(col, row, "fixed_portal", "up")  # FieldElement.setup 设 cell/pos/z=0
+	stored_position = global_position
+	z_index = 0  # 容器(Portals z=-1)已沉到怪物/玩家之下；传送门自身 z=0 → 有效 z=-1
 	queue_redraw()
 
 

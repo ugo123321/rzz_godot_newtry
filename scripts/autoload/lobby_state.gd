@@ -40,6 +40,10 @@ const EQUIPMENT_DROP_ENABLED := true
 
 var gold: int = 5000
 var wood: int = 0
+# 关卡编辑器「测试」模式：切到真实战斗场景跑当前布局；停止时回编辑器。
+var editor_test_mode: bool = false
+var editor_test_layout: String = ""  # 测试时载入的布局编号（编辑器自动保存到 user://levels/__editor_test__.json）
+var editor_test_stage: int = 0  # 测试用关卡 index（默认 0，有怪物 counts）
 var equipment_inventory: Array[Dictionary] = []
 var equipped_by_slot: Dictionary = {}
 var _next_item_uid := 1
@@ -388,6 +392,7 @@ func get_talent_desc_at_level(id_or_def, level: int) -> String:
 func request_battle_launch(p_stage_index: int) -> void:
 	stage_index = maxi(0, p_stage_index)
 	_pending_launch = true
+	editor_test_mode = false  # 正常开战斗一定不是编辑器测试；编辑器 _start_test 在调用本函数后再置 true
 	_first_reward_given_this_run = false  # 每次新一局重置先发制人 flag
 
 

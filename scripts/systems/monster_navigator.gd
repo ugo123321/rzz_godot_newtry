@@ -24,7 +24,7 @@ func _ensure_astar() -> void:
 	_astar = AStarGrid2D.new()
 	_astar.cell_size = Vector2(TILE_SIZE, TILE_SIZE)
 	_astar.offset = Vector2(TILE_SIZE * 0.5, TILE_SIZE * 0.5)  # 路径点 = 格中心 world 坐标
-	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ALWAYS
+	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES  # 不许贴墙角斜切（怪有碰撞半径，斜切会被卡在角上）
 	_astar.jumping_enabled = false  # 不许贴角斜穿两个阻挡格
 
 
@@ -89,6 +89,60 @@ func find_path_world(from_world: Vector2, to_world: Vector2) -> PackedVector2Arr
 	var to_cell := world_to_cell(to_world)
 	if not _astar.is_in_boundsv(from_cell) or not _astar.is_in_boundsv(to_cell):
 		return PackedVector2Array()
-	if _astar.is_point_solid(from_cell) or _astar.is_point_solid(to_cell):
-		return PackedVector2Array()
+	# 起点/终点落在 solid 格（怪蹭到墙角，中心 floor 进阻挡格）时，别直接放弃——
+	# 那会让怪回落"直冲玩家"撞死在墙上。改为吸附到最近的可通行格，仍算出绕行路径。
+	if _astar.is_point_solid(from_cell):
+		from_cell = _nearest_free_cell(from_cell)
+		if from_cell.x < 0:
+			return PackedVector2Array()
+	if _astar.is_point_solid(to_cell):
+		to_cell = _nearest_free_cell(to_cell)
+		if to_cell.x < 0:
+			return PackedVector2Array()
 	return _astar.get_point_path(from_cell, to_cell)
+
+
+# 从 solid 格向外做方形环搜索，返回最近的非 solid 格；找不到返回 (-1,-1)。
+func _nearest_free_cell(cell: Vector2i) -> Vector2i:
+	for radius in range(1, 6):
+		for dy in range(-radius, radius + 1):
+			for dx in range(-radius, radius + 1):
+				if absi(dx) != radius and absi(dy) != radius:
+					continue  # 只查当前环的外圈
+				var c := Vector2i(cell.x + dx, cell.y + dy)
+				if _astar.is_in_boundsv(c) and not _astar.is_point_solid(c):
+					return c
+	return Vector2i(-1, -1)
+
+
+# 线段是否贴墙（穿过 solid 格或其 8 邻格任一）。
+# 用于路径 lookahead 平滑时禁止贴墙切角——直接跳到远处 waypoint 会切进墙的 33px 阻挡半径。
+# 返回 true 表示该直线太贴墙，不应跳过中间 waypoint。
+func segment_too_close_to_solid(from_world: Vector2, to_world: Vector2) -> bool:
+	_ensure_astar()
+	_flush_if_dirty()
+	var d := to_world - from_world
+	var len := d.length()
+	if len <= 0.5:
+		return false
+	var steps := maxi(2, int(len / 10.0))
+	for i in range(steps + 1):
+		var t := float(i) / float(steps)
+		var p := from_world + d * t
+		var c := world_to_cell(p)
+		if _cell_or_neighbor_solid(c.x, c.y):
+			return true
+	return false
+
+
+# 该格或其 8 邻格任一为 solid 即 true（越界格不算，避免场边总误判）。
+func _cell_or_neighbor_solid(col: int, row: int) -> bool:
+	for dr in range(-1, 2):
+		for dc in range(-1, 2):
+			var nc := col + dc
+			var nr := row + dr
+			if nc < 0 or nc >= _cols or nr < 0 or nr >= _rows:
+				continue
+			if _astar.is_point_solid(Vector2i(nc, nr)):
+				return true
+	return false

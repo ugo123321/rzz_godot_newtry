@@ -5,9 +5,9 @@ class_name ArrowProjectile
 # 撞阻挡石/深坑 → 火花消失。出屏 → 消失。
 
 const SPEED := 220.0
-const HIT_RADIUS := 12.0
+const HIT_RADIUS := 18.0  # 放大后随块变大（原 12）
 const DAMAGE := 8
-const PIXEL := 2.5
+const PIXEL := 3.5  # 放大 1.4×（原 2.5）
 const FLICKER_MS := 80
 
 var _dir := Vector2.RIGHT
@@ -27,6 +27,9 @@ func setup(pos: Vector2, dir: Vector2, battle: Node) -> void:
 
 func _process(delta: float) -> void:
 	if not _alive:
+		return
+	# 画线时停（bullet time, time_scale < 1.0）：冻结 —— 不移动、不检测命中，与怪物一致
+	if _battle and "time_scale" in _battle and _battle.time_scale < 1.0:
 		return
 	_t += delta
 	global_position += _dir * SPEED * delta

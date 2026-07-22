@@ -22,7 +22,7 @@ func setup(pos: Vector2, life: float) -> void:
 	global_position = pos
 	stored_position = pos
 	lifetime = life
-	z_index = 4
+	z_index = 0  # 容器(Portals z=-1)已沉到怪物/玩家之下；传送门自身 z=0 → 有效 z=-1
 	queue_redraw()
 
 

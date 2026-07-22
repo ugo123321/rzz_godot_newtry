@@ -4,7 +4,7 @@ class_name ChestLocked
 # 锁闭宝箱：玩家持有钥匙时碰撞才能打开；开启消耗 1 钥匙；内容同普通宝箱（70% 银 / 30% 钥）。
 # 无钥匙时碰撞提示「需要钥匙」并不打开。对敌人无效。
 
-const TRIGGER_RADIUS := 30.0
+const TRIGGER_RADIUS := 38.0  # 玩家进入该格内时开（< 一格 40）
 const ChestResultPopupScript := preload("res://scripts/ui/chest_result_popup.gd")
 
 var _t := 0.0
@@ -65,7 +65,7 @@ func _show_popup(amount: int, kind: String) -> void:
 
 func _draw() -> void:
 	# 与普通宝箱同款，但锁板高亮 + 额外钥匙孔高光
-	var s: float = 16.0
+	var s: float = 20.0  # 填满一格（40px）：相邻块边对边贴着
 	var pulse: float = 0.85 + 0.15 * (0.5 + 0.5 * sin(_t * 4.0))
 	var c_body := Color("#5a4028") * pulse
 	var c_shade := Color("#3a2818") * pulse
