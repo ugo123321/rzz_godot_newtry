@@ -6,8 +6,8 @@
   },
   {
     "key": "base_hp",
-    "value": 100,
-    "description": "基础生命"
+    "value": 3.0,
+    "description": "基础生命（心数制：3 颗心）"
   },
   {
     "key": "base_ki",

@@ -57,38 +57,38 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "max_hp": 10
+            "max_hp": 1
           },
           "flag": null,
-          "effect_desc_cn": "生命+10",
-          "effect_desc_en": "HP +10"
+          "effect_desc_cn": "生命+1",
+          "effect_desc_en": "HP +1"
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "max_hp": 10
+            "max_hp": 1
           },
           "flag": null,
-          "effect_desc_cn": "生命+10",
-          "effect_desc_en": "HP +10"
+          "effect_desc_cn": "生命+1",
+          "effect_desc_en": "HP +1"
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "max_hp": 20
+            "max_hp": 2
           },
           "flag": null,
-          "effect_desc_cn": "生命+20",
-          "effect_desc_en": "HP +20"
+          "effect_desc_cn": "生命+2",
+          "effect_desc_en": "HP +2"
         },
         {
           "quality": 3,
           "stat_bonuses": {
-            "max_hp": 40
+            "max_hp": 4
           },
           "flag": null,
-          "effect_desc_cn": "生命+40",
-          "effect_desc_en": "HP +40"
+          "effect_desc_cn": "生命+4",
+          "effect_desc_en": "HP +4"
         }
       ]
     },
@@ -327,29 +327,29 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "max_hp": 20
+            "max_hp": 2
           },
           "flag": null,
-          "effect_desc_cn": "生命+20",
-          "effect_desc_en": "HP +20"
+          "effect_desc_cn": "生命+2",
+          "effect_desc_en": "HP +2"
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "max_hp": 10
+            "max_hp": 1
           },
           "flag": null,
-          "effect_desc_cn": "生命+10",
-          "effect_desc_en": "HP +10"
+          "effect_desc_cn": "生命+1",
+          "effect_desc_en": "HP +1"
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "max_hp": 20
+            "max_hp": 2
           },
           "flag": null,
-          "effect_desc_cn": "生命+20",
-          "effect_desc_en": "HP +20"
+          "effect_desc_cn": "生命+2",
+          "effect_desc_en": "HP +2"
         },
         {
           "quality": 3,

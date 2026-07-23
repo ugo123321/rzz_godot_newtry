@@ -474,8 +474,8 @@ static func draw_sword_ki_bar(
 static func draw_compact_hp_bar(
 	canvas: CanvasItem,
 	top_center: Vector2,
-	hp: int,
-	max_hp: int,
+	hp: float,
+	max_hp: float,
 	bar_w: float = 30.0,
 	bar_h: float = 5.0,
 	style: Dictionary = {}
@@ -523,6 +523,60 @@ static func draw_compact_hp_bar(
 		)
 	if ratio <= 0.25 and ratio > 0.0 and int(Time.get_ticks_msec() / 180) % 2 == 0:
 		canvas.draw_rect(Rect2(bar_x, top_y, bar_w, 1.0), Color("#ffd070"))
+
+
+# 心数制血条：按 max_hp 颗心绘制，每颗 1 整心 / 半心 / 空心。
+# 全心 = icon_hp.png，半心 = icon_hp_half.png，空心 = icon_hp_empty.png。
+static var _heart_full_tex: Texture2D = null
+static var _heart_half_tex: Texture2D = null
+static var _heart_empty_tex: Texture2D = null
+
+static func _ensure_heart_tex() -> void:
+	if _heart_full_tex == null:
+		var t1 = load("res://assets/ui/icons/system/icon_hp.png")
+		if t1 is Texture2D:
+			_heart_full_tex = t1
+	if _heart_half_tex == null:
+		var t2 = load("res://assets/ui/icons/system/icon_hp_half.png")
+		if t2 is Texture2D:
+			_heart_half_tex = t2
+	if _heart_empty_tex == null:
+		var t3 = load("res://assets/ui/icons/system/icon_hp_empty.png")
+		if t3 is Texture2D:
+			_heart_empty_tex = t3
+
+static func draw_heart_hp_bar(
+	canvas: CanvasItem,
+	left_top: Vector2,
+	hp: float,
+	max_hp: float,
+	heart_size: float = 8.0,
+	style: Dictionary = {}
+) -> void:
+	_ensure_heart_tex()
+	var count := maxi(1, int(ceilf(maxf(1.0, max_hp))))
+	var gap := 1.0
+	var start_x := left_top.x
+	var y := left_top.y
+	var low_flash := hp > 0.0 and hp / maxf(1.0, max_hp) <= 0.34 and int(Time.get_ticks_msec() / 180) % 2 == 0
+	var full_mod := Color.WHITE
+	var flash_mod := Color(1.0, 0.85, 0.4, 1.0)
+	for i in range(count):
+		var hx := start_x + float(i) * (heart_size + gap)
+		var rect := Rect2(hx, y, heart_size, heart_size)
+		var thr := float(i)
+		var tex: Texture2D = _heart_empty_tex
+		var mod: Color = full_mod
+		if hp >= thr + 1.0:
+			tex = _heart_full_tex
+			mod = full_mod if not low_flash else flash_mod
+		elif hp >= thr + 0.5:
+			tex = _heart_half_tex
+			mod = full_mod if not low_flash else flash_mod
+		if tex != null:
+			canvas.draw_texture_rect(tex, rect, false, mod)
+		else:
+			canvas.draw_rect(rect, mod)
 
 
 static func draw_boss_hp_bar(canvas: CanvasItem, boss: Node, layout: Dictionary) -> void:

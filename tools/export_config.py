@@ -98,7 +98,7 @@ MONSTER_ROWS = [
 PLAYER_HEADERS = ["key", "value", "description"]
 PLAYER_ROWS = [
     ["base_attack", 95, "基础攻击力"],
-    ["base_hp", 100, "基础生命"],
+    ["base_hp", 3.0, "基础生命（心数制：3 颗心）"],
     ["base_ki", 234, "基础气力上限"],
     ["base_crit_rate", 0.08, "暴击率"],
     ["base_crit_damage", 1.6, "暴击伤害倍率"],

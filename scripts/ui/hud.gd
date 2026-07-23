@@ -55,8 +55,6 @@ func _ready() -> void:
 	EventBus.silver_changed.connect(_on_silver_changed)
 	EventBus.stage_countdown_changed.connect(_on_countdown_changed)
 	EventBus.tower_height_changed.connect(_on_tower_height_changed)
-	EventBus.player_damaged.connect(_on_player_damaged)
-	EventBus.player_healed.connect(_on_player_healed)
 	EventBus.stage_started.connect(_on_stage_started)
 	EventBus.language_changed.connect(_on_language_changed)
 	_load_pickup_icons()
@@ -360,6 +358,12 @@ func _draw() -> void:
 	# 经验条最后绘制，避免被提示条遮挡
 	if not in_build_house:
 		UiSprites.draw_exp_bar(self, viewport_size, _exp_level, _exp_value, _exp_to_next)
+		# 心数血条：经验条正上方左对齐，常驻显示（满心 icon_hp / 半心 icon_hp_half / 空心 icon_hp_empty）
+		if player:
+			var heart_size := _scaled(30.0)
+			var exp_top_y := viewport_size.y - _scaled(28.0)  # BAR_VISUAL_HEIGHT 18 + pad 10
+			var heart_y := exp_top_y - _scaled(3.0) - heart_size
+			PixelUiHelper.draw_heart_hp_bar(self, Vector2(_scaled(10.0), heart_y), player.hp, player.max_hp, heart_size, {})
 
 
 # 钥匙 widget：icon_key.png + 数量。横向布局，常驻显示（初始 0）。
@@ -515,9 +519,9 @@ func _on_silver_changed(total_silver: int) -> void:
 	queue_redraw()
 
 
-func _on_player_damaged(_amount: int, remaining: int) -> void:
-	show_message(LanguageManager.tr_ui("UI_HUD_DAMAGE_TAKEN_FMT") % remaining, 0.8)
+func _on_player_damaged(_amount: float, _remaining: float) -> void:
+	pass
 
 
-func _on_player_healed(amount: int, remaining: int) -> void:
-	show_message(LanguageManager.tr_ui("UI_HUD_HEAL_FMT") % [amount, remaining], 0.8)
+func _on_player_healed(_amount: float, _remaining: float) -> void:
+	pass

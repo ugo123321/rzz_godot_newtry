@@ -88,6 +88,8 @@ ATTR_CODES: list[tuple[int, str, str, str, str]] = [
     (45, "剑", "命运之矛数量+", "sword_spear_count_add", "命运之矛（环绕长枪）数量"),
     # ----- 追加 -----
     (46, "剑", "环绕盾数量+", "shield_orbit_count_add", "环绕盾（阻挡敌方远程子弹）数量"),
+    # ----- 心数制：绝对心数加成（1.0=1颗心=1HP）。base 3 心。取代旧 attr 4 max_hp_pct 的所有用法 -----
+    (47, "面板", "最大生命+", "max_hp_add", "最大生命绝对值（1.0=1颗心，0.5=半心）"),
 ]
 
 EN_KEY_TO_CODE: dict[str, int] = {en: c for c, _, _, en, _ in ATTR_CODES}
@@ -489,8 +491,8 @@ def A(name: str, base: float = 0, per_lv: float = 0) -> tuple[str, float, float]
 PER_ID_ATTRS: dict[str, list[tuple[str, float, float]]] = {
     # ===== 基础属性 (19) =====
     "basic_warrior_soul": [A("atk_pct", 0.35, 0)],
-    "basic_tri_force": [A("move_speed_pct", 0.10, 0), A("atk_speed_pct", 0.15, 0), A("max_hp_pct", 0.15, 0)],
-    "basic_giant_might": [A("atk_pct", 0.15, 0.15), A("max_hp_pct", 0.10, 0.10), A("move_speed_pct", -0.05, -0.05), A("size_pct", 0.10, 0)],
+    "basic_tri_force": [A("move_speed_pct", 0.10, 0), A("atk_speed_pct", 0.15, 0), A("max_hp_add", 1.0, 0)],
+    "basic_giant_might": [A("atk_pct", 0.15, 0.15), A("max_hp_add", 1.0, 1.0), A("move_speed_pct", -0.05, -0.05), A("size_pct", 0.10, 0)],
     "basic_swift_soul": [A("atk_speed_pct", 0.15, 0.15), A("move_speed_pct", 0.10, 0.10)],
     "basic_godspeed": [A("atk_speed_pct", 0.10, 0.10), A("ki_regen_pct", 0.10, 0.10)],
     "basic_berserker": [A("atk_pct", 0.10, 0.10), A("atk_speed_pct", 0.10, 0)],
@@ -509,16 +511,16 @@ PER_ID_ATTRS: dict[str, list[tuple[str, float, float]]] = {
     "basic_flame_walk": [A("duration_sec", 2.0, 0), A("tick_interval_sec", 0.5, 0)],
     # ===== 生存防御 (11) =====
     "sv_holy_guard": [],  # shield 单卡 → special_rule（这里也是占位，无 attr）
-    "sv_power_soul": [A("max_hp_pct", 0.15, 0.15)],
+    "sv_power_soul": [A("max_hp_add", 1.0, 1.0)],
     "sv_desperate_heart": [A("atk_pct", 0.10, 0.10)],
     "sv_revive": [],  # 复活单卡 → special_rule
     "sv_desperate_regen": [],  # 低血再生单卡 → special_rule
     "sv_kill_revive": [A("kill_heal_pct", 0.06, 0.06)],
     "sv_stand_guard": [A("damage_reduction_pct", 0.30, 0.05)],
-    "sv_angel_shelter": [A("max_hp_pct", 0.10, 0.10), A("cooldown_sec", 6.0, 0)],
-    "sv_blood_power": [A("max_hp_pct", 0.10, 0.10)],
+    "sv_angel_shelter": [A("max_hp_add", 1.0, 1.0), A("cooldown_sec", 6.0, 0)],
+    "sv_blood_power": [A("max_hp_add", 1.0, 1.0)],
     "sv_demon_recover": [A("kill_heal_pct", 0.05, 0.05)],
-    "sv_life_spring": [A("max_hp_pct", 0.08, 0.08), A("heal_pct", 0.30, 0)],
+    "sv_life_spring": [A("max_hp_add", 0.5, 0.5), A("heal_pct", 0.30, 0)],
     # ===== 普攻子弹 (11) =====
     "bullet_storm_king": [A("bullet_count_add", 3, 0), A("atk_speed_pct", 0.15, 0)],
     "bullet_spirit_bomb": [],  # 元气弹机制 → special_rule
@@ -600,12 +602,12 @@ PER_ID_ATTRS: dict[str, list[tuple[str, float, float]]] = {
     "elem_poison_bullet": [],
     "elem_ice_bullet": [],
     # ===== 主题关：恶魔（6 张，全部 max_hp_pct 惩罚）=====
-    "demon_scythe":        [A("max_hp_pct", -0.30, 0)],
-    "demon_sulfur_laser":  [A("max_hp_pct", -0.30, 0), A("cooldown_sec", 6.0, 0), A("duration_sec", 1.0, 0)],
-    "demon_baby":          [A("summon_demon_baby_count_add", 1, 0), A("max_hp_pct", -0.30, 0)],
-    "demon_nine_lives":    [A("max_hp_pct", -0.99, 0)],
-    "demon_vampire":       [A("max_hp_pct", -0.10, 0), A("kill_heal_pct", 0.20, 0)],
-    "demon_blood_blade":   [A("max_hp_pct", -0.20, 0), A("atk_speed_pct", 1.0, 0), A("atk_pct", -0.80, 0)],
+    "demon_scythe":        [A("max_hp_add", -3.0, 0)],
+    "demon_sulfur_laser":  [A("max_hp_add", -3.0, 0), A("cooldown_sec", 6.0, 0), A("duration_sec", 1.0, 0)],
+    "demon_baby":          [A("summon_demon_baby_count_add", 1, 0), A("max_hp_add", -3.0, 0)],
+    "demon_nine_lives":    [A("max_hp_add", -9.0, 0)],
+    "demon_vampire":       [A("max_hp_add", -1.0, 0), A("kill_heal_pct", 0.20, 0)],
+    "demon_blood_blade":   [A("max_hp_add", -2.0, 0), A("atk_speed_pct", 1.0, 0), A("atk_pct", -0.80, 0)],
     # ===== 主题关：天使（6 张，无惩罚）=====
     # sv_holy_guard 已是 [] — 仅源表 group 改 → 天使
     "angel_holy_bullet":   [],  # 全在 sr=13 special_values
@@ -721,12 +723,12 @@ PER_ID_DESC_OVERRIDE: dict[str, str] = {
     # ===== 主题关：圣盾（sv_holy_guard 由 神圣守护 → 圣盾，移到天使组）=====
     "sv_holy_guard":        "每关开始获得 1 层圣盾，抵挡 1 次伤害（含致死）",
     # ===== 主题关：恶魔（带惩罚文案）=====
-    "demon_scythe":         "气力耗尽时，画线末端释放无限射程贯通镰刀，4×ATK 伤害（最大生命 -30%）",
-    "demon_sulfur_laser":   "每 6 秒朝最近敌人射出 1 条暗红激光，持续 1 秒，附加燃烧（最大生命 -30%）",
-    "demon_baby":           "召唤恶魔宝宝跟随玩家 远程激光穿透攻击 火伤（最大生命 -30%）",
-    "demon_nine_lives":     "九命：初始 1 命 + 8 次复活，复活后 HP=1（最大生命 -99%）",
-    "demon_vampire":        "击杀时 5% 概率恢复 20% 最大生命（最大生命 -10%）",
-    "demon_blood_blade":    "普攻改为血飞刀：穿透 + 射程 ×2 + 攻速 +100%，攻击 -80%（最大生命 -20%）",
+    "demon_scythe":         "气力耗尽时，画线末端释放无限射程贯通镰刀，4×ATK 伤害（最大生命 -3）",
+    "demon_sulfur_laser":   "每 6 秒朝最近敌人射出 1 条暗红激光，持续 1 秒，附加燃烧（最大生命 -3）",
+    "demon_baby":           "召唤恶魔宝宝跟随玩家 远程激光穿透攻击 火伤（最大生命 -3）",
+    "demon_nine_lives":     "九命：初始 1 命 + 8 次复活，复活后 HP=1（最大生命 -9）",
+    "demon_vampire":        "击杀时 5% 概率恢复 20% 最大生命（最大生命 -1）",
+    "demon_blood_blade":    "普攻改为血飞刀：穿透 + 射程 ×2 + 攻速 +100%，攻击 -80%（最大生命 -2）",
     # ===== 主题关：天使（无惩罚）=====
     "angel_holy_bullet":    "普攻 10% 概率召唤光柱 AOE 雷伤",
     "angel_light_ward":     "受到伤害 -50%",

@@ -219,7 +219,7 @@ static func on_rebuild(player: Node) -> void:
 	# sr=48 multi_revive：装备时初始化剩余复活次数（仅第一次进入时；rebuild 不应清零）
 	for b48 in _iter_sr(player, 48):
 		var extra_lives: int = int(_sv(b48, 0, 8.0))
-		player.multi_revive_post_hp = maxi(1, int(_sv(b48, 1, 1.0)))
+		player.multi_revive_post_hp = maxf(1.0, float(_sv(b48, 1, 1.0)))
 		# 仅当当前剩余次数 < 表上的总数时补足（避免每次 rebuild 重置已用次数）
 		if player.multi_revive_extra <= 0 and not bool(player.multi_revive_used):
 			player.multi_revive_extra = extra_lives
@@ -340,8 +340,8 @@ static func on_tick(player: Node, delta: float) -> void:
 			continue
 		var regen_pct_per_sec: float = regen_base + regen_per_lv * float(maxi(0, b8.level - 1))
 		var regen_amount: float = float(player.max_hp) * regen_pct_per_sec * delta
-		var max_target: int = int(round(float(player.max_hp) * target_hp_pct))
-		var new_hp: int = mini(max_target, player.hp + int(round(regen_amount)))
+		var max_target: float = player.max_hp * target_hp_pct
+		var new_hp: float = minf(max_target, player.hp + regen_amount)
 		if new_hp > player.hp:
 			player.hp = new_hp
 
@@ -452,7 +452,7 @@ static func _is_player_stationary(player: Node) -> bool:
 
 # ============= on_player_damaged：take_damage 触发后 =============
 # 返回 true 表示本次伤害应改为 0（sr=10 iframe）
-static func on_player_damaged(player: Node, raw_damage: int) -> bool:
+static func on_player_damaged(player: Node, raw_damage: float) -> bool:
 	# sr=10 iframe_on_hit：CD ≤ 0 时给予无敌
 	for b10 in _iter_sr(player, 10):
 		var iframe_sec: float = _sv(b10, 0, 1.5)
@@ -575,7 +575,7 @@ static func on_death(player: Node) -> bool:
 	for b48 in _iter_sr(player, 48):
 		if int(player.multi_revive_extra) <= 0:
 			continue
-		player.hp = maxi(1, int(player.multi_revive_post_hp))
+		player.hp = maxf(1.0, float(player.multi_revive_post_hp))
 		player.invincible_timer = 1.5
 		player.multi_revive_extra -= 1
 		player.multi_revive_used = true
@@ -586,7 +586,7 @@ static func on_death(player: Node) -> bool:
 		if once_per_run and bool(player.revive_used):
 			continue
 		# 复活
-		player.hp = maxi(1, int(round(float(player.max_hp) * revive_hp_pct)))
+		player.hp = maxf(1.0, player.max_hp * revive_hp_pct)
 		player.invincible_timer = 1.5  # 复活后短暂无敌
 		player.revive_used = true
 		return true

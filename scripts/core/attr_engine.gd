@@ -67,6 +67,8 @@ const SCHEMA: Dictionary = {
 	44: {"field": "summon_angel_baby_count", "kind": "passive_int_add"},
 	45: {"field": "sword_spear_count",       "kind": "passive_int_add"},
 	46: {"field": "shield_orbit_count",      "kind": "passive_int_add"},
+	# 心数制：绝对心数加成（1.0=1颗心）。复用 passive_pct_add 的 float 累加分支（amount 直接加进 max_hp_add_total，不取整）。
+	47: {"field": "max_hp_add_total",        "kind": "passive_pct_add"},
 }
 
 

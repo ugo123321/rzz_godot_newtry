@@ -40,7 +40,7 @@
     "group": "基础属性",
     "rarity": "purple",
     "icon": "skill_43",
-    "desc_cn": "移速 +10%、攻速 +15%、最大生命 +15%",
+    "desc_cn": "移速 +10%，攻速 +15%，最大生命 +1",
     "max_level": 1,
     "pool_weight": 1,
     "special_rule": 0,
@@ -57,10 +57,10 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "橙·三属混合，泛用 build",
-    "desc_cn_game": "移速 +10%、攻速 +15%、最大生命 +15%",
+    "desc_cn_game": "移速 +10%，攻速 +15%，最大生命 +1",
     "name_en": "Triforce",
-    "desc_en": "Move +10%, Atk Speed +15%, Max HP +15%",
-    "desc_cn_game_en": "Move +10%, Atk Speed +15%, Max HP +15%",
+    "desc_en": "Move +10%, Atk Speed +15%, Max HP +1",
+    "desc_cn_game_en": "Move +10%, Atk Speed +15%, Max HP +1",
     "attrs": [
       {
         "id": 3,
@@ -73,8 +73,8 @@
         "per_lv": null
       },
       {
-        "id": 4,
-        "value": 0.15,
+        "id": 47,
+        "value": 1,
         "per_lv": null
       }
     ]
@@ -85,7 +85,7 @@
     "group": "基础属性",
     "rarity": "purple",
     "icon": "skill_06",
-    "desc_cn": "攻击 +15%/级、最大生命 +10%/级、移速 -5%/级，体型 +10%",
+    "desc_cn": "攻击 +15%/级，最大生命 +1/级，移速 -5%/级，体型 +10%",
     "max_level": 3,
     "pool_weight": 1,
     "special_rule": 0,
@@ -102,10 +102,10 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·重型流派 build（保留移速惩罚）",
-    "desc_cn_game": "攻击 +15%、最大生命 +10%、移速 -5%，体型 +10%",
+    "desc_cn_game": "攻击 +15%、最大生命 +1、移速 -5%，体型 +10%",
     "name_en": "Giant's Might",
-    "desc_en": "Attack +15%/lv, Max HP +10%/lv, Move -5%/lv, Size +10%/lv",
-    "desc_cn_game_en": "Atk +15%, Max HP +10%, Move -5%, Size +10%",
+    "desc_en": "Attack +15%/lv, Max HP +1/lv, Move -5%/lv, Size +10%/lv",
+    "desc_cn_game_en": "Atk +15%, Max HP +1, Move -5%, Size +10%",
     "attrs": [
       {
         "id": 1,
@@ -113,9 +113,9 @@
         "per_lv": 0.15
       },
       {
-        "id": 4,
-        "value": 0.1,
-        "per_lv": 0.1
+        "id": 47,
+        "value": 1,
+        "per_lv": 1
       },
       {
         "id": 3,
@@ -779,7 +779,7 @@
     "group": "生存防御",
     "rarity": "purple",
     "icon": "🛡️",
-    "desc_cn": "最大生命 +15%/级",
+    "desc_cn": "最大生命 +1/级",
     "max_level": 3,
     "pool_weight": 0,
     "special_rule": 0,
@@ -796,15 +796,15 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "紫·HP 主力",
-    "desc_cn_game": "最大生命 +15%",
+    "desc_cn_game": "最大生命 +1",
     "name_en": "Power Soul",
-    "desc_en": "Max HP +15%/lv",
-    "desc_cn_game_en": "Max HP +15%",
+    "desc_en": "Max HP +1/lv",
+    "desc_cn_game_en": "Max HP +1",
     "attrs": [
       {
-        "id": 4,
-        "value": 0.15,
-        "per_lv": 0.15
+        "id": 47,
+        "value": 1,
+        "per_lv": 1
       }
     ]
   },
@@ -990,7 +990,7 @@
     "group": "生存防御",
     "rarity": "blue",
     "icon": "skill_44",
-    "desc_cn": "最大生命 +10%/级，受伤后 1.5s 无敌（CD 6s）",
+    "desc_cn": "最大生命 +1/级，受伤后 1.5s 无敌（CD 6s）",
     "max_level": 3,
     "pool_weight": 1,
     "special_rule": 10,
@@ -1009,15 +1009,15 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "蓝·受击豁免",
-    "desc_cn_game": "最大生命 +10%，受伤后短时间无敌（CD 6s）",
+    "desc_cn_game": "最大生命 +1，受伤后短时间无敌（CD 6s）",
     "name_en": "Angel's Shelter",
-    "desc_en": "Max HP +10%/lv. Invincible 1.5s after being hit (CD 6s)",
-    "desc_cn_game_en": "Max HP +10%, invincible briefly after hit",
+    "desc_en": "Max HP +1/lv. Invincible 1.5s after being hit (CD 6s)",
+    "desc_cn_game_en": "Max HP +1, invincible briefly after hit",
     "attrs": [
       {
-        "id": 4,
-        "value": 0.1,
-        "per_lv": 0.1
+        "id": 47,
+        "value": 1,
+        "per_lv": 1
       },
       {
         "id": 40,
@@ -1032,7 +1032,7 @@
     "group": "生存防御",
     "rarity": "white",
     "icon": "🛡️",
-    "desc_cn": "最大生命 +10%/级",
+    "desc_cn": "最大生命 +1/级",
     "max_level": 5,
     "pool_weight": 0,
     "special_rule": 0,
@@ -1049,15 +1049,15 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·HP 填充",
-    "desc_cn_game": "最大生命 +10%",
+    "desc_cn_game": "最大生命 +1",
     "name_en": "Blood Power",
-    "desc_en": "Max HP +10%/lv",
-    "desc_cn_game_en": "Max HP +10%",
+    "desc_en": "Max HP +1/lv",
+    "desc_cn_game_en": "Max HP +1",
     "attrs": [
       {
-        "id": 4,
-        "value": 0.1,
-        "per_lv": 0.1
+        "id": 47,
+        "value": 1,
+        "per_lv": 1
       }
     ]
   },
@@ -1102,7 +1102,7 @@
     "group": "生存防御",
     "rarity": "white",
     "icon": "skill_14",
-    "desc_cn": "最大生命 +8%/级，获得时回复 30% 当前生命",
+    "desc_cn": "最大生命 +0.5/级，关卡结束恢复 30% 生命",
     "max_level": 5,
     "pool_weight": 1,
     "special_rule": 0,
@@ -1119,15 +1119,15 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "白·补血卡",
-    "desc_cn_game": "最大生命 +8%，获得时小幅恢复生命",
+    "desc_cn_game": "最大生命 +0.5，获得时小幅恢复生命",
     "name_en": "Life Spring",
-    "desc_en": "Max HP +8%/lv. Heal 30% on stage clear",
-    "desc_cn_game_en": "Max HP +8%, heal on stage clear",
+    "desc_en": "Max HP +0.5/lv. Heal 30% on stage clear",
+    "desc_cn_game_en": "Max HP +0.5, heal on stage clear",
     "attrs": [
       {
-        "id": 4,
-        "value": 0.08,
-        "per_lv": 0.08
+        "id": 47,
+        "value": 0.5,
+        "per_lv": 0.5
       },
       {
         "id": 19,
@@ -3679,7 +3679,7 @@
     "group": "恶魔",
     "rarity": "orange",
     "icon": "skill_03",
-    "desc_cn": "气力耗尽时，画线末端释放无限射程贯通镰刀，4×ATK 伤害（最大生命 -30%）",
+    "desc_cn": "气力耗尽时，画线末端释放无限射程贯通镰刀，4×ATK 伤害（最大生命 -3）",
     "max_level": 1,
     "pool_weight": 0,
     "special_rule": 46,
@@ -3701,12 +3701,12 @@
     "notes": "主题关专属（恶魔）",
     "desc_cn_game": "气力耗尽时释放死神镰刀",
     "name_en": "Death Scythe",
-    "desc_en": "At combo cap: throw piercing scythe from slash end (4 ATK). Max HP -30%",
-    "desc_cn_game_en": "At combo cap: throw piercing scythe. Max HP -30%",
+    "desc_en": "At combo cap: throw piercing scythe from slash end (4 ATK). Max HP -3",
+    "desc_cn_game_en": "At combo cap: throw piercing scythe. Max HP -3",
     "attrs": [
       {
-        "id": 4,
-        "value": -0.3,
+        "id": 47,
+        "value": -3,
         "per_lv": null
       }
     ]
@@ -3717,7 +3717,7 @@
     "group": "恶魔",
     "rarity": "orange",
     "icon": "skill_18",
-    "desc_cn": "每 6 秒朝最近敌人射出 1 条暗红激光，持续 1 秒，附加燃烧（最大生命 -30%）",
+    "desc_cn": "每 6 秒朝最近敌人射出 1 条暗红激光，持续 1 秒，附加燃烧（最大生命 -3）",
     "max_level": 1,
     "pool_weight": 0,
     "special_rule": 47,
@@ -3738,14 +3738,14 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
-    "desc_cn_game": "偶尔释放硫磺火（最大生命 -30%）",
+    "desc_cn_game": "偶尔释放硫磺火（最大生命 -3）",
     "name_en": "Sulfur Laser",
-    "desc_en": "Every 6s: fire 1s piercing laser that burns. Max HP -30%",
-    "desc_cn_game_en": "Periodic sulfur laser. Max HP -30%",
+    "desc_en": "Every 6s: fire 1s piercing laser that burns. Max HP -3",
+    "desc_cn_game_en": "Periodic sulfur laser. Max HP -3",
     "attrs": [
       {
-        "id": 4,
-        "value": -0.3,
+        "id": 47,
+        "value": -3,
         "per_lv": null
       },
       {
@@ -3766,7 +3766,7 @@
     "group": "恶魔",
     "rarity": "orange",
     "icon": "skill_07",
-    "desc_cn": "召唤恶魔宝宝跟随玩家 远程激光穿透攻击 火伤（最大生命 -30%）",
+    "desc_cn": "召唤恶魔宝宝跟随玩家 远程激光穿透攻击 火伤（最大生命 -3）",
     "max_level": 1,
     "pool_weight": 0,
     "special_rule": 45,
@@ -3791,10 +3791,10 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
-    "desc_cn_game": "召唤恶魔宝宝（最大生命 -30%）",
+    "desc_cn_game": "召唤恶魔宝宝（最大生命 -3）",
     "name_en": "Demon Baby",
-    "desc_en": "Summon Demon Baby (ranged piercing laser). Max HP -30%",
-    "desc_cn_game_en": "Summon Demon Baby. Max HP -30%",
+    "desc_en": "Summon Demon Baby (ranged piercing laser). Max HP -3",
+    "desc_cn_game_en": "Summon Demon Baby. Max HP -3",
     "attrs": [
       {
         "id": 43,
@@ -3802,8 +3802,8 @@
         "per_lv": null
       },
       {
-        "id": 4,
-        "value": -0.3,
+        "id": 47,
+        "value": -3,
         "per_lv": null
       }
     ]
@@ -3814,7 +3814,7 @@
     "group": "恶魔",
     "rarity": "orange",
     "icon": "skill_16",
-    "desc_cn": "九命：初始 1 命 + 8 次复活，复活后 HP=1（最大生命 -99%）",
+    "desc_cn": "九命：初始 1 命 + 8 次复活，复活后 HP=1（最大生命 -9）",
     "max_level": 1,
     "pool_weight": 0,
     "special_rule": 48,
@@ -3834,14 +3834,14 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
-    "desc_cn_game": "获得九条命（最大生命 -99%）",
+    "desc_cn_game": "获得九条命（最大生命 -9）",
     "name_en": "Nine Lives Cat",
-    "desc_en": "Start with 1 life +8 extra revives (HP=1). Max HP -99%",
-    "desc_cn_game_en": "Multiple revives. Max HP -99%",
+    "desc_en": "Start with 1 life +8 extra revives (HP=1). Max HP -9",
+    "desc_cn_game_en": "Multiple revives. Max HP -9",
     "attrs": [
       {
-        "id": 4,
-        "value": -0.99,
+        "id": 47,
+        "value": -9,
         "per_lv": null
       }
     ]
@@ -3852,7 +3852,7 @@
     "group": "恶魔",
     "rarity": "orange",
     "icon": "skill_90",
-    "desc_cn": "击杀时 5% 概率恢复 20% 最大生命（最大生命 -10%）",
+    "desc_cn": "击杀时 5% 概率恢复 20% 最大生命（最大生命 -1）",
     "max_level": 1,
     "pool_weight": 0,
     "special_rule": 0,
@@ -3869,14 +3869,14 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
-    "desc_cn_game": "击杀时小概率概率恢复少量生命（最大生命 -10%）",
+    "desc_cn_game": "击杀时小概率恢复少量生命（最大生命 -1）",
     "name_en": "Vampire",
-    "desc_en": "On kill: 5% chance to heal 20% max HP. Max HP -10%",
-    "desc_cn_game_en": "Kill chance to heal. Max HP -10%",
+    "desc_en": "On kill: 5% chance to heal 20% max HP. Max HP -1",
+    "desc_cn_game_en": "Kill chance to heal. Max HP -1",
     "attrs": [
       {
-        "id": 4,
-        "value": -0.1,
+        "id": 47,
+        "value": -1,
         "per_lv": null
       },
       {
@@ -3892,7 +3892,7 @@
     "group": "恶魔",
     "rarity": "orange",
     "icon": "skill_06",
-    "desc_cn": "普攻改为血飞刀：穿透 + 射程 ×2 + 攻速 +100%，攻击 -80%（最大生命 -20%）",
+    "desc_cn": "普攻改为血飞刀：穿透 + 射程 ×2 + 攻速 +100%，攻击 -80%（最大生命 -2）",
     "max_level": 1,
     "pool_weight": 0,
     "special_rule": 49,
@@ -3912,14 +3912,14 @@
     "applies_thunder": 0,
     "applies_poison": 0,
     "notes": "主题关专属（恶魔）",
-    "desc_cn_game": "子弹改为血飞刀（最大生命 -20%）",
+    "desc_cn_game": "子弹改为血飞刀（最大生命 -2）",
     "name_en": "Blood Knife",
-    "desc_en": "Replace basic shot with Blood Knife (pierce + multishot x2 + range +100%). Atk Spd -80%, Move -20%",
-    "desc_cn_game_en": "Replace basic with Blood Knife",
+    "desc_en": "Replace basic shot with Blood Knife (pierce + multishot x2 + range +100%). Atk Spd +100%, Atk -80%. Max HP -2",
+    "desc_cn_game_en": "Replace basic with Blood Knife. Max HP -2",
     "attrs": [
       {
-        "id": 4,
-        "value": -0.2,
+        "id": 47,
+        "value": -2,
         "per_lv": null
       },
       {

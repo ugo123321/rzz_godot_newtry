@@ -28,8 +28,9 @@ var crit_rate := 0.08
 var crit_damage := 1.6
 var size_scale := 1.0
 
-var max_hp := 100
-var hp := 100
+# 心数制（route B float）：1.0 = 1 颗心，0.5 = 半心。base 3 颗心，受击固定掉 0.5 心。
+var max_hp := 3.0
+var hp := 3.0
 var invincible_timer := 0.0
 var damage_flash_timer := 0.0
 
@@ -104,6 +105,8 @@ var atk_pct_total := 0.0
 var atk_speed_pct_total := 0.0
 var move_speed_pct_total := 0.0
 var max_hp_pct_total := 0.0
+# 心数制：attr 47 max_hp_add 累加器（绝对心数，1.0=1颗心）。与 max_hp_pct_total 不同层，直接加进 max_hp。
+var max_hp_add_total := 0.0
 var ki_max_pct_total := 0.0
 var ki_regen_pct_total := 0.0
 var dodge_pct_total := 0.0
@@ -126,7 +129,8 @@ var tick_interval_sec_total := 0.0
 var forge_atk_pct_total := 0.0
 var forge_atk_speed_pct_total := 0.0
 var forge_move_speed_pct_total := 0.0
-var forge_max_hp_pct_total := 0.0
+# 心数制：打造 buff idx=0 改成绝对心数（0.5 心/块 flat），不再走 pct 乘法层。
+var forge_max_hp_flat_total := 0.0
 var forge_ki_max_pct_total := 0.0
 var forge_ki_regen_pct_total := 0.0
 var forge_crit_rate_total := 0.0
@@ -209,7 +213,7 @@ var equip_crit_damage_pct: float = 0.0   # 已在 _load_base_stats 里 apply（b
 # ---- 天赋卡牌（talents.json）flat 加成缓存 ----
 # 全部走加法，_load_base_stats 中一次性 apply；_rebuild_upgrades 中同样重加一次（rebuild 会重置 base 值）。
 var talent_attack_add: float = 0.0
-var talent_max_hp_add: int = 0
+var talent_max_hp_add: float = 0.0
 var talent_max_ki_add: float = 0.0
 var talent_ki_regen_add: float = 0.0
 var talent_crit_rate_add: float = 0.0
@@ -257,7 +261,7 @@ var summon_angel_baby_count: int = 0     # attr 44 天使宝宝（远程单体�
 var sword_spear_count: int = 0           # attr 45 命运之矛
 # sr=48 multi_revive（九命猫）
 var multi_revive_extra: int = 0          # 剩余复活次数（初始 = sv[0]）
-var multi_revive_post_hp: int = 1        # 复活后绝对 HP 值（sv[1]）
+var multi_revive_post_hp: float = 1.0      # 复活后绝对 HP 值（sv[1]，心数制下 1.0=1颗心）
 var multi_revive_used: bool = false      # 本局是否已用过至少一次（避免 rebuild 时重置剩余次数）
 # sr=47 periodic_laser（硫磺火）
 var sulfur_laser_cd: float = 4.0         # 冷却（attr 40）— 距下次释放的周期
@@ -364,7 +368,7 @@ func _on_sr_stage_started(_stage_idx: int) -> void:
 
 func _load_base_stats() -> void:
 	base_attack = float(GameConfig.get_player_value("base_attack", 95))
-	max_hp = int(GameConfig.get_player_value("base_hp", 100))
+	max_hp = float(GameConfig.get_player_value("base_hp", 3.0))
 	hp = max_hp
 	base_ki = float(GameConfig.get_player_value("base_ki", 234))
 	ki_max = base_ki
@@ -377,7 +381,7 @@ func _load_base_stats() -> void:
 	if LobbyState:
 		var equip := LobbyState.get_battle_modifiers()
 		base_attack += float(equip.get("attack", 0.0))
-		max_hp += int(equip.get("max_hp", 0))
+		max_hp += float(equip.get("max_hp", 0.0))
 		crit_rate += float(equip.get("crit_rate", 0.0))
 		# 加法叠加：crit_damage 的 +% 只在 base × total_pct 上作用一次，不复利。
 		var eq_crit_dmg_pct := float(equip.get("crit_damage", 0.0))
@@ -391,7 +395,7 @@ func _load_base_stats() -> void:
 		# 天赋卡：读取当前 owned 卡的 flat 加成并 apply（下一次 rebuild 也会再 apply 一次）
 		var talent := LobbyState.get_talent_modifiers()
 		talent_attack_add = float(talent.get("attack", 0.0))
-		talent_max_hp_add = int(talent.get("max_hp", 0))
+		talent_max_hp_add = float(talent.get("max_hp", 0.0))
 		talent_max_ki_add = float(talent.get("max_ki", 0.0))
 		talent_ki_regen_add = float(talent.get("ki_regen", 0.0))
 		talent_crit_rate_add = float(talent.get("crit_rate", 0.0))
@@ -1069,28 +1073,29 @@ func make_ability_damage(source: String, mult: float, category: String, element:
 	return info
 
 
-func take_damage(amount: int) -> int:
+func take_damage(_amount: float) -> float:
 	if invincible_timer > 0.0 or is_attack_invincible():
-		return 0
+		return 0.0
 	# 装备 sturdy_helmet 橙：5% 概率完全免伤（加法概率，不复利）
 	if hit_dodge_chance > 0.0 and randf() < hit_dodge_chance:
 		var battle_dodge := get_tree().get_first_node_in_group("battle")
 		if battle_dodge and battle_dodge.hud:
 			battle_dodge.hud.show_message(LanguageManager.tr_ui("UI_HUD_DODGE", "闪避"), 0.6)
-		return 0
+		return 0.0
 	# 过场期间免伤（玩家在跳跃 / 滚轴中不可被命中）
 	var battle := get_tree().get_first_node_in_group("battle")
 	if battle and "_transition_damage_lock" in battle and battle._transition_damage_lock:
-		return 0
+		return 0.0
 	# Phase 5 sr=10 iframe_on_hit：CD ≤ 0 时本次伤害免疫；sr=1 on_hit_window：开启 buff 窗口
-	if SpecialRuleDispatcherT.on_player_damaged(self, amount):
-		return 0
-	var final_damage := DamageResolver.compute_player_incoming(amount, bonus_damage_reduction)
-	hp = maxi(0, hp - final_damage)
-	# Phase 3 sr=7 revive：致死前给一次机会
-	if hp <= 0:
+	if SpecialRuleDispatcherT.on_player_damaged(self, 0.5):
+		return 0.0
+	# 心数制：每次受击固定掉 0.5 颗心，与怪物伤害值无关（damage_reduction_pct 不再生效）
+	var final_damage := 0.5
+	hp = maxf(0.0, hp - final_damage)
+	# Phase 3 sr=7 revive / sr=48 multi_revive：致死前给一次机会
+	if hp <= 0.0:
 		if SpecialRuleDispatcherT.on_death(self):
-			final_damage = maxi(0, final_damage - 1)  # 复活：当次伤害不致死
+			final_damage = maxf(0.0, final_damage - 1.0)  # 复活：当次伤害不致死
 	invincible_timer = float(GameConfig.get_player_value("invincible_time", 0.45))
 	damage_flash_timer = 0.42
 	queue_redraw()
@@ -1155,8 +1160,8 @@ func _process_aura_shock(delta: float) -> void:
 			m.take_damage(dmg, origin)
 
 func heal_percent(ratio: float) -> void:
-	var amount := int(round(max_hp * ratio))
-	hp = mini(max_hp, hp + amount)
+	var amount: float = max_hp * ratio
+	hp = minf(max_hp, hp + amount)
 	queue_redraw()
 	EventBus.player_healed.emit(amount, hp)
 
@@ -1251,7 +1256,7 @@ func rebuild_upgrades_from_stacks(stacks: Dictionary, silent := false) -> void:
 		if lv > 0:
 			upgrade_stacks[id] = lv
 	_rebuild_upgrades()
-	hp = maxi(1, int(round(float(max_hp) * hp_ratio)))
+	hp = maxf(1.0, max_hp * hp_ratio)
 	ki = minf(ki, ki_max)
 	if not silent:
 		var battle := get_tree().get_first_node_in_group("battle")
@@ -1262,7 +1267,7 @@ func rebuild_upgrades_from_stacks(stacks: Dictionary, silent := false) -> void:
 func _rebuild_upgrades() -> void:
 	base_attack = float(GameConfig.get_player_value("base_attack", 95))
 	base_ki = float(GameConfig.get_player_value("base_ki", 234))
-	max_hp = int(GameConfig.get_player_value("base_hp", 100))
+	max_hp = float(GameConfig.get_player_value("base_hp", 3.0))
 	crit_rate = float(GameConfig.get_player_value("base_crit_rate", 0.08))
 	basic_attack_speed = maxf(0.01, float(GameConfig.get_player_value("basic_attack_speed", 2.0)))
 	ki_regen_speed = maxf(0.0, float(GameConfig.get_player_value("ki_regen_speed", 135.0)))
@@ -1302,6 +1307,7 @@ func _rebuild_upgrades() -> void:
 	atk_speed_pct_total = 0.0
 	move_speed_pct_total = 0.0
 	max_hp_pct_total = 0.0
+	max_hp_add_total = 0.0
 	ki_max_pct_total = 0.0
 	ki_regen_pct_total = 0.0
 	dodge_pct_total = 0.0
@@ -1390,7 +1396,7 @@ func _rebuild_upgrades() -> void:
 	atk_pct_total += forge_atk_pct_total
 	atk_speed_pct_total += forge_atk_speed_pct_total
 	move_speed_pct_total += forge_move_speed_pct_total
-	max_hp_pct_total += forge_max_hp_pct_total
+	# 心数制：打造 buff idx=0 已改成绝对心数（forge_max_hp_flat_total），不再并入 pct 乘法层，在 1415 后直接加进 max_hp。
 	ki_max_pct_total += forge_ki_max_pct_total
 	ki_regen_pct_total += forge_ki_regen_pct_total
 	crit_rate += forge_crit_rate_total
@@ -1400,7 +1406,8 @@ func _rebuild_upgrades() -> void:
 	# 技能石属性词条（已装备 3 块 affix 求和）——纯加法，与 forge/equip 同层
 	var _ss_totals: Dictionary = LobbyState.get_skill_stone_affix_totals() if LobbyState != null else {}
 	atk_pct_total += float(_ss_totals.get("atk_pct", 0.0))
-	max_hp_pct_total += float(_ss_totals.get("max_hp_pct", 0.0))
+	# 心数制：技能石已移除 max_hp_pct affix（affix_stats 不再含生命词条）。此行禁用，max_hp_pct_total 恒为 0。
+	# max_hp_pct_total += float(_ss_totals.get("max_hp_pct", 0.0))
 	ki_max_pct_total += float(_ss_totals.get("ki_max_pct", 0.0))
 	ki_regen_pct_total += float(_ss_totals.get("ki_regen_pct", 0.0))
 	move_speed_pct_total += float(_ss_totals.get("move_speed_pct", 0.0))
@@ -1412,7 +1419,8 @@ func _rebuild_upgrades() -> void:
 	move_speed_penalty_mult = maxf(0.05, 1.0 + move_speed_pct_total)
 	size_scale = maxf(0.1, 1.0 + size_pct_total)
 	bullet_count = maxi(0, bullet_count + bullet_count_bonus)
-	max_hp = maxi(1, int(round(float(max_hp) * (1.0 + max_hp_pct_total))))
+	max_hp = maxf(1.0, (max_hp + max_hp_add_total) * (1.0 + max_hp_pct_total))
+	max_hp += forge_max_hp_flat_total
 	base_ki = base_ki * (1.0 + ki_max_pct_total)
 	# 闪避 / 幸运 累加（暂以加法形式存入对应字段）
 	bonus_crit_rate += 0.0  # crit_rate 由 attr_code 7 直接累加到 crit_rate 字段（_is_active 决定）
@@ -1422,7 +1430,7 @@ func _rebuild_upgrades() -> void:
 	if LobbyState:
 		var equip := LobbyState.get_battle_modifiers()
 		base_attack += float(equip.get("attack", 0.0))
-		max_hp += int(equip.get("max_hp", 0))
+		max_hp += float(equip.get("max_hp", 0.0))
 		crit_rate += float(equip.get("crit_rate", 0.0))
 		# crit_damage +% 在 rebuild 后再作用一次（因 base 值刚被卡片系统重设）
 		var eq_crit_dmg_pct2 := float(equip.get("crit_damage", 0.0))
@@ -1438,7 +1446,7 @@ func _rebuild_upgrades() -> void:
 		# 天赋卡 flat 加成：rebuild 会重置 base_attack/max_hp/base_ki/crit_rate/ki_regen_speed，需要重新加上
 		var talent := LobbyState.get_talent_modifiers()
 		talent_attack_add = float(talent.get("attack", 0.0))
-		talent_max_hp_add = int(talent.get("max_hp", 0))
+		talent_max_hp_add = float(talent.get("max_hp", 0.0))
 		talent_max_ki_add = float(talent.get("max_ki", 0.0))
 		talent_ki_regen_add = float(talent.get("ki_regen", 0.0))
 		talent_crit_rate_add = float(talent.get("crit_rate", 0.0))
@@ -1454,7 +1462,7 @@ func _rebuild_upgrades() -> void:
 		crit_damage += talent_crit_damage_add
 	ki_max = base_ki
 	ki_regen_speed *= ki_regen_mult
-	hp = mini(hp, max_hp)
+	hp = minf(hp, max_hp)
 	_update_trigger_radius()
 	_apply_sprite_scale()
 	sync_auto_bullet_anim_speed()
@@ -1718,7 +1726,7 @@ func reset_run_forge_buffs() -> void:
 	forge_atk_pct_total = 0.0
 	forge_atk_speed_pct_total = 0.0
 	forge_move_speed_pct_total = 0.0
-	forge_max_hp_pct_total = 0.0
+	forge_max_hp_flat_total = 0.0
 	forge_ki_max_pct_total = 0.0
 	forge_ki_regen_pct_total = 0.0
 	forge_crit_rate_total = 0.0
@@ -1732,9 +1740,9 @@ func apply_forge_buff(idx: int) -> Dictionary:
 	var delta := 0.0
 	match idx:
 		0:
-			forge_max_hp_pct_total += 0.03
+			forge_max_hp_flat_total += 0.5
 			name_cn = "基础生命"
-			delta = 0.03
+			delta = 0.5
 		1:
 			forge_atk_pct_total += 0.03
 			name_cn = "基础攻击力"
@@ -1766,10 +1774,10 @@ func apply_forge_buff(idx: int) -> Dictionary:
 		_:
 			return {}
 	# Preserve current hp/ki ratios so max_hp/ki_max growth doesn't drop us proportionally.
-	var hp_ratio := float(hp) / float(maxi(1, max_hp))
+	var hp_ratio := float(hp) / float(maxf(1.0, max_hp))
 	var ki_ratio := ki / maxf(0.001, ki_max)
 	_rebuild_upgrades()
-	hp = clampi(int(round(float(max_hp) * hp_ratio)), 1, max_hp)
+	hp = clampf(max_hp * hp_ratio, 1.0, max_hp)
 	ki = clampf(ki_max * ki_ratio, 0.0, ki_max)
 	return {"name_cn": name_cn, "delta": delta}
 
@@ -2020,7 +2028,8 @@ func _process(delta: float) -> void:
 
 
 func _should_show_hp_bar() -> bool:
-	return hp < max_hp
+	# 心数血条已改由 HUD 经验条上方常驻显示，头顶不再画小血条。
+	return false
 
 
 func get_head_top_global_position() -> Vector2:
@@ -2032,23 +2041,13 @@ func get_head_top_global_position() -> Vector2:
 
 func _draw_hp_bar() -> void:
 	var head_pos := to_local(get_head_top_global_position())
-	PixelUiHelper.draw_compact_hp_bar(
+	PixelUiHelper.draw_heart_hp_bar(
 		self,
 		head_pos + Vector2(0.0, GameConfig.scale_world(HP_BAR_Y_OFFSET)),
 		hp,
 		max_hp,
-		GameConfig.scale_world(28.0),
-		GameConfig.scale_world(5.0),
-		{
-			"border_color": "#122028",
-			"panel_fill": "#101a20",
-			"empty_a": "#18303a",
-			"empty_b": "#10262f",
-			"fill_color": "#36b88a",
-			"shine_color": "#9cffd4",
-			"segment_count": 8,
-			"segment_gap": 1
-		}
+		GameConfig.scale_world(6.0),
+		{}
 	)
 
 

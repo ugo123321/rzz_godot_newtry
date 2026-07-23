@@ -341,10 +341,7 @@ func get_talent_modifiers() -> Dictionary:
 				continue
 			var per_lv := float(e.get("per_level", 0.0))
 			var total := per_lv * float(level)
-			if key == "max_hp":
-				mods[key] = int(mods[key]) + int(round(total))
-			else:
-				mods[key] = float(mods[key]) + total
+			mods[key] = float(mods[key]) + total
 	return mods
 
 
@@ -834,7 +831,7 @@ func get_item_stat_bonus(item: Dictionary) -> Dictionary:
 				"attack":
 					bonus.attack += val
 				"max_hp":
-					bonus.max_hp = int(bonus.max_hp) + int(val)
+					bonus.max_hp = float(bonus.max_hp) + val
 				"crit_rate":
 					bonus.crit_rate += val
 				"crit_damage":
@@ -850,7 +847,7 @@ func get_item_stat_bonus(item: Dictionary) -> Dictionary:
 	if level > 1:
 		var lv_bonus := level - 1
 		bonus.attack += float(lv_bonus) * 2.0
-		bonus.max_hp = int(bonus.max_hp) + lv_bonus * 2
+		bonus.max_hp = float(bonus.max_hp) + float(lv_bonus) * 0.5
 		bonus.crit_rate += float(lv_bonus) * 0.01
 	return bonus
 
@@ -901,7 +898,7 @@ func get_equipment_totals() -> Dictionary:
 			continue
 		var bonus := get_item_stat_bonus(item)
 		total.attack += float(bonus.get("attack", 0.0))
-		total.max_hp += int(bonus.get("max_hp", 0))
+		total.max_hp += float(bonus.get("max_hp", 0.0))
 		total.crit_rate += float(bonus.get("crit_rate", 0.0))
 		total.crit_damage += float(bonus.get("crit_damage", 0.0))
 		total.move_speed += float(bonus.get("move_speed", 0.0))
@@ -916,7 +913,7 @@ func get_battle_modifiers() -> Dictionary:
 	var totals := get_equipment_totals()
 	return {
 		"attack": float(totals.get("attack", 0.0)),
-		"max_hp": int(totals.get("max_hp", 0)),
+		"max_hp": float(totals.get("max_hp", 0.0)),
 		"crit_rate": float(totals.get("crit_rate", 0.0)),
 		"crit_damage": float(totals.get("crit_damage", 0.0)),
 		"move_speed": float(totals.get("move_speed", 0.0)),
@@ -927,7 +924,7 @@ func get_battle_modifiers() -> Dictionary:
 
 func get_player_preview_attributes() -> Dictionary:
 	var base_attack := float(GameConfig.get_player_value("base_attack", 95))
-	var base_hp := int(GameConfig.get_player_value("base_hp", 100))
+	var base_hp := float(GameConfig.get_player_value("base_hp", 3.0))
 	var base_crit := float(GameConfig.get_player_value("base_crit_rate", 0.08))
 	var base_move_speed := float(GameConfig.get_player_value("move_speed", 60))
 	var base_crit_damage := float(GameConfig.get_player_value("base_crit_damage", 1.6))
@@ -935,7 +932,7 @@ func get_player_preview_attributes() -> Dictionary:
 	var base_ki_regen := float(GameConfig.get_player_value("ki_regen_speed", 135.0))
 	var equip := get_equipment_totals()
 	var equip_attack := float(equip.get("attack", 0.0))
-	var equip_hp := int(equip.get("max_hp", 0))
+	var equip_hp := float(equip.get("max_hp", 0.0))
 	var equip_crit := float(equip.get("crit_rate", 0.0))
 	var equip_move_speed := float(equip.get("move_speed", 0.0))
 	var equip_crit_damage_pct := float(equip.get("crit_damage", 0.0))
@@ -975,8 +972,9 @@ func get_player_preview_attributes() -> Dictionary:
 	}
 
 
-func _calc_battle_power(attack: float, hp: int, crit_rate: float, item_power: int) -> int:
-	return int(round(attack * 3.2 + float(hp) * 1.1 + crit_rate * 100.0 + float(item_power)))
+func _calc_battle_power(attack: float, hp: float, crit_rate: float, item_power: int) -> int:
+	# 心数制：hp 从 ~100 缩到 ~3-10 颗心，系数从 1.1 提到 20.0 维持战力量级。
+	return int(round(attack * 3.2 + hp * 20.0 + crit_rate * 100.0 + float(item_power)))
 
 
 # ════════════════════════════════════════════════════════════════

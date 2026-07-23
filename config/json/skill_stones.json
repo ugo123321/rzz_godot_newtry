@@ -14,11 +14,10 @@
     "affix_max": 0.10,
     "decompose_gold_default": 5,
     "equipped_slot_count": 3,
-    "affix_stats": ["atk_pct", "max_hp_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
+    "affix_stats": ["atk_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
   },
   "affix_display": {
     "atk_pct": { "name_cn": "攻击力", "name_en": "ATK" },
-    "max_hp_pct": { "name_cn": "生命", "name_en": "HP" },
     "ki_regen_pct": { "name_cn": "气力回复速度", "name_en": "Stamina Regen" },
     "crit_rate": { "name_cn": "暴击率", "name_en": "Crit Rate" },
     "crit_damage": { "name_cn": "暴击伤害", "name_en": "Crit Damage" },
@@ -26,8 +25,8 @@
   },
   "stones": [
     { "skill_id": "basic_warrior_soul", "name_cn": "战士之魂", "name_en": "Warrior's Soul", "rarity": "orange", "icon": "skill_45", "group": "基础属性", "desc_cn_game": "攻击 +35%", "desc_cn_game_en": "Attack +35%", "decompose_gold": 5 },
-    { "skill_id": "basic_tri_force", "name_cn": "三相之力", "name_en": "Triforce", "rarity": "purple", "icon": "skill_43", "group": "基础属性", "desc_cn_game": "移速 +10%、攻速 +15%、最大生命 +15%", "desc_cn_game_en": "Move +10%, Atk Speed +15%, Max HP +15%", "decompose_gold": 5 },
-    { "skill_id": "basic_giant_might", "name_cn": "巨人之力", "name_en": "Giant's Might", "rarity": "purple", "icon": "skill_06", "group": "基础属性", "desc_cn_game": "攻击 +15%、最大生命 +10%、移速 -5%，体型 +10%", "desc_cn_game_en": "Atk +15%, Max HP +10%, Move -5%, Size +10%", "decompose_gold": 5 },
+    { "skill_id": "basic_tri_force", "name_cn": "三相之力", "name_en": "Triforce", "rarity": "purple", "icon": "skill_43", "group": "基础属性", "desc_cn_game": "移速 +10%、攻速 +15%、最大生命 +1", "desc_cn_game_en": "Move +10%, Atk Speed +15%, Max HP +1", "decompose_gold": 5 },
+    { "skill_id": "basic_giant_might", "name_cn": "巨人之力", "name_en": "Giant's Might", "rarity": "purple", "icon": "skill_06", "group": "基础属性", "desc_cn_game": "攻击 +15%、最大生命 +1、移速 -5%，体型 +10%", "desc_cn_game_en": "Atk +15%, Max HP +1, Move -5%, Size +10%", "decompose_gold": 5 },
     { "skill_id": "basic_swift_soul", "name_cn": "迅捷之魂", "name_en": "Swift Soul", "rarity": "purple", "icon": "skill_36", "group": "基础属性", "desc_cn_game": "攻速 +15%、移速 +10%", "desc_cn_game_en": "Move +15%, Atk Speed +10%", "decompose_gold": 5 },
     { "skill_id": "basic_demon_hunter", "name_cn": "恶魔猎手", "name_en": "Demon Hunter", "rarity": "blue", "icon": "skill_15", "group": "基础属性", "desc_cn_game": "击杀后3秒内攻击 +8%，最多叠加5次", "desc_cn_game_en": "On kill: Atk +8% for 3s (max 5 stacks)", "decompose_gold": 5 },
     { "skill_id": "basic_ki_spring", "name_cn": "气力涌现", "name_en": "Ki Spring", "rarity": "blue", "icon": "skill_31", "group": "基础属性", "desc_cn_game": "气力回复 +15%，气力上限 +8%", "desc_cn_game_en": "Ki Regen +15%, Max Ki +8%", "decompose_gold": 5 },
@@ -39,9 +38,9 @@
     { "skill_id": "sv_desperate_regen", "name_cn": "绝境恢复", "name_en": "Desperate Regen", "rarity": "blue", "icon": "skill_61", "group": "生存防御", "desc_cn_game": "HP<30% 时缓慢恢复至 30%", "desc_cn_game_en": "Below 30% HP: instant heal 30%", "decompose_gold": 5 },
     { "skill_id": "sv_kill_revive", "name_cn": "战地复苏", "name_en": "Battle Recovery", "rarity": "blue", "icon": "skill_66", "group": "生存防御", "desc_cn_game": "击杀后小概率回复少量生命", "desc_cn_game_en": "Kill chance to heal HP", "decompose_gold": 5 },
     { "skill_id": "sv_stand_guard", "name_cn": "不动如山", "name_en": "Mountain Stance", "rarity": "blue", "icon": "skill_75", "group": "生存防御", "desc_cn_game": "原地静止一会后获得减伤效果", "desc_cn_game_en": "Standing still grants defense", "decompose_gold": 5 },
-    { "skill_id": "sv_angel_shelter", "name_cn": "天使庇护", "name_en": "Angel's Shelter", "rarity": "blue", "icon": "skill_44", "group": "生存防御", "desc_cn_game": "最大生命 +10%，受伤后短时间无敌（CD 6s）", "desc_cn_game_en": "Max HP +10%, invincible briefly after hit", "decompose_gold": 5 },
+    { "skill_id": "sv_angel_shelter", "name_cn": "天使庇护", "name_en": "Angel's Shelter", "rarity": "blue", "icon": "skill_44", "group": "生存防御", "desc_cn_game": "最大生命 +1，受伤后短时间无敌（CD 6s）", "desc_cn_game_en": "Max HP +1, invincible briefly after hit", "decompose_gold": 5 },
     { "skill_id": "sv_demon_recover", "name_cn": "恶魔恢复", "name_en": "Demon Recovery", "rarity": "white", "icon": "skill_13", "group": "生存防御", "desc_cn_game": "击杀后小概率回复少量生命", "desc_cn_game_en": "Kill chance to heal HP", "decompose_gold": 5 },
-    { "skill_id": "sv_life_spring", "name_cn": "生命之泉", "name_en": "Life Spring", "rarity": "white", "icon": "skill_14", "group": "生存防御", "desc_cn_game": "最大生命 +8%，获得时小幅恢复生命", "desc_cn_game_en": "Max HP +8%, heal on stage clear", "decompose_gold": 5 },
+    { "skill_id": "sv_life_spring", "name_cn": "生命之泉", "name_en": "Life Spring", "rarity": "white", "icon": "skill_14", "group": "生存防御", "desc_cn_game": "最大生命 +0.5，获得时小幅恢复生命", "desc_cn_game_en": "Max HP +0.5, heal on stage clear", "decompose_gold": 5 },
     { "skill_id": "bullet_storm_king", "name_cn": "弹幕之王", "name_en": "Storm King", "rarity": "orange", "icon": "skill_46", "group": "普攻子弹", "desc_cn_game": "子弹 +3，攻速 +15%", "desc_cn_game_en": "Bullets +3, Attack +15%", "decompose_gold": 5 },
     { "skill_id": "bullet_spirit_bomb", "name_cn": "元气弹", "name_en": "Spirit Bomb", "rarity": "orange", "icon": "skill_98", "group": "普攻子弹", "desc_cn_game": "子弹变为元气弹，对远距离敌人造成更高伤害", "desc_cn_game_en": "Bullets travel farther for higher damage", "decompose_gold": 5 },
     { "skill_id": "bullet_swift_shoot", "name_cn": "迅捷射击", "name_en": "Swift Shoot", "rarity": "purple", "icon": "skill_33", "group": "普攻子弹", "desc_cn_game": "攻速 +30%，攻击 -10%", "desc_cn_game_en": "Atk Speed +30%, Attack -10%", "decompose_gold": 5 },

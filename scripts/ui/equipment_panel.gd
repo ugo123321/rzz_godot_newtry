@@ -787,12 +787,12 @@ func _refresh_attributes() -> void:
 	var attrs := LobbyState.get_player_preview_attributes()
 	_battle_power_label.text = str(int(attrs.get("battle_power", 0)))
 	_attack_label.text = str(int(round(float(attrs.get("attack", 0.0)))))
-	_hp_label.text = str(int(attrs.get("hp", 0)))
+	_hp_label.text = ("%.1f" % float(attrs.get("hp", 0.0))).replace(".0", "")
 	# 属性胶囊行（攻击 / 生命 / 移速）
 	if _capsule_attack_label != null:
 		_capsule_attack_label.text = str(int(round(float(attrs.get("attack", 0.0)))))
 	if _capsule_hp_label != null:
-		_capsule_hp_label.text = str(int(attrs.get("hp", 0)))
+		_capsule_hp_label.text = ("%.1f" % float(attrs.get("hp", 0.0))).replace(".0", "")
 	if _capsule_speed_label != null:
 		# 移速是 px/s 小数，四舍五入成整数显示
 		_capsule_speed_label.text = str(int(round(float(attrs.get("move_speed", 0.0)))))
@@ -1022,8 +1022,8 @@ func _show_attr_popup() -> void:
 	var attrs := LobbyState.get_player_preview_attributes()
 	var attack := int(round(float(attrs.get("attack", 0.0))))
 	var equip_attack := int(round(float(attrs.get("equip_attack", 0.0))))
-	var hp := int(attrs.get("hp", 0))
-	var equip_hp := int(attrs.get("equip_hp", 0))
+	var hp := float(attrs.get("hp", 0.0))
+	var equip_hp := float(attrs.get("equip_hp", 0.0))
 	var crit := float(attrs.get("crit_rate", 0.0)) * 100.0
 	var equip_crit := float(attrs.get("equip_crit_rate", 0.0)) * 100.0
 	# 暴击伤害：倍率转百分比；装备加成 = (final - base) × 100（百分点差）

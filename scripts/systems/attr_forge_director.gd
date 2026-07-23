@@ -16,7 +16,7 @@ enum Phase { IDLE, PLAYING, FINISHING, DONE }
 # 8 个 forge buff（与 player.apply_forge_buff 的 idx 对齐）
 # short_name 是方块上显示的短名（96px 方块容不下完整中文）
 const FORGE_BUFF_TABLE: Array = [
-	{"idx": 0, "name_cn": "基础生命",   "short_name": "生命", "delta":  0.03},
+	{"idx": 0, "name_cn": "基础生命",   "short_name": "生命", "delta":  0.5},
 	{"idx": 1, "name_cn": "基础攻击力", "short_name": "攻击", "delta":  0.03},
 	{"idx": 2, "name_cn": "气力上限",   "short_name": "气力", "delta":  0.03},
 	{"idx": 3, "name_cn": "暴击率",     "short_name": "暴击", "delta":  0.03},

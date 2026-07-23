@@ -36,7 +36,7 @@
       "effects": [
         {
           "key": "max_hp",
-          "per_level": 2.0
+          "per_level": 0.5
         }
       ],
       "unlock_flag": "",
@@ -44,7 +44,7 @@
       "desc_template_en": "HP +{v0}",
       "display": [
         {
-          "per_level": 2.0,
+          "per_level": 0.5,
           "pct": false
         }
       ],
@@ -339,7 +339,7 @@
         },
         {
           "key": "max_hp",
-          "per_level": 5.0
+          "per_level": 0.5
         }
       ],
       "unlock_flag": "",
@@ -351,7 +351,7 @@
           "pct": false
         },
         {
-          "per_level": 5.0,
+          "per_level": 0.5,
           "pct": false
         }
       ],
