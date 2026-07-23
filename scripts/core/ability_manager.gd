@@ -271,6 +271,65 @@ func _nearest_monster_angle(from_pos: Vector2, fallback_ang: float, monsters: Ar
 	return to_monster.angle()
 
 
+# 玩家→怪物的普攻弹道是否被"阻挡石/深坑/未解锁锁定块/箭块"挡住。
+# 沿线按 10px 步长采样，任一采样点命中 is_bullet_blocked_at 即视为挡住
+# （与子弹飞行中的撞墙消失判定同一来源 → "打不到就不发" 与 "飞行撞墙消失" 一致）。
+# 树不算阻挡（placed_tree：树只挡移动，不挡子弹/画线）。
+# 起点跳过玩家半径、终点跳过怪物命中半径，避免贴身/贴怪误判。
+func _has_bullet_line_of_sight(from: Vector2, to: Vector2, from_radius: float, to_radius: float) -> bool:
+	if battle == null or not battle.has_method("is_bullet_blocked_at"):
+		return true
+	var diff: Vector2 = to - from
+	var dist: float = diff.length()
+	if dist <= from_radius + to_radius:
+		return true
+	var dir: Vector2 = diff / dist
+	var seg_len: float = dist - from_radius - to_radius
+	const STEP: float = 10.0
+	var t: float = 0.0
+	while t <= seg_len:
+		if battle.is_bullet_blocked_at(from + dir * (from_radius + t)):
+			return false
+		t += STEP
+	# 终点（怪物边缘）补采一次，防步长跳过最后一格
+	return not battle.is_bullet_blocked_at(from + dir * (from_radius + seg_len))
+
+
+# 最近且视线无阻挡的怪物；没有则返回 null（用于"打不到就不开火"门控）。
+# 距离比当前最近更远的怪直接跳过，不做（较贵的）视线采样。
+func _find_nearest_monster_with_los(from_pos: Vector2, monsters: Array, from_radius: float):
+	var nearest = null
+	var nearest_dist := INF
+	for m in monsters:
+		if not is_instance_valid(m) or m.get("alive") == false:
+			continue
+		var d := from_pos.distance_to(m.global_position)
+		if d >= nearest_dist:
+			continue
+		var hit_r: float = 16.0
+		if m.has_method("get_hitbox_radius"):
+			hit_r = m.get_hitbox_radius()
+		if not _has_bullet_line_of_sight(from_pos, m.global_position, from_radius, hit_r):
+			continue
+		nearest_dist = d
+		nearest = m
+	return nearest
+
+
+# 返回 from_pos 视线无阻挡的怪物列表（保留原顺序），供"只朝打得到的怪发射"使用。
+func _filter_monsters_with_los(from_pos: Vector2, monsters: Array, from_radius: float) -> Array:
+	var out: Array = []
+	for m in monsters:
+		if not is_instance_valid(m) or m.get("alive") == false:
+			continue
+		var hit_r: float = 16.0
+		if m.has_method("get_hitbox_radius"):
+			hit_r = m.get_hitbox_radius()
+		if _has_bullet_line_of_sight(from_pos, m.global_position, from_radius, hit_r):
+			out.append(m)
+	return out
+
+
 func fire_auto_bullets(player: BattlePlayer, monsters: Array) -> void:
 	_spawn_auto_bullet_volley(player, monsters)
 
@@ -299,7 +358,12 @@ func _spawn_auto_bullet_volley(player: BattlePlayer, monsters: Array) -> void:
 	if bool(player.melee_basic_active):
 		_fire_melee_swipe(player, monsters)
 		return
-	var base_ang := _nearest_monster_angle(player.global_position, -PI * 0.5, monsters)
+	# 普通子弹：只朝视线无阻挡的怪发射 — 没有打得到的目标就不发子弹
+	var from_pos := player.global_position
+	var los_monsters := _filter_monsters_with_los(from_pos, monsters, player.get_effective_radius())
+	if los_monsters.is_empty():
+		return
+	var base_ang := _nearest_monster_angle(from_pos, -PI * 0.5, los_monsters)
 	var dmg := player.get_auto_bullet_damage()
 	var count := maxi(1, player.bullet_count)
 	# sr=11 bullet_spirit_bomb：装备此卡时把所有普攻子弹切换到元气弹视觉（蓝白能量球）
@@ -454,11 +518,19 @@ func _update_auto_bullets(delta: float, player: BattlePlayer, monsters: Array) -
 		return
 	if monsters.is_empty():
 		return
-	var nearest = _find_nearest_monster(player.global_position, monsters)
+	var from_pos := player.global_position
+	# 普通子弹要求"打得到才开火"：最近怪若被阻挡石/深坑挡住视线 → 不开火（避免隔着墙空射）。
+	# 激光炮(sr=53)贯通墙、近战(sr=54)短程挥砍 → 不做视线门控。
+	var require_los := not bool(player.laser_cannon_active) and not bool(player.melee_basic_active)
+	var nearest = null
+	if require_los:
+		nearest = _find_nearest_monster_with_los(from_pos, monsters, player.get_effective_radius())
+	else:
+		nearest = _find_nearest_monster(from_pos, monsters)
 	if nearest == null:
 		return
 	var range_px := player.get_effective_auto_bullet_range()
-	if player.global_position.distance_to(nearest.global_position) > range_px:
+	if from_pos.distance_to(nearest.global_position) > range_px:
 		return
 	_connect_auto_bullet_release()
 	auto_bullet_cooldown -= delta
