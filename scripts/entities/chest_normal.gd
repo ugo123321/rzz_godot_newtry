@@ -4,11 +4,17 @@ class_name ChestNormal
 # 普通宝箱：碰撞后打开。内容：70% 概率 1-3 银币，30% 概率 1 钥匙。开启后消失。
 # 不阻挡移动/画线/子弹（玩家碰上去就开，参考 LotteryPortal 的 proximity 触发）。
 # 对敌人无效（敌人不会触发）。
+# 视觉走美术素材 chest.png；开启瞬间切到 chest_open.png，OPEN_DURATION 后消失
+# （闭→开 两帧，营造"打开"动画感）。
 
 const TRIGGER_RADIUS := 38.0  # 玩家进入该格内时开（< 一格 40）
-const ChestResultPopupScript := preload("res://scripts/ui/chest_result_popup.gd")
+const OPEN_DURATION := 0.2  # 开盖帧持续时间（闭→开→消失）
 
-var _t := 0.0
+const TEX := preload("res://assets/ui/terrains/chest.png")
+const TEX_OPEN := preload("res://assets/ui/terrains/chest_open.png")
+
+var _opening := false
+var _open_timer := 0.0
 
 
 func setup_chest(col: int, row: int, p_kind: String) -> void:
@@ -17,9 +23,15 @@ func setup_chest(col: int, row: int, p_kind: String) -> void:
 
 
 func _process(delta: float) -> void:
+	# 开盖动画计时：到点 queue_free（不再触发开启）
+	if _opening:
+		_open_timer -= delta
+		queue_redraw()  # 让 chest_open 帧可见（静态纹理其实只需画一次，这里保险）
+		if _open_timer <= 0.0:
+			queue_free()
+		return
 	if consumed:
 		return
-	_t += delta
 	if _battle == null:
 		_battle = get_tree().get_first_node_in_group("battle")
 	if _battle == null or _battle.player == null:
@@ -33,46 +45,23 @@ func _process(delta: float) -> void:
 func _open() -> void:
 	if consumed:
 		return
-	# 70% 银 1-3；30% 钥 1
+	consumed = true
+	# 70% 银 1-3；30% 钥 1。货币入账延后到 orb 飞达左上角 icon（pickup_orb_manager._on_arrive）
 	var is_key := randf() >= 0.7
-	if is_key:
-		_battle.player.add_key(1)
-		_show_popup(1, "key")
-	else:
-		var n: int = 1 + (randi() % 3)
-		_battle.player.add_silver(n)
-		_show_popup(n, "silver")
-	consume(_battle)
-
-
-func _show_popup(amount: int, kind: String) -> void:
-	var popup := ChestResultPopupScript.new()
-	get_tree().current_scene.add_child(popup)
-	popup.show_result(amount, kind)
+	if _battle and _battle.pickup_orb_manager:
+		if is_key:
+			_battle.pickup_orb_manager.spawn_burst(global_position, "key", 1)
+		else:
+			var n: int = 1 + (randi() % 3)
+			_battle.pickup_orb_manager.spawn_burst(global_position, "silver", n)
+	# 切开盖帧 → 计时消失（宝箱本就不阻挡，unregister 只是清理注册表）
+	unregister_self(_battle)
+	_opening = true
+	_open_timer = OPEN_DURATION
+	queue_redraw()
 
 
 func _draw() -> void:
-	# 过程化像素宝箱：箱体 + 盖 + 锁板 + 金边（CLAUDE.md §9 多色分层 + 呼吸闪烁）
-	var s: float = 20.0  # 填满一格（40px）：相邻块边对边贴着
-	var pulse: float = 0.85 + 0.15 * (0.5 + 0.5 * sin(_t * 4.0))
-	var c_body := Color("#7a5028") * pulse
-	var c_shade := Color("#5a3818") * pulse
-	var c_lid := Color("#8a6030") * pulse
-	var c_trim := Color("#d8a848") * pulse
-	var c_lock := Color("#e0c060") * pulse
-	var c_rim := Color("#2a1808") * pulse
-	# 外发光圆晕
-	draw_circle(Vector2.ZERO, s * 1.3, Color(0.85, 0.65, 0.3, 0.16))
-	# 箱体
-	draw_rect(Rect2(-s, -s * 0.2, s * 2.0, s * 1.2), c_body, true)
-	draw_rect(Rect2(-s, -s * 0.2, s * 2.0, s * 1.2), c_rim, false, 2.0)
-	# 盖
-	draw_rect(Rect2(-s * 1.05, -s * 0.5, s * 2.1, s * 0.5), c_lid, true)
-	draw_rect(Rect2(-s * 1.05, -s * 0.5, s * 2.1, s * 0.5), c_rim, false, 2.0)
-	# 金边横带
-	draw_rect(Rect2(-s, s * 0.1, s * 2.0, 4.0), c_trim, true)
-	# 锁板
-	draw_rect(Rect2(-4.0, -s * 0.05, 8.0, 10.0), c_lock, true)
-	draw_rect(Rect2(-4.0, -s * 0.05, 8.0, 10.0), c_rim, false, 1.5)
-	# 高光
-	draw_rect(Rect2(-s * 0.8, -s * 0.35, s * 0.5, 3.0), c_trim, true)
+	var tex: Texture2D = TEX_OPEN if _opening else TEX
+	var sz: Vector2 = tex.get_size()
+	draw_texture(tex, -sz * 0.5)

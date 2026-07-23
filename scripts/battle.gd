@@ -11,6 +11,7 @@ const LevelOverlayScript = preload("res://scripts/ui/level_overlay.gd")
 const CombatAfterimagesScript = preload("res://scripts/ui/combat_afterimages.gd")
 const EquipmentDropFxScript = preload("res://scripts/ui/equipment_drop_fx.gd")
 const SoulOrbManagerScript = preload("res://scripts/effects/soul_orb_manager.gd")
+const PickupOrbManagerScript = preload("res://scripts/effects/pickup_orb_manager.gd")
 const SakuraSystemScript = preload("res://scripts/systems/sakura_system.gd")
 const GrassSystemScript = preload("res://scripts/systems/grass_system.gd")
 const EnemyArrowScript = preload("res://scripts/entities/enemy_arrow.gd")
@@ -73,6 +74,7 @@ var auras
 var damage_overlay: DamageNumbersOverlay
 var equipment_drop_fx: EquipmentDropFxOverlay
 var soul_orb_manager: SoulOrbManager
+var pickup_orb_manager: PickupOrbManager
 var afterimages_overlay
 var terrain: TerrainBackground
 var pause_menu: PauseMenu
@@ -205,6 +207,10 @@ func _ready() -> void:
 	soul_orb_manager.name = "SoulOrbManager"
 	add_child(soul_orb_manager)
 	soul_orb_manager.setup(self)
+	pickup_orb_manager = PickupOrbManagerScript.new()
+	pickup_orb_manager.name = "PickupOrbManager"
+	add_child(pickup_orb_manager)
+	pickup_orb_manager.setup(self)
 	afterimages_overlay = CombatAfterimagesScript.new()
 	afterimages_overlay.name = "CombatAfterimages"
 	afterimages_overlay.z_index = 46
@@ -390,6 +396,8 @@ func start_game() -> void:
 		equipment_drop_fx.clear()
 	if soul_orb_manager:
 		soul_orb_manager.clear()
+	if pickup_orb_manager:
+		pickup_orb_manager.clear()
 	_clear_projectiles()
 	state = GameState.MENU
 	hud.show_message(LanguageManager.tr_ui("UI_BATTLE_TAP_START"), 999.0)
@@ -416,6 +424,8 @@ func _enter_wait_start() -> void:
 		equipment_drop_fx.clear()
 	if soul_orb_manager:
 		soul_orb_manager.clear()
+	if pickup_orb_manager:
+		pickup_orb_manager.clear()
 	if tree_spawner:
 		if get_stage_theme(stage_index) == "":
 			tree_spawner.begin(self)
@@ -465,6 +475,8 @@ func _begin_from_lobby() -> void:
 		equipment_drop_fx.clear()
 	if soul_orb_manager:
 		soul_orb_manager.clear()
+	if pickup_orb_manager:
+		pickup_orb_manager.clear()
 	_clear_projectiles()
 	intro_label.visible = false
 	hud.hide_message()
@@ -999,13 +1011,14 @@ func get_monster_escape_dir(from_pos: Vector2, mover_radius: float) -> Vector2:
 	return push.normalized()
 
 
-# 子弹/投掷物是否在 world_pos 处被地形（深坑/阻挡石）或放置元素（箭块/锁定块未解锁）阻挡。
+# 子弹/投掷物/视线是否在 world_pos 处被地形（阻挡石）或放置元素（箭块/锁定块未解锁）阻挡。
+# 深坑不在此列——子弹从深坑上方飞过，视线也穿过深坑（玩家可隔深坑攻击敌人）。
 func is_bullet_blocked_at(world_pos: Vector2) -> bool:
-	if terrain and terrain.has_method("is_blocking_for_movement"):
+	if terrain and terrain.has_method("is_blocking_for_bullet"):
 		var ts: int = TerrainBackground.TILE_SIZE
 		var col := int(world_pos.x / ts)
 		var row := int(world_pos.y / ts)
-		if terrain.is_blocking_for_movement(col, row):
+		if terrain.is_blocking_for_bullet(col, row):
 			return true
 	if field_elements and field_elements.has_method("has_bullet_blocking_at"):
 		var ts2: int = TerrainBackground.TILE_SIZE
@@ -1524,6 +1537,11 @@ func resume_from_pause() -> void:
 	hud.show_message(LanguageManager.tr_ui("UI_BATTLE_CONTINUE"), 1.0)
 
 
+# 从暂停菜单「返回主界面」：直接切场景，battle 节点树随之释放。
+func return_to_main_menu_from_pause() -> void:
+	get_tree().change_scene_to_file(MAIN_SCENE)
+
+
 func pause_game() -> void:
 	if _lobby_entry_intro_active:
 		return
@@ -2009,6 +2027,8 @@ func _clear_stage_transition_presentation(keep_companions: bool) -> void:
 		equipment_drop_fx.clear()
 	if soul_orb_manager:
 		soul_orb_manager.clear()
+	if pickup_orb_manager:
+		pickup_orb_manager.clear()
 	_clear_projectiles()
 	if ground_effects:
 		ground_effects.reset()

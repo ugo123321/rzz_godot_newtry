@@ -3,23 +3,28 @@ class_name ArrowBlock
 
 # 单向 / 十字飞箭块：每 1s 朝正对方向（单向）或十字四向（十字）射出飞箭，阻挡移动/画线/子弹。
 # 箭只伤害玩家，对敌人无效。朝向由编辑器设定（up/down/left/right）。
-# 视觉走美术素材 arrow_block.png（40×40 底座）+ 弓箭手箭矢素材叠加朝向指示，不再过程化绘制。
+# 视觉走美术素材：单向 arrow_block_one_sight（默认朝上，按 facing 旋转）/ 十字 arrow_block_cross_sight（四向，不旋转）。
 
 const FIRE_INTERVAL := 1.0
 const ArrowProjectileScript := preload("res://scripts/entities/arrow_projectile.gd")
 const FIRE_OFFSET := 33.0  # 箭生成时离块中心的偏移（放大后随块变大）
 
-# 底座 + 朝向指示箭头（弓箭手射出的箭素材，Arrow01 32×32，默认朝 +x）
-const BASE_TEX := preload("res://assets/ui/terrains/arrow_block.png")
-const ARROW_TEX := preload("res://assets/Characters/Characters(100x100)/Archer/Arrow(projectile)/Arrow01(32x32).png")
-const INDICATOR_SIZE := 14.0  # 指示箭头缩放后边长（px）
-const INDICATOR_OFFSET := 10.0  # 指示箭头离块中心的偏移（朝边方向，让箭指向外）
+const TEX_SINGLE := preload("res://assets/ui/terrains/arrow_block_one_sight.png")
+const TEX_CROSS := preload("res://assets/ui/terrains/arrow_block_cross_sight.png")
 
 const DIRS := {
 	"up": Vector2.UP,
 	"down": Vector2.DOWN,
 	"left": Vector2.LEFT,
 	"right": Vector2.RIGHT,
+}
+
+# arrow_block_one_sight 默认朝上；按 facing 旋转（屏幕坐标系 y 向下，顺时针为正角）。
+const FACING_ROTATION := {
+	"up": 0.0,
+	"right": PI * 0.5,
+	"down": PI,
+	"left": -PI * 0.5,
 }
 
 var _fire_timer := 0.0
@@ -64,25 +69,10 @@ func _fire_arrows() -> void:
 
 
 func _draw() -> void:
-	# 底座（arrow_block.png，居中，占满一格）
-	var base_sz: Vector2 = BASE_TEX.get_size()
-	draw_texture(BASE_TEX, -base_sz * 0.5)
-	# 朝向指示：单向 = 1 支朝 facing；十字 = 4 支朝四向。
-	# 均用弓箭手箭矢素材，旋转到朝向、缩放到 INDICATOR_SIZE、偏移到边附近指向外。
-	var dirs: Array
-	if kind == "arrow_cross":
-		dirs = [DIRS.up, DIRS.down, DIRS.left, DIRS.right]
-	else:
-		dirs = [DIRS.get(facing, Vector2.RIGHT)]
-	for d in dirs:
-		_draw_arrow_indicator(d * INDICATOR_OFFSET, d)
-
-
-func _draw_arrow_indicator(pos: Vector2, dir: Vector2) -> void:
-	var tex_sz: Vector2 = ARROW_TEX.get_size()  # 32×32
-	var sc: float = INDICATOR_SIZE / tex_sz.x
-	# 箭头素材默认朝 +x；旋转到 dir、中心放到 pos、缩放到 INDICATOR_SIZE
-	var t := Transform2D(dir.angle(), pos).scaled_local(Vector2(sc, sc))
-	draw_set_transform_matrix(t)
-	draw_texture(ARROW_TEX, -tex_sz * 0.5)
-	draw_set_transform_matrix(Transform2D.IDENTITY)  # 复位，避免影响后续绘制
+	var tex: Texture2D = TEX_CROSS if kind == "arrow_cross" else TEX_SINGLE
+	var sz: Vector2 = tex.get_size()
+	# 十字块四向对称不转；单向块按 facing 旋转（默认 up 不转）
+	var rot: float = 0.0 if kind == "arrow_cross" else FACING_ROTATION.get(facing, 0.0)
+	draw_set_transform(Vector2.ZERO, rot, Vector2.ONE)
+	draw_texture(tex, -sz * 0.5)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)  # 复位，避免影响后续绘制

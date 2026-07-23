@@ -33,12 +33,15 @@ const TYPE_PALACE := "palace"
 const TYPE_PALACE_CORRIDOR := "palace_corridor"
 
 # 局内特殊地块（与水地块同 40px 尺寸；由 set_tile 写入 grid 后过程化烘焙）
-const TYPE_PIT := "pit"                  # 深坑：阻挡移动 + 子弹 + 画线（标红失败）
+const TYPE_PIT := "pit"                  # 深坑：只阻挡移动 + 画线（玩家/怪不能走过/斩过，但子弹飞过、视线穿过）
 const TYPE_STONE_FLOOR := "stone_floor"  # 石地板：可通行，但怪物/树/草不在其上生成
 const TYPE_BLOCKING_STONE := "blocking_stone"  # 阻挡石块：阻挡移动 + 子弹 + 画线
 
-# 阻挡移动/子弹/画线的地块类型集合（water 不在内 —— water 走 path_input 的额外 ki 消耗逻辑）
+# 阻挡移动/画线的地块类型集合（water 不在内 —— water 走 path_input 的额外 ki 消耗逻辑）
+# 注意：深坑在这里 → 玩家/怪不能走过/斩过深坑；但深坑不在 BULLET_BLOCKING_TILE_TYPES → 子弹可飞过、视线可穿过
 const BLOCKING_TILE_TYPES := [TYPE_PIT, TYPE_BLOCKING_STONE]
+# 只阻挡子弹（不含深坑：深坑是地面上的洞，子弹从上方飞过；阻挡石是实体石块才挡子弹）
+const BULLET_BLOCKING_TILE_TYPES := [TYPE_BLOCKING_STONE]
 # 怪物/树/草生成时需避让的地块类型集合（含水 + 阻挡 + 石地板）
 const SPAWN_AVOID_TILE_TYPES := [TYPE_WATER, TYPE_PIT, TYPE_BLOCKING_STONE, TYPE_STONE_FLOOR]
 
@@ -346,8 +349,9 @@ func get_tile_at_world(world_x: float, world_y: float) -> String:
 	return get_tile(col, row)
 
 
-# 局内特殊地块：是否阻挡（用于移动 / 画线 / 子弹统一查询）。
-# water 不算阻挡（走 path_input 的额外 ki 消耗逻辑），pit / blocking_stone 算。
+# 局内特殊地块：是否阻挡移动 / 画线（pit + blocking_stone）。
+# water 不算阻挡（走 path_input 的额外 ki 消耗逻辑）。
+# 注意：子弹/视线走 is_blocking_for_bullet（不含 pit）。
 func is_blocking_tile(tile_type: String) -> bool:
 	return BLOCKING_TILE_TYPES.has(tile_type)
 
@@ -359,6 +363,12 @@ func is_blocking_for_line(col: int, row: int) -> bool:
 
 func is_blocking_for_movement(col: int, row: int) -> bool:
 	return is_blocking_tile(get_tile(col, row))
+
+
+# 子弹/视线专用阻挡：只含实体石块，不含深坑（深坑是地面上的洞，子弹从上方飞过）。
+# is_bullet_blocked_at 用这个，而非 is_blocking_for_movement。
+func is_blocking_for_bullet(col: int, row: int) -> bool:
+	return BULLET_BLOCKING_TILE_TYPES.has(get_tile(col, row))
 
 
 # 怪物 / 树 / 草生成时的避让判定：water / pit / blocking_stone / stone_floor 都避开。

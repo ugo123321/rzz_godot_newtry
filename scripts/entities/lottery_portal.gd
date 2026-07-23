@@ -1,16 +1,23 @@
 extends Node2D
 class_name LotteryPortal
 
-# 抽奖传送门。
+# 抽奖传送门（正常关倒计时版）。
 # v3：触发后不立即 queue_free —— 改为 visible=false 保留对象，
 # 让 battle 端的 portal_traverse.play_exit 用 stored_position 落地。
 # 销毁交给 battle._on_lottery_exit_complete 处理。
+#
+# 视觉走美术素材：portal01.png（主体）+ portal_effect.png（后层效果，代码持续旋转）。
+# 头顶倒计时文字保留（正常关限时传送门的核心提示）。
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
-const PortalVisualsScript := preload("res://scripts/utils/portal_visuals.gd")
 
 const TRIGGER_RADIUS := 56.0
 const VISUAL_RADIUS := 48.0
+const EFFECT_ROT_SPEED := 2.5  # 后层效果自转角速度（rad/s）
+
+const PORTAL_TEX := preload("res://assets/ui/terrains/portal01.png")
+const PORTAL_EFFECT_TEX := preload("res://assets/ui/terrains/portal_effect.png")
+const PORTAL_EFFECT_BG_TEX := preload("res://assets/ui/terrains/portal_effect_bg.png")
 
 var lifetime := 5.0
 var _t := 0.0
@@ -47,22 +54,24 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	# v3：用 PortalVisuals helper 替换原有 _draw_ring 自绘
-	var c_dark := Color("#2a1a55")
-	var c_mid := Color("#5536a8")
-	var c_high := Color("#8a5cff")
-	var c_top := Color("#c8a8ff")
-	# 外光晕（呼吸）
-	PortalVisualsScript.draw_halo(self, _t, VISUAL_RADIUS, Color(0.55, 0.36, 1.0))
-	# 像素环（外深 → 内亮）
-	PortalVisualsScript.draw_pixel_ring(self, Vector2.ZERO, VISUAL_RADIUS, c_dark, 5.0)
-	PortalVisualsScript.draw_pixel_ring(self, Vector2.ZERO, VISUAL_RADIUS - 6.0, c_mid, 5.0)
-	PortalVisualsScript.draw_pixel_ring(self, Vector2.ZERO, VISUAL_RADIUS - 13.0, c_high, 4.0)
-	# 6 个旋转 sparkle
-	PortalVisualsScript.draw_sparkles(self, _t, VISUAL_RADIUS * 0.55, 6, c_top, 5.0)
-	# 中心闪烁高光
-	PortalVisualsScript.draw_core_flash(self, 5.0)
-	# 倒计时
+	var base_sz: Vector2 = PORTAL_TEX.get_size()
+	var base_sc: float = (VISUAL_RADIUS * 2.0) / maxf(base_sz.x, base_sz.y)
+	# 最底层背景：portal_effect_bg（不旋转，衬在旋转特效之下）
+	var bg_sz: Vector2 = PORTAL_EFFECT_BG_TEX.get_size()
+	var bg_sc: float = (VISUAL_RADIUS * 2.0) / maxf(bg_sz.x, bg_sz.y)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(bg_sc, bg_sc))
+	draw_texture(PORTAL_EFFECT_BG_TEX, -bg_sz * 0.5)
+	# 中层效果：portal_effect 持续旋转（叠在背景之上、portal01 之下）
+	var eff_sz: Vector2 = PORTAL_EFFECT_TEX.get_size()
+	var eff_sc: float = (VISUAL_RADIUS * 2.0) / maxf(eff_sz.x, eff_sz.y)
+	var rot: float = _t * EFFECT_ROT_SPEED
+	draw_set_transform(Vector2.ZERO, rot, Vector2(eff_sc, eff_sc))
+	draw_texture(PORTAL_EFFECT_TEX, -eff_sz * 0.5)
+	# 主体传送门
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(base_sc, base_sc))
+	draw_texture(PORTAL_TEX, -base_sz * 0.5)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)  # 复位
+	# 倒计时（正常关限时传送门保留）
 	var sec_left := int(ceil(lifetime))
 	PixelUi.draw_pixel_text(
 		self,

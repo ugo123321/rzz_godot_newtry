@@ -830,8 +830,40 @@ func _setup_top_bar() -> void:
 func _setup_settings_button() -> void:
 	if _options_button != null:
 		_options_button.pressed.connect(_on_settings_pressed)
+		# 按下缩放 + 轻微暗化（参考侦察入口 / 开始按钮）
+		_options_button.button_down.connect(_on_options_button_down)
+		_options_button.button_up.connect(_on_options_button_up)
+		call_deferred("_cache_options_button_pivot")
 	if _mission_button != null:
 		_mission_button.pressed.connect(_on_mission_pressed)
+
+
+const OPTIONS_PRESS_SCALE := 0.9
+var _options_btn_pressed := false
+
+
+func _cache_options_button_pivot() -> void:
+	if _options_button == null or _options_button.size.x <= 0.0:
+		return
+	_options_button.pivot_offset = _options_button.size * 0.5
+	_update_options_button_scale()
+
+
+func _on_options_button_down() -> void:
+	_options_btn_pressed = true
+	_update_options_button_scale()
+
+
+func _on_options_button_up() -> void:
+	_options_btn_pressed = false
+	_update_options_button_scale()
+
+
+func _update_options_button_scale() -> void:
+	if _options_button == null:
+		return
+	_options_button.scale = Vector2.ONE * (OPTIONS_PRESS_SCALE if _options_btn_pressed else 1.0)
+	_options_button.modulate = Color(0.92, 0.92, 0.96) if _options_btn_pressed else Color.WHITE
 
 
 func _on_mission_pressed() -> void:

@@ -8,6 +8,8 @@ const PAUSE_BTN_SIZE := 18.0
 const PAUSE_BTN_MARGIN := 12.0
 const PAUSE_BTN_TOP := 6.0
 const PAUSE_BTN_PRESSED_SCALE := 0.88
+# 与主界面 OptionsButton 同款设置 icon（btn_menu.png），局内局外统一
+const OPTIONS_ICON_PATH := "res://assets/ui/buttons/btn_menu.png"
 
 var _stage_text := ""
 var _stage_index := 0
@@ -21,11 +23,11 @@ var _pause_btn: TextureButton
 var _pause_btn_pressed := false
 var _last_ki_draw := -1.0
 var _redraw_timer := 0.0
-var _gold := 0
 var _wood := 0
 var _keys := 0
 var _silver := 0
-var _coin_icon: Texture2D
+var _key_icon: Texture2D
+var _silver_icon: Texture2D
 var _countdown_remaining := 0.0
 var _countdown_show := false
 var _build_height_m := 0.0
@@ -48,7 +50,6 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	z_index = 20
 	EventBus.exp_changed.connect(_on_exp_changed)
-	EventBus.gold_changed.connect(_on_gold_changed)
 	EventBus.wood_changed.connect(_on_wood_changed)
 	EventBus.key_changed.connect(_on_key_changed)
 	EventBus.silver_changed.connect(_on_silver_changed)
@@ -58,8 +59,7 @@ func _ready() -> void:
 	EventBus.player_healed.connect(_on_player_healed)
 	EventBus.stage_started.connect(_on_stage_started)
 	EventBus.language_changed.connect(_on_language_changed)
-	_load_coin_icon()
-	_sync_gold_from_lobby()
+	_load_pickup_icons()
 	_sync_wood_from_lobby()
 	_build_pause_button()
 	call_deferred("_sync_exp_from_battle")
@@ -83,12 +83,30 @@ func _build_pause_button() -> void:
 	_pause_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	_pause_btn.z_index = 50
 	_pause_btn.focus_mode = Control.FOCUS_NONE
-	UiSprites.style_pause_button(_pause_btn)
+	_style_options_button(_pause_btn)
 	_pause_btn.visible = false
 	_pause_btn.button_down.connect(_on_pause_button_down)
 	_pause_btn.button_up.connect(_on_pause_button_up)
 	_pause_btn.pressed.connect(_on_pause_pressed)
 	add_child(_pause_btn)
+
+
+# 局内选项按钮：用与主界面 OptionsButton 同款 btn_menu.png icon。
+# 按下效果走 _update_pause_button_scale（缩放 + 轻微暗化），与主界面一致。
+func _style_options_button(btn: TextureButton) -> void:
+	var tex: Texture2D = null
+	if ResourceLoader.exists(OPTIONS_ICON_PATH):
+		tex = load(OPTIONS_ICON_PATH) as Texture2D
+	if tex != null:
+		btn.texture_normal = tex
+		btn.texture_pressed = tex
+		btn.texture_hover = tex
+		btn.texture_disabled = tex
+		btn.ignore_texture_size = true
+		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		btn.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		return
+	UiSprites.style_pause_button(btn)
 
 
 func _sync_exp_from_battle() -> void:
@@ -97,16 +115,13 @@ func _sync_exp_from_battle() -> void:
 		_on_exp_changed(battle.experience.level, battle.experience.exp, battle.experience.exp_to_next)
 
 
-func _load_coin_icon() -> void:
-	var path := "res://assets/ui/icons/currency/icon_cur_gold.png"
-	if ResourceLoader.exists(path):
-		_coin_icon = load(path) as Texture2D
-
-
-func _sync_gold_from_lobby() -> void:
-	if LobbyState:
-		_gold = int(LobbyState.gold)
-		queue_redraw()
+func _load_pickup_icons() -> void:
+	var key_path := "res://assets/ui/icons/system/icon_key.png"
+	if ResourceLoader.exists(key_path):
+		_key_icon = load(key_path) as Texture2D
+	var silver_path := "res://assets/ui/icons/currency/icon_cur_silver.png"
+	if ResourceLoader.exists(silver_path):
+		_silver_icon = load(silver_path) as Texture2D
 
 
 func _sync_wood_from_lobby() -> void:
@@ -280,7 +295,6 @@ func _draw() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		viewport_size = get_viewport_rect().size
 
-	_draw_gold_widget()
 	_draw_key_widget()
 	_draw_silver_widget()
 
@@ -348,43 +362,17 @@ func _draw() -> void:
 		UiSprites.draw_exp_bar(self, viewport_size, _exp_level, _exp_value, _exp_to_next)
 
 
-func _draw_gold_widget() -> void:
-	var icon_rect := Rect2(_scaled(12.0), _scaled(10.0), _scaled(18.0), _scaled(18.0))
-	if _coin_icon != null:
-		draw_texture_rect(_coin_icon, icon_rect, false)
-	PixelUi.draw_pixel_text(
-		self,
-		str(_gold),
-		Vector2(_scaled(34.0), _scaled(19.0)),
-		PixelUi.snap_pixel_font_size(int(round(_scaled(10.0)))),
-		Color("#ffe090"),
-		HORIZONTAL_ALIGNMENT_LEFT,
-		VERTICAL_ALIGNMENT_CENTER
-	)
-
-
-# 钥匙 widget：金钥匙像素 icon + 数量。叠在金币下方。
+# 钥匙 widget：icon_key.png + 数量。横向布局，常驻显示（初始 0）。
 func _draw_key_widget() -> void:
-	if _keys <= 0:
-		return
 	var ix := _scaled(12.0)
-	var iy := _scaled(34.0)
-	var isz := _scaled(18.0)
-	var c_base := Color("#d8b850")
-	var c_shade := Color("#9a7a30")
-	var c_rim := Color("#2a1808")
-	# 钥匙头（圆）
-	var head_c := Vector2(ix + isz * 0.35, iy + isz * 0.35)
-	draw_circle(head_c, isz * 0.22, c_base)
-	draw_arc(head_c, isz * 0.22, 0.0, TAU, 16, c_rim, 1.5)
-	draw_circle(head_c, isz * 0.09, c_shade)
-	# 杆
-	draw_rect(Rect2(ix + isz * 0.5, iy + isz * 0.32, isz * 0.45, isz * 0.12), c_base, true)
-	draw_rect(Rect2(ix + isz * 0.78, iy + isz * 0.44, isz * 0.17, isz * 0.12), c_base, true)
+	var iy := _scaled(10.0)
+	var isz := _scaled(22.0)
+	if _key_icon != null:
+		draw_texture_rect(_key_icon, Rect2(ix, iy, isz, isz), false)
 	PixelUi.draw_pixel_text(
 		self,
 		str(_keys),
-		Vector2(_scaled(34.0), _scaled(43.0)),
+		Vector2(ix + isz + _scaled(4.0), iy + isz * 0.5),
 		PixelUi.snap_pixel_font_size(int(round(_scaled(10.0)))),
 		Color("#ffe090"),
 		HORIZONTAL_ALIGNMENT_LEFT,
@@ -392,34 +380,36 @@ func _draw_key_widget() -> void:
 	)
 
 
-# 银币 widget：带齿银币像素 icon + 数量。叠在钥匙下方。
+# 银币 widget：icon_cur_silver.png + 数量。横向布局（钥匙右侧），常驻显示（初始 0）。
 func _draw_silver_widget() -> void:
-	if _silver <= 0:
-		return
-	var ix := _scaled(12.0)
-	var iy := _scaled(58.0)
-	var isz := _scaled(18.0)
-	var c_base := Color("#9aa0a8")
-	var c_shade := Color("#6c7278")
-	var c_high := Color("#d0d6dc")
-	var c_rim := Color("#3a3e44")
-	var cc := Vector2(ix + isz * 0.5, iy + isz * 0.5)
-	draw_circle(cc, isz * 0.42, c_base)
-	draw_arc(cc, isz * 0.42, 0.0, TAU, 20, c_rim, 1.5)
-	draw_arc(cc, isz * 0.3, 0.0, TAU, 16, c_high, 1.5)
-	# 中心刻印十字
-	var n := isz * 0.13
-	draw_rect(Rect2(cc.x - n * 0.2, cc.y - n, n * 0.4, n * 2.0), c_shade, true)
-	draw_rect(Rect2(cc.x - n, cc.y - n * 0.2, n * 2.0, n * 0.4), c_shade, true)
+	var ix := _scaled(54.0)
+	var iy := _scaled(10.0)
+	var isz := _scaled(22.0)
+	if _silver_icon != null:
+		draw_texture_rect(_silver_icon, Rect2(ix, iy, isz, isz), false)
 	PixelUi.draw_pixel_text(
 		self,
 		str(_silver),
-		Vector2(_scaled(34.0), _scaled(67.0)),
+		Vector2(ix + isz + _scaled(4.0), iy + isz * 0.5),
 		PixelUi.snap_pixel_font_size(int(round(_scaled(10.0)))),
 		Color("#e8eef2"),
 		HORIZONTAL_ALIGNMENT_LEFT,
 		VERTICAL_ALIGNMENT_CENTER
 	)
+
+
+# 供 PickupOrb 取飞行目标：返回该 kind icon 屏幕中心（viewport 系，与 draw 同坐标基）。
+func get_pickup_icon_screen_pos(kind: String) -> Vector2:
+	var iy := _scaled(10.0)
+	var isz := _scaled(22.0)
+	match kind:
+		"key":
+			return Vector2(_scaled(12.0) + isz * 0.5, iy + isz * 0.5)
+		"silver":
+			return Vector2(_scaled(54.0) + isz * 0.5, iy + isz * 0.5)
+		_:
+			push_warning("HUD: unknown pickup kind %s" % kind)
+			return Vector2(_scaled(54.0) + isz * 0.5, iy + isz * 0.5)
 
 
 func _draw_wood_widget() -> void:
@@ -507,11 +497,6 @@ func _on_exp_changed(level: int, exp_value: int, exp_to_next: int) -> void:
 	_exp_level = level
 	_exp_value = exp_value
 	_exp_to_next = exp_to_next
-	queue_redraw()
-
-
-func _on_gold_changed(total_gold: int) -> void:
-	_gold = total_gold
 	queue_redraw()
 
 

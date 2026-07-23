@@ -2,6 +2,7 @@
 	"UI_PAUSE_TITLE": "暂停",
 	"UI_PAUSE_RESUME": "继续游戏",
 	"UI_PAUSE_DEBUG": "调试",
+	"UI_PAUSE_RETURN_MAIN": "返回主界面",
 	"UI_PAUSE_HINT": "按 Esc 也可继续",
 	"UI_PAUSE_LANG_LABEL": "语言",
 	"UI_PAUSE_LANG_ZH": "中文",

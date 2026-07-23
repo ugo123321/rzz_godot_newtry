@@ -20,6 +20,7 @@ var debug_upgrade_levels: Dictionary = {}
 var _title: Label
 var _resume_btn: Button
 var _debug_btn: Button
+var _return_main_btn: Button
 var _hint: Label
 var _lang_label: Label
 var _lang_zh_btn: Button
@@ -71,6 +72,8 @@ func _apply_texts() -> void:
 		_resume_btn.text = LanguageManager.tr_ui("UI_PAUSE_RESUME")
 	if _debug_btn:
 		_debug_btn.text = LanguageManager.tr_ui("UI_PAUSE_DEBUG")
+	if _return_main_btn:
+		_return_main_btn.text = LanguageManager.tr_ui("UI_PAUSE_RETURN_MAIN")
 	if _hint:
 		_hint.text = LanguageManager.tr_ui("UI_PAUSE_HINT")
 	if _lang_label:
@@ -186,6 +189,14 @@ func _build_ui() -> void:
 	_debug_btn.add_theme_color_override("font_color", Color(0.96, 0.96, 0.98))
 	_debug_btn.pressed.connect(_open_debug)
 	pause_box.add_child(_debug_btn)
+
+	# 返回主界面：直接切回 main.tscn，放弃当前局
+	_return_main_btn = Button.new()
+	_return_main_btn.custom_minimum_size = Vector2(0, 60)
+	UiStyle.apply_primary_button(_return_main_btn, Color(0.78, 0.55, 0.55), 12)
+	_return_main_btn.add_theme_color_override("font_color", Color(0.98, 0.96, 0.96))
+	_return_main_btn.pressed.connect(_on_return_main_pressed)
+	pause_box.add_child(_return_main_btn)
 
 	# === 语言切换行 ===
 	var lang_row := HBoxContainer.new()
@@ -600,6 +611,11 @@ func _apply_enter_build_house() -> void:
 func _on_resume_pressed() -> void:
 	if battle:
 		battle.resume_from_pause()
+
+
+func _on_return_main_pressed() -> void:
+	if battle and battle.has_method("return_to_main_menu_from_pause"):
+		battle.return_to_main_menu_from_pause()
 
 
 func _unhandled_input(event: InputEvent) -> void:

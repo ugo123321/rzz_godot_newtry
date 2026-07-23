@@ -2,6 +2,7 @@
 	"UI_PAUSE_TITLE": "Paused",
 	"UI_PAUSE_RESUME": "Resume",
 	"UI_PAUSE_DEBUG": "Debug",
+	"UI_PAUSE_RETURN_MAIN": "Main Menu",
 	"UI_PAUSE_HINT": "Press Esc to resume",
 	"UI_PAUSE_LANG_LABEL": "Language",
 	"UI_PAUSE_LANG_ZH": "中文",

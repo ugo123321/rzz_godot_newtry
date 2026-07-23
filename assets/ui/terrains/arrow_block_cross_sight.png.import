@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1a0qixqctr5f"
-path="res://.godot/imported/arrow_block.png-621bf731e8e9e278112e3e20d5e63131.ctex"
+uid="uid://nkegbdedfk8e"
+path="res://.godot/imported/arrow_block_cross_sight.png-702d08ebaf94c3b8e5d0a5e68ee427a2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/terrains/arrow_block.png"
-dest_files=["res://.godot/imported/arrow_block.png-621bf731e8e9e278112e3e20d5e63131.ctex"]
+source_file="res://assets/ui/terrains/arrow_block_cross_sight.png"
+dest_files=["res://.godot/imported/arrow_block_cross_sight.png-702d08ebaf94c3b8e5d0a5e68ee427a2.ctex"]
 
 [params]
 

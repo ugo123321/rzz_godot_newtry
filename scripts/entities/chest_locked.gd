@@ -3,11 +3,17 @@ class_name ChestLocked
 
 # 锁闭宝箱：玩家持有钥匙时碰撞才能打开；开启消耗 1 钥匙；内容同普通宝箱（70% 银 / 30% 钥）。
 # 无钥匙时碰撞提示「需要钥匙」并不打开。对敌人无效。
+# 视觉走美术素材 lock_chest.png；开启瞬间切到 chest_open.png，OPEN_DURATION 后消失
+# （闭→开 两帧，营造"打开"动画感）。
 
 const TRIGGER_RADIUS := 38.0  # 玩家进入该格内时开（< 一格 40）
-const ChestResultPopupScript := preload("res://scripts/ui/chest_result_popup.gd")
+const OPEN_DURATION := 0.2  # 开盖帧持续时间（闭→开→消失）
 
-var _t := 0.0
+const TEX := preload("res://assets/ui/terrains/lock_chest.png")
+const TEX_OPEN := preload("res://assets/ui/terrains/chest_open.png")
+
+var _opening := false
+var _open_timer := 0.0
 
 
 func setup_chest(col: int, row: int, p_kind: String) -> void:
@@ -16,9 +22,15 @@ func setup_chest(col: int, row: int, p_kind: String) -> void:
 
 
 func _process(delta: float) -> void:
+	# 开盖动画计时：到点 queue_free（不再触发开启 / 提示）
+	if _opening:
+		_open_timer -= delta
+		queue_redraw()
+		if _open_timer <= 0.0:
+			queue_free()
+		return
 	if consumed:
 		return
-	_t += delta
 	if _battle == null:
 		_battle = get_tree().get_first_node_in_group("battle")
 	if _battle == null or _battle.player == null:
@@ -38,7 +50,7 @@ func _process(delta: float) -> void:
 
 
 func _re_enable() -> void:
-	if consumed:
+	if consumed or _opening:
 		return
 	process_mode = Node.PROCESS_MODE_INHERIT
 
@@ -46,40 +58,21 @@ func _re_enable() -> void:
 func _open() -> void:
 	if consumed:
 		return
+	consumed = true
 	var is_key := randf() >= 0.7
-	if is_key:
-		_battle.player.add_key(1)
-		_show_popup(1, "key")
-	else:
-		var n: int = 1 + (randi() % 3)
-		_battle.player.add_silver(n)
-		_show_popup(n, "silver")
-	consume(_battle)
-
-
-func _show_popup(amount: int, kind: String) -> void:
-	var popup := ChestResultPopupScript.new()
-	get_tree().current_scene.add_child(popup)
-	popup.show_result(amount, kind)
+	if _battle and _battle.pickup_orb_manager:
+		if is_key:
+			_battle.pickup_orb_manager.spawn_burst(global_position, "key", 1)
+		else:
+			var n: int = 1 + (randi() % 3)
+			_battle.pickup_orb_manager.spawn_burst(global_position, "silver", n)
+	unregister_self(_battle)
+	_opening = true
+	_open_timer = OPEN_DURATION
+	queue_redraw()
 
 
 func _draw() -> void:
-	# 与普通宝箱同款，但锁板高亮 + 额外钥匙孔高光
-	var s: float = 20.0  # 填满一格（40px）：相邻块边对边贴着
-	var pulse: float = 0.85 + 0.15 * (0.5 + 0.5 * sin(_t * 4.0))
-	var c_body := Color("#5a4028") * pulse
-	var c_shade := Color("#3a2818") * pulse
-	var c_lid := Color("#6a5030") * pulse
-	var c_trim := Color("#c8a848") * pulse
-	var c_lock := Color("#ffd060") * pulse
-	var c_rim := Color("#1a1008") * pulse
-	draw_circle(Vector2.ZERO, s * 1.3, Color(0.85, 0.7, 0.35, 0.18))
-	draw_rect(Rect2(-s, -s * 0.2, s * 2.0, s * 1.2), c_body, true)
-	draw_rect(Rect2(-s, -s * 0.2, s * 2.0, s * 1.2), c_rim, false, 2.0)
-	draw_rect(Rect2(-s * 1.05, -s * 0.5, s * 2.1, s * 0.5), c_lid, true)
-	draw_rect(Rect2(-s * 1.05, -s * 0.5, s * 2.1, s * 0.5), c_rim, false, 2.0)
-	draw_rect(Rect2(-s, s * 0.1, s * 2.0, 4.0), c_trim, true)
-	# 钥匙孔（更大更亮）
-	draw_rect(Rect2(-5.0, -s * 0.05, 10.0, 12.0), c_lock, true)
-	draw_rect(Rect2(-5.0, -s * 0.05, 10.0, 12.0), c_rim, false, 1.5)
-	draw_circle(Vector2(0.0, s * 0.25), 2.0, c_rim)
+	var tex: Texture2D = TEX_OPEN if _opening else TEX
+	var sz: Vector2 = tex.get_size()
+	draw_texture(tex, -sz * 0.5)

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1og2s6y5h4xi"
-path="res://.godot/imported/arrow_block_four_sight.png-7f05ff75a8c206f31a5a55015143808a.ctex"
+uid="uid://cwyi7fvgutinh"
+path="res://.godot/imported/hole_block.png-f38ea4b15ca2147c2bd366bf2f536700.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/terrains/arrow_block_four_sight.png"
-dest_files=["res://.godot/imported/arrow_block_four_sight.png-7f05ff75a8c206f31a5a55015143808a.ctex"]
+source_file="res://assets/ui/terrains/hole_block.png"
+dest_files=["res://.godot/imported/hole_block.png-f38ea4b15ca2147c2bd366bf2f536700.ctex"]
 
 [params]
 
