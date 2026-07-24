@@ -1014,29 +1014,35 @@ func get_battle_modifiers() -> Dictionary:
 
 
 func get_player_preview_attributes() -> Dictionary:
-	var base_attack := float(GameConfig.get_player_value("base_attack", 95))
+	# base 默认值对齐 player.json（旧代码残留 95/135 已过期）。
+	var base_attack := float(GameConfig.get_player_value("base_attack", 52))
 	var base_hp := float(GameConfig.get_player_value("base_hp", 3.0))
 	var base_crit := float(GameConfig.get_player_value("base_crit_rate", 0.08))
 	var base_move_speed := float(GameConfig.get_player_value("move_speed", 60))
 	var base_crit_damage := float(GameConfig.get_player_value("base_crit_damage", 1.6))
 	var base_ki := float(GameConfig.get_player_value("base_ki", 234))
-	var base_ki_regen := float(GameConfig.get_player_value("ki_regen_speed", 135.0))
+	var base_ki_regen := float(GameConfig.get_player_value("ki_regen_speed", 60))
 	var equip := get_equipment_totals()
 	var equip_attack := float(equip.get("attack", 0.0))
 	var equip_hp := float(equip.get("max_hp", 0.0))
 	var equip_crit := float(equip.get("crit_rate", 0.0))
 	var equip_move_speed := float(equip.get("move_speed", 0.0))
-	var equip_crit_damage_pct := float(equip.get("crit_damage", 0.0))
+	# v6：crit_damage 装备为绝对加成（旧 pct 乘已废）
+	var equip_crit_damage_add := float(equip.get("crit_damage", 0.0))
+	# v6：max_ki / ki_regen 装备也为绝对加成（毛绒帽 / 丛林甲 等）
+	var equip_max_ki_add := float(equip.get("max_ki", 0.0))
+	var equip_ki_regen_add := float(equip.get("ki_regen", 0.0))
+	# 旧 pct 路径保留（forge/技能石 走另一条线，装备 json 当前不产出）
 	var equip_max_ki_pct := float(equip.get("max_ki_pct", 0.0))
 	var equip_ki_regen_pct := float(equip.get("ki_regen_pct", 0.0))
 	var final_attack := base_attack + equip_attack
 	var final_hp := base_hp + equip_hp
 	var final_crit := base_crit + equip_crit
 	var final_move_speed := base_move_speed + equip_move_speed
-	# 暴击伤害 / 气力上限 / 气力回复：基础值 × (1 + 装备百分比)，与 player.gd 一致（不复利）
-	var final_crit_damage := base_crit_damage * (1.0 + equip_crit_damage_pct)
-	var final_max_ki := base_ki * (1.0 + equip_max_ki_pct)
-	var final_ki_regen := base_ki_regen * (1.0 + equip_ki_regen_pct)
+	# 暴击伤害：绝对加（与 player.gd v6 一致）；气力上限 / 回复：绝对加 + 旧 pct 复合
+	var final_crit_damage := base_crit_damage + equip_crit_damage_add
+	var final_max_ki := (base_ki + equip_max_ki_add) * (1.0 + equip_max_ki_pct)
+	var final_ki_regen := (base_ki_regen + equip_ki_regen_add) * (1.0 + equip_ki_regen_pct)
 	var power := _calc_battle_power(final_attack, final_hp, final_crit, int(equip.get("item_power", 0)))
 	return {
 		"base_attack": base_attack,
@@ -1049,7 +1055,7 @@ func get_player_preview_attributes() -> Dictionary:
 		"equip_hp": equip_hp,
 		"equip_crit_rate": equip_crit,
 		"equip_move_speed": equip_move_speed,
-		"equip_crit_damage_pct": equip_crit_damage_pct,
+		"equip_crit_damage_pct": equip_crit_damage_add,  # 字段名保留（UI 模板用），v6 后语义为绝对加
 		"equip_max_ki_pct": equip_max_ki_pct,
 		"equip_ki_regen_pct": equip_ki_regen_pct,
 		"attack": final_attack,
