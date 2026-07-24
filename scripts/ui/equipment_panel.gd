@@ -941,20 +941,32 @@ func _refresh_detail_content(uid: int) -> bool:
 		int(item.get("level", 1)),
 		LobbyState.get_slot_display_name(slot),
 	]
-	# "属性" 段头
+	# "基础属性" 段头（白品质归入此处；圆圈去掉但用透明球占位，保持文字水平位置不变）
 	_detail_tip_label.text = LanguageManager.tr_ui("UI_EQUIP_DETAIL_ATTR_HEADER")
 
-	var lines: PackedStringArray = []
+	var base_lines: PackedStringArray = []
+	var quality_lines: PackedStringArray = []
 	for entry in LobbyState.get_item_skill_entries(item):
 		var unlocked := bool(entry.get("unlocked", false))
 		var quality_tier := int(entry.get("quality", LobbyState.QUALITY_COMMON))
 		var text := str(entry.get("text", ""))
-		var ball := _make_quality_pixel_ball(quality_tier, unlocked)
-		if unlocked:
-			lines.append("%s [color=#%s]%s[/color]" % [ball, _ATTR_TEXT_ACTIVE.to_html(), text])
+		var is_base := quality_tier <= LobbyState.QUALITY_COMMON
+		# 白品质：透明球占位（不可见的 ●，宽度不变 → 文字 x 不变）
+		var ball := "[color=#00000000]●[/color]" if is_base else _make_quality_pixel_ball(quality_tier, unlocked)
+		var line := ("%s [color=#%s]%s[/color]" % [ball, _ATTR_TEXT_ACTIVE.to_html(), text]) if unlocked \
+			else ("%s [color=#7a7a7a]%s[/color]" % [ball, text])
+		if is_base:
+			base_lines.append(line)
 		else:
-			lines.append("%s [color=#7a7a7a]%s[/color]" % [ball, text])
-	_detail_skill_text.text = "\n".join(lines)
+			quality_lines.append(line)
+	# "品质奖励属性" 段头（与"基础属性"同字号 22、同颜色）+ 蓝 / 紫 / 橙条目（带对应品质色圆圈）
+	var header_color := _detail_tip_label.get_theme_color("font_color")
+	var quality_header := "[font_size=22][color=%s]%s[/color][/font_size]" % [header_color.to_html(), LanguageManager.tr_ui("UI_EQUIP_DETAIL_QUALITY_HEADER")]
+	var sections := PackedStringArray()
+	sections.append("\n".join(base_lines))
+	sections.append(quality_header)
+	sections.append("\n".join(quality_lines))
+	_detail_skill_text.text = "\n".join(sections)
 
 	var equipped := LobbyState.is_item_equipped(uid)
 	_btn_equip.visible = not equipped
@@ -987,7 +999,7 @@ func _on_detail_upgrade() -> void:
 		return
 	var upgraded := LobbyState.upgrade_item(_current_detail_uid)
 	if upgraded.is_empty():
-		# 金币不足：刷新按钮置灰，不关弹窗、不动 "属性" 段头
+		# 金币不足：刷新按钮置灰，不关弹窗、不动 "基础属性" 段头
 		var cur := LobbyState.get_item_by_uid(_current_detail_uid)
 		if not cur.is_empty():
 			_refresh_upgrade_button(LobbyState.get_upgrade_cost(cur))
@@ -1074,7 +1086,7 @@ const _ATTR_BALL_COLOR := {
 	2: Color(0.70, 0.30, 1.00, 1),   # 紫 → 高饱和紫
 	3: Color(1.00, 0.55, 0.10, 1),   # 橙 → 高饱和橙
 }
-const _ATTR_TEXT_ACTIVE := Color(0.12, 0.54, 0.24, 1)   # 生效属性文字：深绿
+const _ATTR_TEXT_ACTIVE := Color(0.05, 0.38, 0.14, 1)   # 生效属性文字：深绿
 
 
 func _make_quality_pixel_ball(quality: int, unlocked: bool) -> String:

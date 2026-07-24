@@ -792,7 +792,7 @@ alignment = 2
 
 [node name="SkillStoneBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=1180100220]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(140, 50)
 custom_maximum_size = Vector2(140, -1)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -818,7 +818,7 @@ vertical_alignment = 1
 
 [node name="SynthBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=158088466]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(140, 50)
 custom_maximum_size = Vector2(140, -1)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -1002,7 +1002,7 @@ offset_top = 218.0
 offset_right = 200.0
 offset_bottom = 250.0
 theme_override_colors/font_color = Color(0.204, 0.106, 0.098, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 22
 text = "属性"
 
 [node name="DetailSkillText" type="RichTextLabel" parent="DetailPopup/Panel" unique_id=10110012]
@@ -1013,8 +1013,8 @@ offset_top = 252.0
 offset_right = 527.0
 offset_bottom = 455.0
 mouse_filter = 2
-theme_override_font_sizes/normal_font_size = 22
-theme_override_font_sizes/bold_font_size = 22
+theme_override_font_sizes/normal_font_size = 26
+theme_override_font_sizes/bold_font_size = 26
 bbcode_enabled = true
 
 [node name="BtnEquip" type="TextureButton" parent="DetailPopup/Panel" unique_id=10110013]
