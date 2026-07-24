@@ -791,7 +791,7 @@ func get_item_skill_entries(item: Dictionary) -> Array[Dictionary]:
 		return result
 	var quality := int(item.get("quality", QUALITY_COMMON))
 	var level := int(item.get("level", 1))
-	var plv := def.get("per_level_bonuses", {})
+	var plv = def.get("per_level_bonuses", {})
 	var tiers = def.get("tiers", [])
 	if typeof(tiers) != TYPE_ARRAY:
 		return result
@@ -833,7 +833,7 @@ const _EQUIP_STAT_META := {
 # 把单个 stat 的绝对值换算为「stat 名 +N%」文本（整数、向上取整、带符号）。
 # 负值用标准 ceil：ceilf(-5.56) = -5（GDScript ceilf 行为）。
 func _equip_stat_display(stat_key: String, abs_value: float) -> String:
-	var meta := _EQUIP_STAT_META.get(stat_key, null)
+	var meta = _EQUIP_STAT_META.get(stat_key, null)
 	if meta == null:
 		return str(abs_value)
 	var base_key: String = meta[0]
@@ -910,7 +910,7 @@ func get_item_stat_bonus(item: Dictionary) -> Dictionary:
 				_:                 push_warning("equip stat_bonus unknown key: %s" % key)
 	# G 列 per_level_bonuses × (level-1) —— 数据驱动每级成长，替换旧硬编码
 	var level := int(item.get("level", 1))
-	var plv := def.get("per_level_bonuses", {})
+	var plv = def.get("per_level_bonuses", {})
 	if typeof(plv) == TYPE_DICTIONARY and level > 1:
 		var lv_factor := float(level - 1)
 		for k in plv.keys():
