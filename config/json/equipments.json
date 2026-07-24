@@ -11,35 +11,40 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "attack": 5.0
+            "attack": 3.0
           },
+          "stat_pcts": {},
           "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "attack": 10.0
+            "attack": 3.0
           },
+          "stat_pcts": {},
           "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "attack": 10.0
+            "attack": 3.0
           },
+          "stat_pcts": {},
           "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {
-            "attack": 10.0
+            "attack": 3.0
           },
+          "stat_pcts": {},
           "flag": null
         }
       ],
       "per_level_bonuses": {
-        "attack": 1.0
-      }
+        "attack": 0.5
+      },
+      "per_level_pcts": {}
     },
     {
       "def_id": "light_cloth_armor",
@@ -51,8 +56,9 @@
       "tiers": [
         {
           "quality": 0,
-          "stat_bonuses": {
-            "invincible_time": 0.05
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "invincible_time": 5.0
           },
           "flag": null
         },
@@ -61,12 +67,14 @@
           "stat_bonuses": {
             "max_hp": 0.5
           },
+          "stat_pcts": {},
           "flag": null
         },
         {
           "quality": 2,
-          "stat_bonuses": {
-            "invincible_time": 0.05
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "invincible_time": 5.0
           },
           "flag": null
         },
@@ -75,11 +83,13 @@
           "stat_bonuses": {
             "max_hp": 0.5
           },
+          "stat_pcts": {},
           "flag": null
         }
       ],
-      "per_level_bonuses": {
-        "invincible_time": 0.01
+      "per_level_bonuses": {},
+      "per_level_pcts": {
+        "invincible_time": 1.0
       }
     },
     {
@@ -92,35 +102,40 @@
       "tiers": [
         {
           "quality": 0,
-          "stat_bonuses": {
-            "crit_rate": 0.05
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "crit_rate": 3.0
           },
           "flag": null
         },
         {
           "quality": 1,
-          "stat_bonuses": {
-            "crit_rate": 0.05
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "crit_rate": 3.0
           },
           "flag": null
         },
         {
           "quality": 2,
-          "stat_bonuses": {
-            "crit_rate": 0.05
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "crit_rate": 3.0
           },
           "flag": null
         },
         {
           "quality": 3,
-          "stat_bonuses": {
-            "crit_rate": 0.05
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "crit_rate": 3.0
           },
           "flag": null
         }
       ],
-      "per_level_bonuses": {
-        "crit_rate": 0.01
+      "per_level_bonuses": {},
+      "per_level_pcts": {
+        "crit_rate": 0.5
       }
     },
     {
@@ -133,35 +148,40 @@
       "tiers": [
         {
           "quality": 0,
-          "stat_bonuses": {
-            "max_ki": 10.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "max_ki": 3.0
           },
           "flag": null
         },
         {
           "quality": 1,
-          "stat_bonuses": {
-            "max_ki": 10.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "max_ki": 3.0
           },
           "flag": null
         },
         {
           "quality": 2,
-          "stat_bonuses": {
-            "max_ki": 10.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "max_ki": 3.0
           },
           "flag": null
         },
         {
           "quality": 3,
-          "stat_bonuses": {
-            "max_ki": 10.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "max_ki": 3.0
           },
           "flag": null
         }
       ],
-      "per_level_bonuses": {
-        "max_ki": 2.0
+      "per_level_bonuses": {},
+      "per_level_pcts": {
+        "max_ki": 0.5
       }
     },
     {
@@ -175,35 +195,40 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "attack": 10.0
+            "attack": 5.0
           },
+          "stat_pcts": {},
           "flag": null
         },
         {
           "quality": 1,
-          "stat_bonuses": {
-            "crit_damage": 0.3
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "crit_damage": 5.0
           },
           "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "attack": 20.0
+            "attack": 5.0
           },
+          "stat_pcts": {},
           "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {},
+          "stat_pcts": {},
           "flag": "bullet_homing",
           "effect_desc_cn": "子弹获得追踪效果",
           "effect_desc_en": "Bullets seek nearby enemies"
         }
       ],
       "per_level_bonuses": {
-        "attack": 1.0
-      }
+        "attack": 0.5
+      },
+      "per_level_pcts": {}
     },
     {
       "def_id": "nimble_boots",
@@ -215,35 +240,40 @@
       "tiers": [
         {
           "quality": 0,
-          "stat_bonuses": {
-            "move_speed": 10.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "move_speed": 3.0
           },
           "flag": null
         },
         {
           "quality": 1,
-          "stat_bonuses": {
-            "move_speed": 10.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "move_speed": 3.0
           },
           "flag": null
         },
         {
           "quality": 2,
-          "stat_bonuses": {
-            "move_speed": 10.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "move_speed": 3.0
           },
           "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {},
+          "stat_pcts": {},
           "flag": "shock_aura",
           "effect_desc_cn": "持续电击靠近的敌人",
           "effect_desc_en": "Continuously shocks nearby enemies"
         }
       ],
-      "per_level_bonuses": {
-        "move_speed": 2.0
+      "per_level_bonuses": {},
+      "per_level_pcts": {
+        "move_speed": 0.3
       }
     },
     {
@@ -256,35 +286,40 @@
       "tiers": [
         {
           "quality": 0,
-          "stat_bonuses": {
-            "ki_regen": 3.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "ki_regen": 5.0
           },
           "flag": null
         },
         {
           "quality": 1,
-          "stat_bonuses": {
-            "ki_regen": 3.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "ki_regen": 5.0
           },
           "flag": null
         },
         {
           "quality": 2,
-          "stat_bonuses": {
-            "ki_regen": 3.0
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "ki_regen": 5.0
           },
           "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {},
+          "stat_pcts": {},
           "flag": "tree_x2",
           "effect_desc_cn": "每关随机刷出的树木数量翻倍",
           "effect_desc_en": "Trees spawned per stage x2"
         }
       ],
-      "per_level_bonuses": {
-        "ki_regen": 0.8
+      "per_level_bonuses": {},
+      "per_level_pcts": {
+        "ki_regen": 0.5
       }
     },
     {
@@ -297,8 +332,9 @@
       "tiers": [
         {
           "quality": 0,
-          "stat_bonuses": {
-            "ki_per_pixel": -0.01
+          "stat_bonuses": {},
+          "stat_pcts": {
+            "ki_per_pixel": -5.0
           },
           "flag": null
         },
@@ -307,6 +343,7 @@
           "stat_bonuses": {
             "max_hp": 0.5
           },
+          "stat_pcts": {},
           "flag": null
         },
         {
@@ -314,18 +351,21 @@
           "stat_bonuses": {
             "max_hp": 0.5
           },
+          "stat_pcts": {},
           "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {},
+          "stat_pcts": {},
           "flag": "hit_dodge_5pct",
           "effect_desc_cn": "受击时5%概率免伤",
           "effect_desc_en": "5% chance to negate incoming hits"
         }
       ],
-      "per_level_bonuses": {
-        "ki_per_pixel": -0.002
+      "per_level_bonuses": {},
+      "per_level_pcts": {
+        "ki_per_pixel": -0.5
       }
     }
   ]

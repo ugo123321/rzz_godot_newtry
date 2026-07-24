@@ -792,6 +792,7 @@ func get_item_skill_entries(item: Dictionary) -> Array[Dictionary]:
 	var quality := int(item.get("quality", QUALITY_COMMON))
 	var level := int(item.get("level", 1))
 	var plv = def.get("per_level_bonuses", {})
+	var plv_pcts = def.get("per_level_pcts", {})
 	var tiers = def.get("tiers", [])
 	if typeof(tiers) != TYPE_ARRAY:
 		return result
@@ -805,7 +806,8 @@ func get_item_skill_entries(item: Dictionary) -> Array[Dictionary]:
 			text = LanguageManager.localize_field(tier_rec, "effect_desc_en", "effect_desc_cn")
 		else:
 			var sb = tier_rec.get("stat_bonuses", {})
-			text = _equip_tier_display_text(sb, tier, level, plv)
+			var sp = tier_rec.get("stat_pcts", {})
+			text = _equip_tier_display_text(sb, sp, tier, level, plv, plv_pcts)
 		result.append({
 			"quality": tier,
 			"quality_name": get_quality_name(tier),
@@ -816,7 +818,8 @@ func get_item_skill_entries(item: Dictionary) -> Array[Dictionary]:
 
 
 # 装备 stat_key → (GameConfig base key, i18n stat 名 key)。
-# 用于把绝对值换算为基础值的百分比显示（运行时算，不烤进 json）。
+# base key 用于「百分比加成换算为 base × pct/100」（求和时累加不连乘）；
+# name key 用于显示文案。显示不再查 base / 不再取整，直接显示 xlsx 原值。
 const _EQUIP_STAT_META := {
 	"attack":          ["base_attack",      "UI_EQUIP_STAT_ATTACK"],
 	"max_hp":          ["base_hp",          "UI_EQUIP_STAT_MAX_HP"],
@@ -830,43 +833,62 @@ const _EQUIP_STAT_META := {
 }
 
 
-# 把单个 stat 的绝对值换算为「stat 名 +N%」文本（整数、向上取整、带符号）。
-# 负值用标准 ceil：ceilf(-5.56) = -5（GDScript ceilf 行为）。
-func _equip_stat_display(stat_key: String, abs_value: float) -> String:
+# 取某 stat 的基础值（用于百分比加成换算）。
+func _equip_stat_base(stat_key: String) -> float:
 	var meta = _EQUIP_STAT_META.get(stat_key, null)
 	if meta == null:
-		return str(abs_value)
-	var base_key: String = meta[0]
-	var name_key: String = meta[1]
-	var base := float(GameConfig.get_player_value(base_key, 1.0))
-	if base == 0.0:
-		base = 1.0
-	var pct := int(ceilf(abs_value / base * 100.0))
-	var sign := "+"
-	if pct < 0:
-		sign = ""
-	return "%s %s%d%%" % [LanguageManager.tr_ui(name_key), sign, pct]
+		return 1.0
+	var base := float(GameConfig.get_player_value(String(meta[0]), 1.0))
+	return base if base != 0.0 else 1.0
 
 
-# 把一个 tier 的 stat_bonuses 拼成显示文本。白阶（tier 0）叠加 per_level×(level-1)。
-# 一个 tier 一般只有一个 stat；若有多个，用换行拼（当前数据都是单 stat/tier）。
-func _equip_tier_display_text(sb, tier: int, level: int, plv) -> String:
-	if typeof(sb) != TYPE_DICTIONARY or sb.is_empty():
-		return ""
+# 数值格式化：保留 1 位小数，去尾 .0（3.0→"3", 0.5→"0.5", -5.0→"-5"）。
+func _equip_fmt_num(v: float) -> String:
+	var s := "%.1f" % v
+	if s.ends_with(".0"):
+		s = s.substr(0, s.length() - 2)
+	return s
+
+
+# 显示「stat 名 +N」或「stat 名 +N%」。is_pct=true 时尾部加 %。
+# value 带符号；负值时 _equip_fmt_num 已含 -，sign 留空，得到 "stat -5%"。
+func _equip_stat_display(stat_key: String, value: float, is_pct: bool) -> String:
+	var meta = _EQUIP_STAT_META.get(stat_key, null)
+	var name := stat_key if meta == null else String(LanguageManager.tr_ui(String(meta[1])))
+	var num := _equip_fmt_num(value)
+	var sign := "+" if value >= 0.0 else ""
+	var tail := "%" if is_pct else ""
+	return "%s %s%s%s" % [name, sign, num, tail]
+
+
+# 把一个 tier 的 stat_bonuses（绝对值）+ stat_pcts（百分比）拼成显示文本。
+# 白阶（tier 0）叠加 per_level×(level-1)（同类型相加）。
+func _equip_tier_display_text(sb, sp, tier: int, level: int, plv, plv_pcts) -> String:
 	var lines: PackedStringArray = []
-	for key in sb.keys():
-		var abs_value := float(sb[key])
-		if tier == QUALITY_COMMON and typeof(plv) == TYPE_DICTIONARY and level > 1:
-			abs_value += float(plv.get(key, 0.0)) * float(level - 1)
-		lines.append(_equip_stat_display(str(key), abs_value))
+	var is_white := tier == QUALITY_COMMON and level > 1
+	# 绝对值条目
+	if typeof(sb) == TYPE_DICTIONARY:
+		for k in sb.keys():
+			var key := str(k)
+			var val := float(sb[k])
+			if is_white and typeof(plv) == TYPE_DICTIONARY:
+				val += float(plv.get(key, 0.0)) * float(level - 1)
+			lines.append(_equip_stat_display(key, val, false))
+	# 百分比条目
+	if typeof(sp) == TYPE_DICTIONARY:
+		for k in sp.keys():
+			var key := str(k)
+			var val := float(sp[k])
+			if is_white and typeof(plv_pcts) == TYPE_DICTIONARY:
+				val += float(plv_pcts.get(key, 0.0)) * float(level - 1)
+			lines.append(_equip_stat_display(key, val, true))
 	return "\n".join(lines)
 
 
 func get_item_stat_bonus(item: Dictionary) -> Dictionary:
-	# 累加 tier 0..quality 的 stat_bonuses（加法叠加，绝不连乘）。
-	# v6 改版：stat_bonuses 用绝对值 key（max_ki/ki_regen/invincible_time/ki_per_pixel 为绝对加成；
-	# crit_damage 也改为绝对加，不再 pct 乘）。
-	# per_level_bonuses（G 列）× (level-1) 叠加在顶层，替换旧的硬编码每级加成。
+	# 累加 tier 0..quality 的 stat_bonuses（绝对值加法）+ stat_pcts（百分比 → base×pct/100 加法，
+	# 各来源累加、不连乘）。per_level 同样拆 bonuses / pcts × (level-1) 叠加在顶层。
+	# 最终 bonus 全部是绝对值，player.gd 直接加即可。
 	var bonus := {
 		"attack": 0.0,
 		"max_hp": 0.0,
@@ -888,45 +910,49 @@ func get_item_stat_bonus(item: Dictionary) -> Dictionary:
 		return bonus
 	for t in range(min(tiers.size(), quality + 1)):
 		var tier_rec: Dictionary = tiers[t]
+		# 绝对值加成
 		var sb = tier_rec.get("stat_bonuses", {})
-		if typeof(sb) != TYPE_DICTIONARY:
-			continue
-		for k in sb.keys():
-			var key := str(k)
-			var val := float(sb[k])
-			match key:
-				"attack":          bonus.attack += val
-				"max_hp":          bonus.max_hp += val
-				"crit_rate":       bonus.crit_rate += val
-				"crit_damage":     bonus.crit_damage += val          # 绝对加（v6）
-				"move_speed":      bonus.move_speed += val
-				"max_ki":          bonus.max_ki += val               # 绝对（v6 新）
-				"ki_regen":        bonus.ki_regen += val             # 绝对（v6 新）
-				"invincible_time": bonus.invincible_time += val      # 绝对（v6 新）
-				"ki_per_pixel":    bonus.ki_per_pixel += val         # 绝对，可为负（v6 新）
-				# 旧 pct key 兼容（旧 json 残留 max_ki_pct/ki_regen_pct）—— 保留但当前 json 不产出
-				"max_ki_pct":      pass
-				"ki_regen_pct":    pass
-				_:                 push_warning("equip stat_bonus unknown key: %s" % key)
-	# G 列 per_level_bonuses × (level-1) —— 数据驱动每级成长，替换旧硬编码
+		if typeof(sb) == TYPE_DICTIONARY:
+			for k in sb.keys():
+				var key := str(k)
+				var val := float(sb[k])
+				if bonus.has(key):
+					bonus[key] += val
+				else:
+					push_warning("equip stat_bonus unknown key: %s" % key)
+		# 百分比加成 → base × pct/100
+		var sp = tier_rec.get("stat_pcts", {})
+		if typeof(sp) == TYPE_DICTIONARY:
+			for k in sp.keys():
+				var key := str(k)
+				if not bonus.has(key):
+					push_warning("equip stat_pct unknown key: %s" % key)
+					continue
+				var base := _equip_stat_base(key)
+				bonus[key] += base * float(sp[k]) / 100.0
+	# G 列 per_level × (level-1) —— 数据驱动每级成长，替换旧硬编码
 	var level := int(item.get("level", 1))
-	var plv = def.get("per_level_bonuses", {})
-	if typeof(plv) == TYPE_DICTIONARY and level > 1:
+	if level > 1:
 		var lv_factor := float(level - 1)
-		for k in plv.keys():
-			var key := str(k)
-			var val := float(plv[k]) * lv_factor
-			match key:
-				"attack":          bonus.attack += val
-				"max_hp":          bonus.max_hp += val
-				"crit_rate":       bonus.crit_rate += val
-				"crit_damage":     bonus.crit_damage += val
-				"move_speed":      bonus.move_speed += val
-				"max_ki":          bonus.max_ki += val
-				"ki_regen":        bonus.ki_regen += val
-				"invincible_time": bonus.invincible_time += val
-				"ki_per_pixel":    bonus.ki_per_pixel += val
-				_:                 push_warning("equip per_level unknown key: %s" % key)
+		# 绝对值每级
+		var plv = def.get("per_level_bonuses", {})
+		if typeof(plv) == TYPE_DICTIONARY:
+			for k in plv.keys():
+				var key := str(k)
+				if not bonus.has(key):
+					push_warning("equip per_level unknown key: %s" % key)
+					continue
+				bonus[key] += float(plv[k]) * lv_factor
+		# 百分比每级 → base × pct/100 × (level-1)
+		var plp = def.get("per_level_pcts", {})
+		if typeof(plp) == TYPE_DICTIONARY:
+			for k in plp.keys():
+				var key := str(k)
+				if not bonus.has(key):
+					push_warning("equip per_level_pct unknown key: %s" % key)
+					continue
+				var base := _equip_stat_base(key)
+				bonus[key] += base * float(plp[k]) / 100.0 * lv_factor
 	return bonus
 
 

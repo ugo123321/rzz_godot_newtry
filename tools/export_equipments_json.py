@@ -62,54 +62,50 @@ SLOT_CN_TO_KEY = {
 # 品质（xlsx 单字）→ 品质代码
 QUALITY_CN_TO_CODE = {"白": 0, "蓝": 1, "紫": 2, "橙": 3}
 
-# stat_key → 该 stat 是否「倍率型」（百分比加成，旧 pct 语义）。
-# v6 改版后全部走绝对值；crit_damage 也改为绝对加（不再 pct 乘）。
-# 这里 EFFECT_PATTERNS 只负责把中文文案解析成 (stat_bonuses, flag, effect_desc_en)。
-# 数值型 tier 不再需要 effect_desc_en（运行时算百分比），只 flag 保留 desc。
+# 解析返回 (stat_bonuses, stat_pcts, flag, effect_desc_en)：
+#   stat_bonuses = 绝对值加成 {key: val}（如 attack +3, max_hp +0.5）
+#   stat_pcts    = 百分比加成 {key: pct_num}（如 crit_rate +3% → {"crit_rate": 3.0}）
+# 百分比在 lobby_state 求和时换算为 base × pct/100 加到属性（累加不连乘）。
+# 数值型 tier 不写 desc（运行时直接显示原值）；flag tier 保留 desc。
 EFFECT_PATTERNS = [
-    # 攻击力 +N（[+-]? 兼容负值与无符号写法）
+    # ── 绝对值型（无 %）──
     (re.compile(r"^攻击力([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"attack": float(m.group(1))}, None, "")),
-    # 生命 +N（浮点心数，如 0.5）
+     lambda m: ({"attack": float(m.group(1))}, {}, None, "")),
     (re.compile(r"^生命([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"max_hp": float(m.group(1))}, None, "")),
-    # 暴击率 +N（0–1 浮点，如 0.05）
-    (re.compile(r"^暴击率([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"crit_rate": float(m.group(1))}, None, "")),
-    # 暴击伤害倍率基础值 +N（绝对加成，如 0.3 / 1）
-    (re.compile(r"^暴击伤害倍率基础值([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"crit_damage": float(m.group(1))}, None, "")),
-    # 移动速度 +N
-    (re.compile(r"^移动速度([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"move_speed": float(m.group(1))}, None, "")),
-    # 气力上限 +N（绝对，新 key；旧是 max_ki_pct）
-    (re.compile(r"^气力上限([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"max_ki": float(m.group(1))}, None, "")),
-    # 气力回复速度 +N（绝对，新 key；旧是 ki_regen_pct）
-    (re.compile(r"^气力回复速度([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"ki_regen": float(m.group(1))}, None, "")),
-    # 受击无敌时间 +N（全新）
-    (re.compile(r"^受击无敌时间([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"invincible_time": float(m.group(1))}, None, "")),
-    # 划线气力消耗 +N（可为负；负=降消耗；xlsx 负值写作「划线气力消耗-0.01」无 + 号）
-    (re.compile(r"^划线气力消耗([+-]?\d+(?:\.\d+)?)$"),
-     lambda m: ({"ki_per_pixel": float(m.group(1))}, None, "")),
-    # 4 个 flag（纯机制，保留 desc）
+     lambda m: ({"max_hp": float(m.group(1))}, {}, None, "")),
+    # ── 百分比型（带 %）──
+    (re.compile(r"^暴击率([+-]?\d+(?:\.\d+)?)%$"),
+     lambda m: ({}, {"crit_rate": float(m.group(1))}, None, "")),
+    (re.compile(r"^暴击伤害倍率([+-]?\d+(?:\.\d+)?)%$"),
+     lambda m: ({}, {"crit_damage": float(m.group(1))}, None, "")),
+    (re.compile(r"^移动速度([+-]?\d+(?:\.\d+)?)%$"),
+     lambda m: ({}, {"move_speed": float(m.group(1))}, None, "")),
+    (re.compile(r"^气力上限([+-]?\d+(?:\.\d+)?)%$"),
+     lambda m: ({}, {"max_ki": float(m.group(1))}, None, "")),
+    (re.compile(r"^气力回复速度([+-]?\d+(?:\.\d+)?)%$"),
+     lambda m: ({}, {"ki_regen": float(m.group(1))}, None, "")),
+    (re.compile(r"^受击无敌时间([+-]?\d+(?:\.\d+)?)%$"),
+     lambda m: ({}, {"invincible_time": float(m.group(1))}, None, "")),
+    (re.compile(r"^划线气力消耗([+-]?\d+(?:\.\d+)?)%$"),
+     lambda m: ({}, {"ki_per_pixel": float(m.group(1))}, None, "")),
+    # ── 4 个 flag（纯机制，保留 desc）──
     (re.compile(r"^子弹获得追踪效果$"),
-     lambda m: ({}, "bullet_homing", "Bullets seek nearby enemies")),
+     lambda m: ({}, {}, "bullet_homing", "Bullets seek nearby enemies")),
     (re.compile(r"^持续电击靠近的敌人$"),
-     lambda m: ({}, "shock_aura", "Continuously shocks nearby enemies")),
+     lambda m: ({}, {}, "shock_aura", "Continuously shocks nearby enemies")),
     (re.compile(r"^每关随机刷出的树木数量翻倍$"),
-     lambda m: ({}, "tree_x2", "Trees spawned per stage x2")),
+     lambda m: ({}, {}, "tree_x2", "Trees spawned per stage x2")),
     (re.compile(r"^受击时(\d+)%概率免伤$"),
-     lambda m: ({}, "hit_dodge_5pct",
+     lambda m: ({}, {}, "hit_dodge_5pct",
                 f"{m.group(1)}% chance to negate incoming hits")),
 ]
 
 
-def parse_effect(text: str) -> tuple[dict, str | None, str]:
-    """(stat_bonuses, flag, effect_desc_en) —— 数值型 desc 留空（运行时算百分比）；
-    flag 型保留英文 desc。找不到匹配就报错，避免静默失败。"""
+def parse_effect(text: str) -> tuple[dict, dict, str | None, str]:
+    """(stat_bonuses, stat_pcts, flag, effect_desc_en) ——
+    stat_bonuses 绝对值、stat_pcts 百分比（值为百分比数，如 3.0 表示 3%）。
+    数值型 desc 留空（运行时直接显示原值）；flag 型保留英文 desc。
+    找不到匹配就报错，避免静默失败。"""
     text = (text or "").strip()
     for pat, builder in EFFECT_PATTERNS:
         m = pat.match(text)
@@ -153,12 +149,16 @@ def convert():
             raise ValueError(f"Unknown quality: {quality_cn!r}")
         quality = QUALITY_CN_TO_CODE[quality_cn]
         effect_cn = str(r[5] or "").strip()
-        stat_bonuses, flag, effect_en = parse_effect(effect_cn)
+        stat_bonuses, stat_pcts, flag, effect_en = parse_effect(effect_cn)
         # G 列：升级每级实际效果（每装备一份，4 行相同）
         per_level_cn = str(r[6] or "").strip()
-        per_level_bonuses, _pl_flag, _pl_en = parse_effect(per_level_cn)
+        per_level_bonuses, per_level_pcts, _pl_flag, _pl_en = parse_effect(per_level_cn)
         if _pl_flag is not None:
             raise ValueError(f"{def_id}: per-level effect must be a stat, got flag: {per_level_cn!r}")
+        per_level_record = {
+            "bonuses": per_level_bonuses,   # 绝对值每级
+            "pcts": per_level_pcts,         # 百分比每级
+        }
 
         if def_id not in equipments:
             equipments[def_id] = {
@@ -170,15 +170,16 @@ def convert():
                 "is_rare": is_rare,
                 "tiers": [None, None, None, None],
                 "per_level_bonuses": per_level_bonuses,
+                "per_level_pcts": per_level_pcts,
             }
             order.append(def_id)
-            per_level_seen[def_id] = per_level_bonuses
+            per_level_seen[def_id] = per_level_record
         else:
             # 校验 4 行的 G 列一致
-            if per_level_bonuses != per_level_seen[def_id]:
+            if per_level_record != per_level_seen[def_id]:
                 raise ValueError(
                     f"{def_id}: per-level effect inconsistent across quality rows: "
-                    f"{per_level_bonuses} vs {per_level_seen[def_id]}")
+                    f"{per_level_record} vs {per_level_seen[def_id]}")
         rec = equipments[def_id]
         if rec["tiers"][quality] is not None:
             raise ValueError(
@@ -186,6 +187,7 @@ def convert():
         tier_rec = {
             "quality": quality,
             "stat_bonuses": stat_bonuses,
+            "stat_pcts": stat_pcts,
             "flag": flag,
         }
         # 数值型 tier 不写 desc（运行时算百分比）；flag tier 保留 desc
