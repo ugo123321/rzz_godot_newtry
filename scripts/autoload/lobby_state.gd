@@ -775,27 +775,91 @@ func get_item_power(item: Dictionary) -> int:
 
 
 func get_item_skill_entries(item: Dictionary) -> Array[Dictionary]:
+	# 每条 = 一个 quality tier 的显示条目。数值型 tier 文本由绝对值换算为百分比
+	# （白阶含 per_level 成长）；flag tier 用原 desc。
 	var result: Array[Dictionary] = []
+	var def := get_item_def(str(item.get("def_id", "")))
+	if def.is_empty():
+		# 仍返回 4 个空条目，保持 UI 段数稳定
+		for tier in range(QUALITY_COMMON, QUALITY_LEGENDARY + 1):
+			result.append({
+				"quality": tier,
+				"quality_name": get_quality_name(tier),
+				"text": LanguageManager.tr_ui("UI_EQUIP_UNDEFINED_SKILL"),
+				"unlocked": tier <= int(item.get("quality", QUALITY_COMMON)),
+			})
+		return result
 	var quality := int(item.get("quality", QUALITY_COMMON))
+	var level := int(item.get("level", 1))
+	var plv := def.get("per_level_bonuses", {})
+	var tiers = def.get("tiers", [])
+	if typeof(tiers) != TYPE_ARRAY:
+		return result
 	for tier in range(QUALITY_COMMON, QUALITY_LEGENDARY + 1):
+		if tier >= tiers.size():
+			break
+		var tier_rec: Dictionary = tiers[tier]
+		var flag = tier_rec.get("flag", null)
+		var text := ""
+		if flag != null:
+			text = LanguageManager.localize_field(tier_rec, "effect_desc_en", "effect_desc_cn")
+		else:
+			var sb = tier_rec.get("stat_bonuses", {})
+			text = _equip_tier_display_text(sb, tier, level, plv)
 		result.append({
 			"quality": tier,
 			"quality_name": get_quality_name(tier),
-			"text": _skill_text_for_quality(item, tier),
+			"text": text,
 			"unlocked": tier <= quality,
 		})
 	return result
 
 
-func _skill_text_for_quality(item: Dictionary, tier: int) -> String:
-	var def := get_item_def(str(item.get("def_id", "")))
-	if def.is_empty():
-		return LanguageManager.tr_ui("UI_EQUIP_UNDEFINED_SKILL")
-	var tiers = def.get("tiers", [])
-	if typeof(tiers) != TYPE_ARRAY or tier < 0 or tier >= tiers.size():
-		return LanguageManager.tr_ui("UI_EQUIP_UNDEFINED_SKILL")
-	var tier_rec: Dictionary = tiers[tier]
-	return LanguageManager.localize_field(tier_rec, "effect_desc_en", "effect_desc_cn")
+# 装备 stat_key → (GameConfig base key, i18n stat 名 key)。
+# 用于把绝对值换算为基础值的百分比显示（运行时算，不烤进 json）。
+const _EQUIP_STAT_META := {
+	"attack":          ["base_attack",      "UI_EQUIP_STAT_ATTACK"],
+	"max_hp":          ["base_hp",          "UI_EQUIP_STAT_MAX_HP"],
+	"crit_rate":       ["base_crit_rate",   "UI_EQUIP_STAT_CRIT_RATE"],
+	"crit_damage":     ["base_crit_damage", "UI_EQUIP_STAT_CRIT_DAMAGE"],
+	"move_speed":      ["move_speed",       "UI_EQUIP_STAT_MOVE_SPEED"],
+	"max_ki":          ["base_ki",          "UI_EQUIP_STAT_MAX_KI"],
+	"ki_regen":        ["ki_regen_speed",   "UI_EQUIP_STAT_KI_REGEN"],
+	"invincible_time": ["invincible_time",  "UI_EQUIP_STAT_INVINCIBLE_TIME"],
+	"ki_per_pixel":    ["ki_per_pixel",     "UI_EQUIP_STAT_KI_PER_PIXEL"],
+}
+
+
+# 把单个 stat 的绝对值换算为「stat 名 +N%」文本（整数、向上取整、带符号）。
+# 负值用标准 ceil：ceilf(-5.56) = -5（GDScript ceilf 行为）。
+func _equip_stat_display(stat_key: String, abs_value: float) -> String:
+	var meta := _EQUIP_STAT_META.get(stat_key, null)
+	if meta == null:
+		return str(abs_value)
+	var base_key: String = meta[0]
+	var name_key: String = meta[1]
+	var base := float(GameConfig.get_player_value(base_key, 1.0))
+	if base == 0.0:
+		base = 1.0
+	var pct := int(ceilf(abs_value / base * 100.0))
+	var sign := "+"
+	if pct < 0:
+		sign = ""
+	return "%s %s%d%%" % [LanguageManager.tr_ui(name_key), sign, pct]
+
+
+# 把一个 tier 的 stat_bonuses 拼成显示文本。白阶（tier 0）叠加 per_level×(level-1)。
+# 一个 tier 一般只有一个 stat；若有多个，用换行拼（当前数据都是单 stat/tier）。
+func _equip_tier_display_text(sb, tier: int, level: int, plv) -> String:
+	if typeof(sb) != TYPE_DICTIONARY or sb.is_empty():
+		return ""
+	var lines: PackedStringArray = []
+	for key in sb.keys():
+		var abs_value := float(sb[key])
+		if tier == QUALITY_COMMON and typeof(plv) == TYPE_DICTIONARY and level > 1:
+			abs_value += float(plv.get(key, 0.0)) * float(level - 1)
+		lines.append(_equip_stat_display(str(key), abs_value))
+	return "\n".join(lines)
 
 
 func get_item_stat_bonus(item: Dictionary) -> Dictionary:
