@@ -209,6 +209,11 @@ var equip_max_ki_pct: float = 0.0        # 累加进 ki_max_pct_total
 var equip_ki_regen_pct: float = 0.0      # 累加进 ki_regen_pct_total
 var equip_move_speed_add: float = 0.0    # move_speed 直接加法（flat）
 var equip_crit_damage_pct: float = 0.0   # 已在 _load_base_stats 里 apply（base × pct 一次），此变量仅供 rebuild 复用
+var equip_max_ki_add := 0.0           # 装备气力上限绝对加成（v6）
+var equip_ki_regen_add := 0.0         # 装备气力回复绝对加成（v6）
+var equip_invincible_time_add := 0.0  # 装备受击无敌时间绝对加成（v6）
+var equip_ki_per_pixel_add := 0.0     # 装备划线气力消耗绝对加成（v6，可为负）
+var equip_crit_damage_add := 0.0      # 装备暴击伤害绝对加成（v6，替代旧 pct 乘）
 
 # ---- 天赋卡牌（talents.json）flat 加成缓存 ----
 # 全部走加法，_load_base_stats 中一次性 apply；_rebuild_upgrades 中同样重加一次（rebuild 会重置 base 值）。
@@ -383,15 +388,21 @@ func _load_base_stats() -> void:
 		base_attack += float(equip.get("attack", 0.0))
 		max_hp += float(equip.get("max_hp", 0.0))
 		crit_rate += float(equip.get("crit_rate", 0.0))
-		# 加法叠加：crit_damage 的 +% 只在 base × total_pct 上作用一次，不复利。
-		var eq_crit_dmg_pct := float(equip.get("crit_damage", 0.0))
-		if eq_crit_dmg_pct != 0.0:
-			crit_damage += crit_damage * eq_crit_dmg_pct
+		# v6：crit_damage 装备为绝对加成（替代旧 pct 乘）
+		equip_crit_damage_add = float(equip.get("crit_damage", 0.0))
+		crit_damage += equip_crit_damage_add
+		# v6 新绝对值装备属性
+		equip_max_ki_add = float(equip.get("max_ki", 0.0))
+		equip_ki_regen_add = float(equip.get("ki_regen", 0.0))
+		equip_invincible_time_add = float(equip.get("invincible_time", 0.0))
+		equip_ki_per_pixel_add = float(equip.get("ki_per_pixel", 0.0))
+		base_ki += equip_max_ki_add
+		ki_regen_speed += equip_ki_regen_add
 		# 缓存 pct / flat 供 _rebuild_upgrades 复用（rebuild 会重置 base 值，需重新 apply）
 		equip_max_ki_pct = float(equip.get("max_ki_pct", 0.0))
 		equip_ki_regen_pct = float(equip.get("ki_regen_pct", 0.0))
 		equip_move_speed_add = float(equip.get("move_speed", 0.0))
-		equip_crit_damage_pct = eq_crit_dmg_pct
+		equip_crit_damage_pct = 0.0  # v6 后装备 crit_damage 走绝对加，pct 路径恒 0
 		# 天赋卡：读取当前 owned 卡的 flat 加成并 apply（下一次 rebuild 也会再 apply 一次）
 		var talent := LobbyState.get_talent_modifiers()
 		talent_attack_add = float(talent.get("attack", 0.0))
@@ -677,7 +688,7 @@ func add_path_point(point: Vector2) -> void:
 
 
 func consume_ki_by_distance(distance: float) -> bool:
-	var cost := distance * float(GameConfig.get_player_value("ki_per_pixel", 0.18))
+	var cost := distance * (float(GameConfig.get_player_value("ki_per_pixel", 0.18)) + equip_ki_per_pixel_add)
 	# 属性打造关「画线气力消耗 -X%」：负值减少消耗，正值增加，钳到 5% 下限避免 0 消耗。
 	cost *= maxf(0.05, 1.0 + forge_draw_cost_pct_total)
 	if ki < cost:
@@ -1096,7 +1107,7 @@ func take_damage(_amount: float) -> float:
 	if hp <= 0.0:
 		if SpecialRuleDispatcherT.on_death(self):
 			final_damage = maxf(0.0, final_damage - 1.0)  # 复活：当次伤害不致死
-	invincible_timer = float(GameConfig.get_player_value("invincible_time", 0.45))
+	invincible_timer = float(GameConfig.get_player_value("invincible_time", 0.45)) + equip_invincible_time_add
 	damage_flash_timer = 0.42
 	queue_redraw()
 	if state == State.IDLE:
@@ -1432,11 +1443,17 @@ func _rebuild_upgrades() -> void:
 		base_attack += float(equip.get("attack", 0.0))
 		max_hp += float(equip.get("max_hp", 0.0))
 		crit_rate += float(equip.get("crit_rate", 0.0))
-		# crit_damage +% 在 rebuild 后再作用一次（因 base 值刚被卡片系统重设）
-		var eq_crit_dmg_pct2 := float(equip.get("crit_damage", 0.0))
-		if eq_crit_dmg_pct2 != 0.0:
-			crit_damage += crit_damage * eq_crit_dmg_pct2
-		# 技能石暴击伤害词条（乘法，与装备 crit_damage 同写法，不复利）
+		# v6：crit_damage 装备为绝对加成（替代旧 pct 乘）
+		equip_crit_damage_add = float(equip.get("crit_damage", 0.0))
+		crit_damage += equip_crit_damage_add
+		# v6 新绝对值装备属性
+		equip_max_ki_add = float(equip.get("max_ki", 0.0))
+		equip_ki_regen_add = float(equip.get("ki_regen", 0.0))
+		equip_invincible_time_add = float(equip.get("invincible_time", 0.0))
+		equip_ki_per_pixel_add = float(equip.get("ki_per_pixel", 0.0))
+		base_ki += equip_max_ki_add
+		ki_regen_speed += equip_ki_regen_add
+		# 技能石暴击伤害词条（乘法，技能石系统仍是 pct 乘，不改）
 		var ss_crit_dmg_pct := float(LobbyState.get_skill_stone_affix_totals().get("crit_damage", 0.0))
 		if ss_crit_dmg_pct != 0.0:
 			crit_damage += crit_damage * ss_crit_dmg_pct
