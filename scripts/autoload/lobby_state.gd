@@ -800,22 +800,25 @@ func _skill_text_for_quality(item: Dictionary, tier: int) -> String:
 
 func get_item_stat_bonus(item: Dictionary) -> Dictionary:
 	# 累加 tier 0..quality 的 stat_bonuses（加法叠加，绝不连乘）。
-	# 缺失键取 0；未识别的 key 也会被并入（future-proof）。
+	# v6 改版：stat_bonuses 用绝对值 key（max_ki/ki_regen/invincible_time/ki_per_pixel 为绝对加成；
+	# crit_damage 也改为绝对加，不再 pct 乘）。
+	# per_level_bonuses（G 列）× (level-1) 叠加在顶层，替换旧的硬编码每级加成。
 	var bonus := {
 		"attack": 0.0,
-		"max_hp": 0,
+		"max_hp": 0.0,
 		"crit_rate": 0.0,
 		"crit_damage": 0.0,
 		"move_speed": 0.0,
-		"max_ki_pct": 0.0,
-		"ki_regen_pct": 0.0,
+		"max_ki": 0.0,
+		"ki_regen": 0.0,
+		"invincible_time": 0.0,
+		"ki_per_pixel": 0.0,
 		"item_power": get_item_power(item),
 	}
 	var def := get_item_def(str(item.get("def_id", "")))
 	if def.is_empty():
 		return bonus
 	var quality := int(item.get("quality", QUALITY_COMMON))
-	var level := int(item.get("level", 1))
 	var tiers = def.get("tiers", [])
 	if typeof(tiers) != TYPE_ARRAY:
 		return bonus
@@ -828,27 +831,38 @@ func get_item_stat_bonus(item: Dictionary) -> Dictionary:
 			var key := str(k)
 			var val := float(sb[k])
 			match key:
-				"attack":
-					bonus.attack += val
-				"max_hp":
-					bonus.max_hp = float(bonus.max_hp) + val
-				"crit_rate":
-					bonus.crit_rate += val
-				"crit_damage":
-					bonus.crit_damage += val
-				"move_speed":
-					bonus.move_speed += val
-				"max_ki_pct":
-					bonus.max_ki_pct += val
-				"ki_regen_pct":
-					bonus.ki_regen_pct += val
-	# 强化等级：仅让"每级 +N"的通用 flat 加成生效 —— 目前 xlsx 未给出 per_lv 表达，
-	# 沿用旧规则：level 每级给该件 base attack/hp/crit_rate 一个微增，避免强化毫无收益。
-	if level > 1:
-		var lv_bonus := level - 1
-		bonus.attack += float(lv_bonus) * 2.0
-		bonus.max_hp = float(bonus.max_hp) + float(lv_bonus) * 0.5
-		bonus.crit_rate += float(lv_bonus) * 0.01
+				"attack":          bonus.attack += val
+				"max_hp":          bonus.max_hp += val
+				"crit_rate":       bonus.crit_rate += val
+				"crit_damage":     bonus.crit_damage += val          # 绝对加（v6）
+				"move_speed":      bonus.move_speed += val
+				"max_ki":          bonus.max_ki += val               # 绝对（v6 新）
+				"ki_regen":        bonus.ki_regen += val             # 绝对（v6 新）
+				"invincible_time": bonus.invincible_time += val      # 绝对（v6 新）
+				"ki_per_pixel":    bonus.ki_per_pixel += val         # 绝对，可为负（v6 新）
+				# 旧 pct key 兼容（旧 json 残留 max_ki_pct/ki_regen_pct）—— 保留但当前 json 不产出
+				"max_ki_pct":      pass
+				"ki_regen_pct":    pass
+				_:                 push_warning("equip stat_bonus unknown key: %s" % key)
+	# G 列 per_level_bonuses × (level-1) —— 数据驱动每级成长，替换旧硬编码
+	var level := int(item.get("level", 1))
+	var plv := def.get("per_level_bonuses", {})
+	if typeof(plv) == TYPE_DICTIONARY and level > 1:
+		var lv_factor := float(level - 1)
+		for k in plv.keys():
+			var key := str(k)
+			var val := float(plv[k]) * lv_factor
+			match key:
+				"attack":          bonus.attack += val
+				"max_hp":          bonus.max_hp += val
+				"crit_rate":       bonus.crit_rate += val
+				"crit_damage":     bonus.crit_damage += val
+				"move_speed":      bonus.move_speed += val
+				"max_ki":          bonus.max_ki += val
+				"ki_regen":        bonus.ki_regen += val
+				"invincible_time": bonus.invincible_time += val
+				"ki_per_pixel":    bonus.ki_per_pixel += val
+				_:                 push_warning("equip per_level unknown key: %s" % key)
 	return bonus
 
 
