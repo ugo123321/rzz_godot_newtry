@@ -898,10 +898,14 @@ func get_equipment_totals() -> Dictionary:
 	_ensure_slot_state()
 	var total := {
 		"attack": 0.0,
-		"max_hp": 0,
+		"max_hp": 0.0,
 		"crit_rate": 0.0,
 		"crit_damage": 0.0,
 		"move_speed": 0.0,
+		"max_ki": 0.0,
+		"ki_regen": 0.0,
+		"invincible_time": 0.0,
+		"ki_per_pixel": 0.0,
 		"max_ki_pct": 0.0,
 		"ki_regen_pct": 0.0,
 		"item_power": 0,
@@ -916,6 +920,10 @@ func get_equipment_totals() -> Dictionary:
 		total.crit_rate += float(bonus.get("crit_rate", 0.0))
 		total.crit_damage += float(bonus.get("crit_damage", 0.0))
 		total.move_speed += float(bonus.get("move_speed", 0.0))
+		total.max_ki += float(bonus.get("max_ki", 0.0))
+		total.ki_regen += float(bonus.get("ki_regen", 0.0))
+		total.invincible_time += float(bonus.get("invincible_time", 0.0))
+		total.ki_per_pixel += float(bonus.get("ki_per_pixel", 0.0))
 		total.max_ki_pct += float(bonus.get("max_ki_pct", 0.0))
 		total.ki_regen_pct += float(bonus.get("ki_regen_pct", 0.0))
 		total.item_power += int(bonus.get("item_power", 0))
@@ -929,8 +937,13 @@ func get_battle_modifiers() -> Dictionary:
 		"attack": float(totals.get("attack", 0.0)),
 		"max_hp": float(totals.get("max_hp", 0.0)),
 		"crit_rate": float(totals.get("crit_rate", 0.0)),
-		"crit_damage": float(totals.get("crit_damage", 0.0)),
+		"crit_damage": float(totals.get("crit_damage", 0.0)),       # 绝对加（v6）
 		"move_speed": float(totals.get("move_speed", 0.0)),
+		"max_ki": float(totals.get("max_ki", 0.0)),                  # 绝对（v6 新）
+		"ki_regen": float(totals.get("ki_regen", 0.0)),              # 绝对（v6 新）
+		"invincible_time": float(totals.get("invincible_time", 0.0)),    # 绝对（v6 新）
+		"ki_per_pixel": float(totals.get("ki_per_pixel", 0.0)),      # 绝对，可为负（v6 新）
+		# 旧 pct 路径保留（当前 json 不产出，forge/技能石 用 pct 走另一条线）
 		"max_ki_pct": float(totals.get("max_ki_pct", 0.0)),
 		"ki_regen_pct": float(totals.get("ki_regen_pct", 0.0)),
 	}
