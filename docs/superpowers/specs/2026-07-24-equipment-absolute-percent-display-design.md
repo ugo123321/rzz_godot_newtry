@@ -82,7 +82,7 @@ flag 行（橙阶纯机制）：保留原 desc 文案，不换算。
 - `get_battle_modifiers`（911-922）：透传新 key（`max_ki`/`ki_regen`/`invincible_time`/`ki_per_pixel`）给 player.gd。
 - `get_item_skill_entries`（777-787）+ `_skill_text_for_quality`（790-798）：
   - 改为**计算显示文本**而非直返 raw desc。对每个 tier：
-    - 数值型：白阶 = `ceil((F白 + G×(level-1)) / base × 100)`% 文本；非白阶 = `ceil(F_tier / base × 100)`% 文本。
+    - 数值型：白阶 = `ceil((F白 + G×(level-1)) / base × 100)`% 文本；非白阶 = `ceil(F_tier / base × 100)`% 文本。白阶不加额外每级注释，单数字已反映成长。
     - flag：保留原 desc。
   - 文案格式走 i18n key（见七），中英双语。
   - 供详情弹窗 + 属性弹窗 active 列表共用，保证两处一致。
@@ -109,10 +109,11 @@ flag 行（橙阶纯机制）：保留原 desc 文案，不换算。
 新增 stat 显示名 key（`config/i18n/ui_zh_CN.json` + `ui_en.json`，两份都填）：
 `UI_EQUIP_STAT_ATTACK / MAX_HP / CRIT_RATE / CRIT_DAMAGE / MOVE_SPEED / MAX_KI / KI_REGEN / INVINCIBLE_TIME / KI_PER_PIXEL`。
 
-文本格式模板 key（带 `%`，整句含占位符，按 CLAUDE.md 规范）：
-- 正值：`UI_EQUIP_STAT_PLUS_FMT = "{stat} +{n}%"` / `"{stat} +{n}%"`
-- 负值：`UI_EQUIP_STAT_MINUS_FMT = "{stat} {n}%"` / `"{stat} {n}%"`（n 带负号）
-- 白阶含每级：白阶文本额外用 `UI_EQUIP_STAT_PLUS_PERLV_FMT = "{stat} +{n}%（每级 +{plv}%）"`（中英），负值同理。
+显示文案由 GDScript 拼接：`stat 名（i18n） + " " + 符号 + 整数 + "%"`，其中符号/数字/`%` 为语言中立字符，只有 stat 名走 i18n，满足「无裸中文」。
+- 正值：`攻击力 +10%`
+- 负值：`划线气力消耗 -5%`（n 自带负号）
+
+**白阶行不加额外「每级」注释**：白阶显示值 = `(F白 + G×(level-1)) / base × 100` 向上取整后的单个 %，本身已反映当前等级的成长（升级后数字变大）。用户需求是「白阶属性要加上升级效果」，单数字即满足，无需 `(每级 +X%)` 注释，减少 i18n 表面。
 
 flag 行沿用原 desc（已有或补 i18n）。
 
