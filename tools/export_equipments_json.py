@@ -67,32 +67,32 @@ QUALITY_CN_TO_CODE = {"白": 0, "蓝": 1, "紫": 2, "橙": 3}
 # 这里 EFFECT_PATTERNS 只负责把中文文案解析成 (stat_bonuses, flag, effect_desc_en)。
 # 数值型 tier 不再需要 effect_desc_en（运行时算百分比），只 flag 保留 desc。
 EFFECT_PATTERNS = [
-    # 攻击力 +N
-    (re.compile(r"^攻击力\+(-?\d+(?:\.\d+)?)$"),
+    # 攻击力 +N（[+-]? 兼容负值与无符号写法）
+    (re.compile(r"^攻击力([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"attack": float(m.group(1))}, None, "")),
     # 生命 +N（浮点心数，如 0.5）
-    (re.compile(r"^生命\+(-?\d+(?:\.\d+)?)$"),
+    (re.compile(r"^生命([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"max_hp": float(m.group(1))}, None, "")),
     # 暴击率 +N（0–1 浮点，如 0.05）
-    (re.compile(r"^暴击率\+(-?\d+(?:\.\d+)?)$"),
+    (re.compile(r"^暴击率([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"crit_rate": float(m.group(1))}, None, "")),
     # 暴击伤害倍率基础值 +N（绝对加成，如 0.3 / 1）
-    (re.compile(r"^暴击伤害倍率基础值\+(-?\d+(?:\.\d+)?)$"),
+    (re.compile(r"^暴击伤害倍率基础值([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"crit_damage": float(m.group(1))}, None, "")),
     # 移动速度 +N
-    (re.compile(r"^移动速度\+(-?\d+(?:\.\d+)?)$"),
+    (re.compile(r"^移动速度([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"move_speed": float(m.group(1))}, None, "")),
     # 气力上限 +N（绝对，新 key；旧是 max_ki_pct）
-    (re.compile(r"^气力上限\+(-?\d+(?:\.\d+)?)$"),
+    (re.compile(r"^气力上限([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"max_ki": float(m.group(1))}, None, "")),
     # 气力回复速度 +N（绝对，新 key；旧是 ki_regen_pct）
-    (re.compile(r"^气力回复速度\+(-?\d+(?:\.\d+)?)$"),
+    (re.compile(r"^气力回复速度([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"ki_regen": float(m.group(1))}, None, "")),
     # 受击无敌时间 +N（全新）
-    (re.compile(r"^受击无敌时间\+(-?\d+(?:\.\d+)?)$"),
+    (re.compile(r"^受击无敌时间([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"invincible_time": float(m.group(1))}, None, "")),
-    # 划线气力消耗 +N（可为负；负=降消耗）
-    (re.compile(r"^划线气力消耗\+(-?\d+(?:\.\d+)?)$"),
+    # 划线气力消耗 +N（可为负；负=降消耗；xlsx 负值写作「划线气力消耗-0.01」无 + 号）
+    (re.compile(r"^划线气力消耗([+-]?\d+(?:\.\d+)?)$"),
      lambda m: ({"ki_per_pixel": float(m.group(1))}, None, "")),
     # 4 个 flag（纯机制，保留 desc）
     (re.compile(r"^子弹获得追踪效果$"),

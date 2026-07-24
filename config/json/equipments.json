@@ -11,40 +11,35 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "attack": 5
+            "attack": 5.0
           },
-          "flag": null,
-          "effect_desc_cn": "攻击力+5",
-          "effect_desc_en": "ATK +5"
+          "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "attack": 10
+            "attack": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "攻击力+10",
-          "effect_desc_en": "ATK +10"
+          "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "attack": 10
+            "attack": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "攻击力+10",
-          "effect_desc_en": "ATK +10"
+          "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {
-            "attack": 10
+            "attack": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "攻击力+10",
-          "effect_desc_en": "ATK +10"
+          "flag": null
         }
-      ]
+      ],
+      "per_level_bonuses": {
+        "attack": 1.0
+      }
     },
     {
       "def_id": "light_cloth_armor",
@@ -57,40 +52,35 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "max_hp": 1
+            "invincible_time": 0.05
           },
-          "flag": null,
-          "effect_desc_cn": "生命+1",
-          "effect_desc_en": "HP +1"
+          "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "max_hp": 1
+            "max_hp": 0.5
           },
-          "flag": null,
-          "effect_desc_cn": "生命+1",
-          "effect_desc_en": "HP +1"
+          "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "max_hp": 2
+            "invincible_time": 0.05
           },
-          "flag": null,
-          "effect_desc_cn": "生命+2",
-          "effect_desc_en": "HP +2"
+          "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {
-            "max_hp": 4
+            "max_hp": 0.5
           },
-          "flag": null,
-          "effect_desc_cn": "生命+4",
-          "effect_desc_en": "HP +4"
+          "flag": null
         }
-      ]
+      ],
+      "per_level_bonuses": {
+        "invincible_time": 0.01
+      }
     },
     {
       "def_id": "hard_wood_shoes",
@@ -105,38 +95,33 @@
           "stat_bonuses": {
             "crit_rate": 0.05
           },
-          "flag": null,
-          "effect_desc_cn": "暴击率基础值+5%",
-          "effect_desc_en": "Crit Rate +5%"
+          "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
             "crit_rate": 0.05
           },
-          "flag": null,
-          "effect_desc_cn": "暴击率基础值+5%",
-          "effect_desc_en": "Crit Rate +5%"
+          "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
             "crit_rate": 0.05
           },
-          "flag": null,
-          "effect_desc_cn": "暴击率基础值+5%",
-          "effect_desc_en": "Crit Rate +5%"
+          "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {
             "crit_rate": 0.05
           },
-          "flag": null,
-          "effect_desc_cn": "暴击率基础值+5%",
-          "effect_desc_en": "Crit Rate +5%"
+          "flag": null
         }
-      ]
+      ],
+      "per_level_bonuses": {
+        "crit_rate": 0.01
+      }
     },
     {
       "def_id": "fur_hat",
@@ -149,40 +134,35 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "max_ki_pct": 0.05
+            "max_ki": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "气力上限基础值+5%",
-          "effect_desc_en": "Max Ki +5%"
+          "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "max_ki_pct": 0.05
+            "max_ki": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "气力上限基础值+5%",
-          "effect_desc_en": "Max Ki +5%"
+          "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "max_ki_pct": 0.05
+            "max_ki": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "气力上限基础值+5%",
-          "effect_desc_en": "Max Ki +5%"
+          "flag": null
         },
         {
           "quality": 3,
           "stat_bonuses": {
-            "max_ki_pct": 0.05
+            "max_ki": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "气力上限基础值+5%",
-          "effect_desc_en": "Max Ki +5%"
+          "flag": null
         }
-      ]
+      ],
+      "per_level_bonuses": {
+        "max_ki": 2.0
+      }
     },
     {
       "def_id": "storm_greatsword",
@@ -195,29 +175,23 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "attack": 10
+            "attack": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "攻击力+10",
-          "effect_desc_en": "ATK +10"
+          "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "crit_damage": 0.1
+            "crit_damage": 0.3
           },
-          "flag": null,
-          "effect_desc_cn": "暴击伤害倍率基础值+10%",
-          "effect_desc_en": "Crit DMG +10%"
+          "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "attack": 20
+            "attack": 20.0
           },
-          "flag": null,
-          "effect_desc_cn": "攻击力+20",
-          "effect_desc_en": "ATK +20"
+          "flag": null
         },
         {
           "quality": 3,
@@ -226,7 +200,10 @@
           "effect_desc_cn": "子弹获得追踪效果",
           "effect_desc_en": "Bullets seek nearby enemies"
         }
-      ]
+      ],
+      "per_level_bonuses": {
+        "attack": 1.0
+      }
     },
     {
       "def_id": "nimble_boots",
@@ -239,29 +216,23 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "move_speed": 10
+            "move_speed": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "移速基础值+10",
-          "effect_desc_en": "Move Speed +10"
+          "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "move_speed": 10
+            "move_speed": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "移速基础值+10",
-          "effect_desc_en": "Move Speed +10"
+          "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "move_speed": 10
+            "move_speed": 10.0
           },
-          "flag": null,
-          "effect_desc_cn": "移速基础值+10",
-          "effect_desc_en": "Move Speed +10"
+          "flag": null
         },
         {
           "quality": 3,
@@ -270,7 +241,10 @@
           "effect_desc_cn": "持续电击靠近的敌人",
           "effect_desc_en": "Continuously shocks nearby enemies"
         }
-      ]
+      ],
+      "per_level_bonuses": {
+        "move_speed": 2.0
+      }
     },
     {
       "def_id": "jungle_armor",
@@ -283,29 +257,23 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "ki_regen_pct": 0.05
+            "ki_regen": 3.0
           },
-          "flag": null,
-          "effect_desc_cn": "气力回复速度基础值+5%",
-          "effect_desc_en": "Ki Regen +5%"
+          "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "ki_regen_pct": 0.05
+            "ki_regen": 3.0
           },
-          "flag": null,
-          "effect_desc_cn": "气力回复速度基础值+5%",
-          "effect_desc_en": "Ki Regen +5%"
+          "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "ki_regen_pct": 0.05
+            "ki_regen": 3.0
           },
-          "flag": null,
-          "effect_desc_cn": "气力回复速度基础值+5%",
-          "effect_desc_en": "Ki Regen +5%"
+          "flag": null
         },
         {
           "quality": 3,
@@ -314,7 +282,10 @@
           "effect_desc_cn": "每关随机刷出的树木数量翻倍",
           "effect_desc_en": "Trees spawned per stage x2"
         }
-      ]
+      ],
+      "per_level_bonuses": {
+        "ki_regen": 0.8
+      }
     },
     {
       "def_id": "sturdy_helmet",
@@ -327,29 +298,23 @@
         {
           "quality": 0,
           "stat_bonuses": {
-            "max_hp": 2
+            "ki_per_pixel": -0.01
           },
-          "flag": null,
-          "effect_desc_cn": "生命+2",
-          "effect_desc_en": "HP +2"
+          "flag": null
         },
         {
           "quality": 1,
           "stat_bonuses": {
-            "max_hp": 1
+            "max_hp": 0.5
           },
-          "flag": null,
-          "effect_desc_cn": "生命+1",
-          "effect_desc_en": "HP +1"
+          "flag": null
         },
         {
           "quality": 2,
           "stat_bonuses": {
-            "max_hp": 2
+            "max_hp": 0.5
           },
-          "flag": null,
-          "effect_desc_cn": "生命+2",
-          "effect_desc_en": "HP +2"
+          "flag": null
         },
         {
           "quality": 3,
@@ -358,7 +323,10 @@
           "effect_desc_cn": "受击时5%概率免伤",
           "effect_desc_en": "5% chance to negate incoming hits"
         }
-      ]
+      ],
+      "per_level_bonuses": {
+        "ki_per_pixel": -0.002
+      }
     }
   ]
 }
