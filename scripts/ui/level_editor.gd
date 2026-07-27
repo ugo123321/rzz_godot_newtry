@@ -260,7 +260,7 @@ func _on_options_pressed() -> void:
 	var vbox := VBoxContainer.new()
 	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_EXIT"), _on_exit_pressed))
 	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_TEST"), _start_test))
-	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RESET"), _reset_all))
+	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RESET"), func(): _reset_all()))
 	# 编号栏
 	var hbox := HBoxContainer.new()
 	var lbl := Label.new()
