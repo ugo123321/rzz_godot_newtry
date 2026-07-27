@@ -67,3 +67,32 @@ static func list_numbers() -> Array:
 		name = dir.get_next()
 	out.sort()
 	return out
+
+
+# 删除已保存的布局文件。返回 {"ok", "path", "error"}。
+static func delete_layout(number) -> Dictionary:
+	var path := _path_for(number)
+	var err := DirAccess.remove_absolute(path)
+	return {"ok": err == OK, "path": path, "error": err}
+
+
+# 重命名：以 new_num 保存一份 old_num 的元素副本，再删 old_num。
+# new_num 已存在 / old_num 不存在 / 读回失败 / 保存失败 / 删旧失败 → 对应 error，不动旧文件。
+static func rename_layout(old_num, new_num) -> Dictionary:
+	var old_path := _path_for(old_num)
+	var new_path := _path_for(new_num)
+	if not FileAccess.file_exists(old_path):
+		return {"ok": false, "error": "not_found"}
+	if FileAccess.file_exists(new_path):
+		return {"ok": false, "error": "exists"}
+	var layout := load_layout(old_num)
+	if layout.is_empty():
+		return {"ok": false, "error": "empty_load"}
+	# save_layout 内部 data["number"] 用传入的 new_num，避免文件内容仍指旧编号
+	var saved := save_layout(new_num, layout.get("elements", []))
+	if not saved.get("ok", false):
+		return {"ok": false, "error": "save_failed"}
+	var rm := delete_layout(old_num)
+	if not rm.get("ok", false):
+		return {"ok": false, "error": "delete_old_failed"}
+	return {"ok": true, "new_path": new_path}
