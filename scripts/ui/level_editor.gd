@@ -755,6 +755,12 @@ func _show_toast(msg: String) -> void:
 
 
 # === 管理：列出已保存关卡，每行 载入 / 重命名 / 删除 ===
+func _close_all_confirm_dialogs() -> void:
+	for c in _ui_layer.get_children():
+		if c is ConfirmationDialog:
+			c.queue_free()
+
+
 func _open_manage_dialog() -> void:
 	var dlg := ConfirmationDialog.new()
 	dlg.title = LanguageManager.tr_ui("UI_LEVEL_EDITOR_MANAGE_TITLE")
@@ -815,7 +821,7 @@ func _make_manage_row(num: String) -> HBoxContainer:
 	PixelUi.apply_ui_font(load_btn)
 	load_btn.add_theme_font_size_override("font_size", 16)
 	UiStyle.apply_primary_button(load_btn, Color("#5fa060"), 8)
-	load_btn.pressed.connect(func(): _on_load_existing(num, row))
+	load_btn.pressed.connect(func(): _on_load_existing(num))
 	row.add_child(load_btn)
 	# 重命名
 	var rename_btn := Button.new()
@@ -831,13 +837,13 @@ func _make_manage_row(num: String) -> HBoxContainer:
 	PixelUi.apply_ui_font(del_btn)
 	del_btn.add_theme_font_size_override("font_size", 16)
 	UiStyle.apply_primary_button(del_btn, Color("#a05050"), 8)
-	del_btn.pressed.connect(func(): _on_delete_existing(num, row))
+	del_btn.pressed.connect(func(): _on_delete_existing(num))
 	row.add_child(del_btn)
 	return row
 
 
 # 载入：画布非空先弹丢弃确认 → _reset_all + _load_layout → 关对话框 + toast
-func _on_load_existing(num: String, row: HBoxContainer) -> void:
+func _on_load_existing(num: String) -> void:
 	var has_unsaved: bool = not _elements.is_empty() or not _tile_overrides.is_empty()
 	if has_unsaved:
 		var confirm := ConfirmationDialog.new()
@@ -848,7 +854,6 @@ func _on_load_existing(num: String, row: HBoxContainer) -> void:
 		_ui_layer.add_child(confirm)
 		confirm.popup_centered()
 		confirm.confirmed.connect(func():
-			confirm.queue_free()
 			_do_load_existing(num)
 		)
 		confirm.canceled.connect(confirm.queue_free)
@@ -866,9 +871,7 @@ func _do_load_existing(num: String) -> void:
 	var count: int = int(layout.get("elements", []).size())
 	_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOADED_FMT") % [num, count])
 	# 关掉管理对话框：找 UI 层里最顶部的 ConfirmationDialog（即管理面板）
-	for c in _ui_layer.get_children():
-		if c is ConfirmationDialog:
-			c.queue_free()
+	_close_all_confirm_dialogs()
 
 
 # 重命名：行内把 name_lbl 换成 LineEdit + ✓ → rename_layout → 刷新列表
@@ -905,9 +908,7 @@ func _on_rename_existing(num: String, row: HBoxContainer) -> void:
 		if res.get("ok", false):
 			_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RENAME_DONE_FMT") % [num, new_num])
 			# 关管理对话框后重建刷新
-			for c in _ui_layer.get_children():
-				if c is ConfirmationDialog:
-					c.queue_free()
+			_close_all_confirm_dialogs()
 			_open_manage_dialog()
 		else:
 			var err: String = String(res.get("error", ""))
@@ -916,7 +917,8 @@ func _on_rename_existing(num: String, row: HBoxContainer) -> void:
 			else:
 				_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RENAME_FAILED_FMT"))
 	ok_btn.pressed.connect(commit)
-	edit.text_submitted.connect(func(_s: String): commit.call())
+	edit.text_submitted.connect(commit)
+	edit.focus_exited.connect(func(): _restore_rename_row(row, edit, ok_btn, name_lbl))
 
 
 func _restore_rename_row(row: HBoxContainer, edit: LineEdit, ok_btn: Button, name_lbl: Label) -> void:
@@ -928,7 +930,7 @@ func _restore_rename_row(row: HBoxContainer, edit: LineEdit, ok_btn: Button, nam
 
 
 # 删除：二次确认 → delete_layout → 刷新列表
-func _on_delete_existing(num: String, row: HBoxContainer) -> void:
+func _on_delete_existing(num: String) -> void:
 	var confirm := ConfirmationDialog.new()
 	confirm.title = LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE")
 	confirm.dialog_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE_CONFIRM_FMT") % num
@@ -937,13 +939,10 @@ func _on_delete_existing(num: String, row: HBoxContainer) -> void:
 	_ui_layer.add_child(confirm)
 	confirm.popup_centered()
 	confirm.confirmed.connect(func():
-		confirm.queue_free()
 		var res: Dictionary = LevelLayoutLoaderScript.delete_layout(num)
 		if res.get("ok", false):
 			_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE_DONE_FMT") % num)
-			for c in _ui_layer.get_children():
-				if c is ConfirmationDialog:
-					c.queue_free()
+			_close_all_confirm_dialogs()
 			_open_manage_dialog()
 		else:
 			_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE_FAILED_FMT"))
