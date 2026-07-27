@@ -273,6 +273,7 @@ func _on_options_pressed() -> void:
 	hbox.add_child(_number_edit)
 	vbox.add_child(hbox)
 	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_SAVE"), _on_save_pressed))
+	vbox.add_child(_make_menu_button(LanguageManager.tr_ui("UI_LEVEL_EDITOR_MANAGE"), _open_manage_dialog))
 	dlg.add_child(vbox)
 	# 把 ADD/Cancel 按钮文案改：ok=添加，cancel=关闭
 	_ui_layer.add_child(dlg)
@@ -751,3 +752,200 @@ func _show_toast(msg: String) -> void:
 	tw.tween_interval(1.4)
 	tw.tween_property(lbl, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(lbl.queue_free)
+
+
+# === 管理：列出已保存关卡，每行 载入 / 重命名 / 删除 ===
+func _open_manage_dialog() -> void:
+	var dlg := ConfirmationDialog.new()
+	dlg.title = LanguageManager.tr_ui("UI_LEVEL_EDITOR_MANAGE_TITLE")
+	dlg.dialog_text = ""
+	dlg.ok_button_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_CLOSE")
+	dlg.cancel_button_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_CANCEL")
+	# 可滚动列表容器
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(560, 360)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	scroll.add_child(vbox)
+	dlg.add_child(scroll)
+	var numbers: Array = LevelLayoutLoaderScript.list_numbers()
+	if numbers.is_empty():
+		var empty_lbl := Label.new()
+		empty_lbl.text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_MANAGE_EMPTY")
+		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelUi.apply_ui_font(empty_lbl)
+		empty_lbl.add_theme_font_size_override("font_size", 20)
+		vbox.add_child(empty_lbl)
+	else:
+		for num in numbers:
+			vbox.add_child(_make_manage_row(String(num)))
+	_ui_layer.add_child(dlg)
+	dlg.popup_centered()
+	# ok / cancel 都只是关对话框
+	dlg.confirmed.connect(func():
+		dlg.queue_free()
+	)
+	dlg.canceled.connect(func():
+		dlg.queue_free()
+	)
+
+
+func _make_manage_row(num: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.set_meta("num", num)
+	# 元素数（读回布局；失败按 0）
+	var layout: Dictionary = LevelLayoutLoaderScript.load_layout(num)
+	var count: int = int(layout.get("elements", []).size()) if not layout.is_empty() else 0
+	var name_lbl := Label.new()
+	name_lbl.text = num
+	name_lbl.custom_minimum_size = Vector2(140, 0)
+	name_lbl.add_theme_font_size_override("font_size", 18)
+	PixelUi.apply_ui_font(name_lbl)
+	row.add_child(name_lbl)
+	var cnt_lbl := Label.new()
+	cnt_lbl.text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_ELEM_COUNT_FMT") % count
+	cnt_lbl.custom_minimum_size = Vector2(110, 0)
+	cnt_lbl.add_theme_font_size_override("font_size", 16)
+	PixelUi.apply_ui_font(cnt_lbl)
+	row.add_child(cnt_lbl)
+	# 载入
+	var load_btn := Button.new()
+	load_btn.text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOAD")
+	PixelUi.apply_ui_font(load_btn)
+	load_btn.add_theme_font_size_override("font_size", 16)
+	UiStyle.apply_primary_button(load_btn, Color("#5fa060"), 8)
+	load_btn.pressed.connect(func(): _on_load_existing(num, row))
+	row.add_child(load_btn)
+	# 重命名
+	var rename_btn := Button.new()
+	rename_btn.text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_RENAME")
+	PixelUi.apply_ui_font(rename_btn)
+	rename_btn.add_theme_font_size_override("font_size", 16)
+	UiStyle.apply_primary_button(rename_btn, Color("#5a6a90"), 8)
+	rename_btn.pressed.connect(func(): _on_rename_existing(num, row))
+	row.add_child(rename_btn)
+	# 删除
+	var del_btn := Button.new()
+	del_btn.text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE")
+	PixelUi.apply_ui_font(del_btn)
+	del_btn.add_theme_font_size_override("font_size", 16)
+	UiStyle.apply_primary_button(del_btn, Color("#a05050"), 8)
+	del_btn.pressed.connect(func(): _on_delete_existing(num, row))
+	row.add_child(del_btn)
+	return row
+
+
+# 载入：画布非空先弹丢弃确认 → _reset_all + _load_layout → 关对话框 + toast
+func _on_load_existing(num: String, row: HBoxContainer) -> void:
+	var has_unsaved: bool = not _elements.is_empty() or not _tile_overrides.is_empty()
+	if has_unsaved:
+		var confirm := ConfirmationDialog.new()
+		confirm.title = LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOAD")
+		confirm.dialog_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOAD_DISCARD_CONFIRM_FMT") % num
+		confirm.ok_button_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOAD")
+		confirm.cancel_button_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_CANCEL")
+		_ui_layer.add_child(confirm)
+		confirm.popup_centered()
+		confirm.confirmed.connect(func():
+			confirm.queue_free()
+			_do_load_existing(num)
+		)
+		confirm.canceled.connect(confirm.queue_free)
+		return
+	_do_load_existing(num)
+
+
+func _do_load_existing(num: String) -> void:
+	var layout: Dictionary = LevelLayoutLoaderScript.load_layout(num)
+	if layout.is_empty():
+		_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOAD_NOT_FOUND_FMT") % num)
+		return
+	_reset_all()
+	_load_layout(num)  # 已存在函数，重建 _tile_overrides + _elements
+	var count: int = int(layout.get("elements", []).size())
+	_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOADED_FMT") % [num, count])
+	# 关掉管理对话框：找 UI 层里最顶部的 ConfirmationDialog（即管理面板）
+	for c in _ui_layer.get_children():
+		if c is ConfirmationDialog:
+			c.queue_free()
+
+
+# 重命名：行内把 name_lbl 换成 LineEdit + ✓ → rename_layout → 刷新列表
+func _on_rename_existing(num: String, row: HBoxContainer) -> void:
+	# 行内 name_lbl 是第 0 个子节点
+	var name_lbl: Label = row.get_child(0)
+	name_lbl.visible = false
+	var edit := LineEdit.new()
+	edit.text = num
+	edit.editable = true
+	edit.select_all()
+	edit.custom_minimum_size = Vector2(140, 0)
+	PixelUi.apply_ui_font(edit)
+	edit.add_theme_font_size_override("font_size", 18)
+	row.add_child(edit)
+	row.move_child(edit, 0)  # 排在 name_lbl 之前
+	edit.grab_focus()
+	# ✓ 按钮
+	var ok_btn := Button.new()
+	ok_btn.text = "✓"
+	ok_btn.add_theme_font_size_override("font_size", 18)
+	UiStyle.apply_primary_button(ok_btn, Color("#5fa060"), 6)
+	PixelUi.apply_ui_font(ok_btn)
+	row.add_child(ok_btn)
+	var commit := func() -> void:
+		var new_num: String = edit.text.strip_edges()
+		if new_num.is_empty():
+			_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RENAME_INVALID"))
+			return
+		if new_num == num:
+			_restore_rename_row(row, edit, ok_btn, name_lbl)
+			return
+		var res: Dictionary = LevelLayoutLoaderScript.rename_layout(num, new_num)
+		if res.get("ok", false):
+			_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RENAME_DONE_FMT") % [num, new_num])
+			# 关管理对话框后重建刷新
+			for c in _ui_layer.get_children():
+				if c is ConfirmationDialog:
+					c.queue_free()
+			_open_manage_dialog()
+		else:
+			var err: String = String(res.get("error", ""))
+			if err == "exists":
+				_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RENAME_EXISTS_FMT") % new_num)
+			else:
+				_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RENAME_FAILED_FMT"))
+	ok_btn.pressed.connect(commit)
+	edit.text_submitted.connect(func(_s: String): commit.call())
+
+
+func _restore_rename_row(row: HBoxContainer, edit: LineEdit, ok_btn: Button, name_lbl: Label) -> void:
+	row.remove_child(edit)
+	row.remove_child(ok_btn)
+	edit.queue_free()
+	ok_btn.queue_free()
+	name_lbl.visible = true
+
+
+# 删除：二次确认 → delete_layout → 刷新列表
+func _on_delete_existing(num: String, row: HBoxContainer) -> void:
+	var confirm := ConfirmationDialog.new()
+	confirm.title = LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE")
+	confirm.dialog_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE_CONFIRM_FMT") % num
+	confirm.ok_button_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE")
+	confirm.cancel_button_text = LanguageManager.tr_ui("UI_LEVEL_EDITOR_CANCEL")
+	_ui_layer.add_child(confirm)
+	confirm.popup_centered()
+	confirm.confirmed.connect(func():
+		confirm.queue_free()
+		var res: Dictionary = LevelLayoutLoaderScript.delete_layout(num)
+		if res.get("ok", false):
+			_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE_DONE_FMT") % num)
+			for c in _ui_layer.get_children():
+				if c is ConfirmationDialog:
+					c.queue_free()
+			_open_manage_dialog()
+		else:
+			_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_DELETE_FAILED_FMT"))
+	)
+	confirm.canceled.connect(confirm.queue_free)
