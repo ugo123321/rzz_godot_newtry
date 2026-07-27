@@ -311,7 +311,7 @@ func _make_menu_button(text: String, cb: Callable) -> Button:
 
 
 # 恢复初始状态：清空所有已放置元素 + 地块覆盖，地形回草地，退出画笔/编辑。
-func _reset_all() -> void:
+func _reset_all(silent: bool = false) -> void:
 	_exit_brush()
 	_exit_edit_mode(false)
 	for e in _elements:
@@ -321,7 +321,8 @@ func _reset_all() -> void:
 	_tile_overrides.clear()
 	# 地形整片重画为草地（只烘焙一次）
 	_terrain.clear_all_tiles(TerrainBackgroundScript.TYPE_GRASS)
-	_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RESET_DONE"))
+	if not silent:
+		_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_RESET_DONE"))
 
 
 func _on_exit_pressed() -> void:
@@ -866,7 +867,7 @@ func _do_load_existing(num: String) -> void:
 	if layout.is_empty():
 		_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOAD_NOT_FOUND_FMT") % num)
 		return
-	_reset_all()
+	_reset_all(true)
 	_load_layout(num)  # 已存在函数，重建 _tile_overrides + _elements
 	var count: int = int(layout.get("elements", []).size())
 	_show_toast(LanguageManager.tr_ui("UI_LEVEL_EDITOR_LOADED_FMT") % [num, count])
