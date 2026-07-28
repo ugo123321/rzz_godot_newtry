@@ -27,9 +27,23 @@
 [ext_resource type="Texture2D" uid="uid://xdgoda11ob1i" path="res://assets/ui/equipment/sort_icon_sord.png" id="37_sort_sord"]
 [ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="38_gold"]
 [ext_resource type="Texture2D" uid="uid://dtyk4lhuwo6f8" path="res://assets/ui/icons/system/icon_equipment.png" id="40_equip_title"]
+[ext_resource type="Texture2D" path="res://assets/ui/battle/money_bg.png" id="50_money_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_enhance_gem.png" id="51_enhance_gem"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_hpsfa"]
 load_path = "res://.godot/imported/small_bg.png-e3d49fedff66e0cd06d87351020374cd.ctex"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
+bg_color = Color(0.16, 0.1, 0.03, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.819608, 0.4, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [node name="EquipmentPanel" type="Control" unique_id=1769657713]
 texture_filter = 2
@@ -105,6 +119,62 @@ offset_bottom = 105.0
 theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
 theme_override_font_sizes/font_size = 30
 text = "装备"
+vertical_alignment = 1
+
+[node name="EnhanceGemBar" type="Control" parent="Frame"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 17.0
+offset_top = 15.0
+offset_right = 184.0
+offset_bottom = 58.0
+mouse_filter = 2
+
+[node name="Bg" type="TextureRect" parent="Frame/EnhanceGemBar"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("50_money_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GemIcon" type="TextureRect" parent="Frame/EnhanceGemBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+texture = ExtResource("51_enhance_gem")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Value" type="Label" parent="Frame/EnhanceGemBar"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 44.0
+offset_top = 2.0
+offset_right = -8.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 26
+text = "0"
+horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="TextureRect" type="TextureRect" parent="Frame" unique_id=1748671009]
@@ -790,6 +860,76 @@ layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 2
 
+[node name="DecomposeBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=990000001]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 50)
+custom_maximum_size = Vector2(140, -1)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("20_disman02")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Content" type="HBoxContainer" parent="Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn" unique_id=990000002]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="TextLabel" type="Label" parent="Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn/Content" unique_id=990000010]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 28
+text = "分解"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="IconRect" type="TextureRect" parent="Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn/Content" unique_id=990000011]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+size_flags_vertical = 4
+custom_minimum_size = Vector2(24, 24)
+expand_mode = 1
+stretch_mode = 0
+texture = ExtResource("51_enhance_gem")
+
+[node name="CancelBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=990000003]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(140, 50)
+custom_maximum_size = Vector2(140, -1)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("20_disman02")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="Frame/RootMargin/BaseRoot/SynthRow/CancelBtn" unique_id=990000004]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 26
+text = "取消"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="SkillStoneBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=1180100220]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 50)
@@ -1122,7 +1262,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(24, 24)
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("38_gold")
+texture = ExtResource("51_enhance_gem")
 expand_mode = 5
 stretch_mode = 5
 
@@ -1223,7 +1363,29 @@ theme_override_font_sizes/normal_font_size = 18
 theme_override_font_sizes/bold_font_size = 18
 bbcode_enabled = true
 
+[node name="Toast" type="Label" parent="." unique_id=990000005]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -186.0
+offset_top = 150.0
+offset_right = 186.0
+offset_bottom = 192.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.956863, 0.745098, 1)
+theme_override_colors/font_outline_color = Color(0.352941, 0.2, 0.062745, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_toast")
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PowerRow/DetailBtn" to="." method="_show_attr_popup"]
+[connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn" to="." method="_on_decompose_pressed"]
+[connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/CancelBtn" to="." method="_on_cancel_pressed"]
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn" to="." method="_on_skill_stone_pressed"]
 [connection signal="pressed" from="Frame/RootMargin/BaseRoot/SynthRow/SynthBtn" to="." method="_on_synthesis_pressed"]
 [connection signal="gui_input" from="DetailPopup/Dim" to="." method="_on_detail_outside_clicked"]

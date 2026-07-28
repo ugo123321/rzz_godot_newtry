@@ -572,14 +572,17 @@ func _start_run() -> void:
 		_sync_background_layer()
 		_refresh_stage_ambience()
 	_apply_stage_meta(true)
-	# 关卡编辑器布局：若该关配置了 layout_number，载入对应 user://levels/<编号>.json 放置元素/地块。
-	_apply_stage_layout_if_any(stage_index)
-	_invalidate_nav()
+	# 先重置 tree_spawner（清上一关残留树），再载入编辑器布局——
+	# 顺序不能反：begin()/reset() 会把布局刚 register_tree 进来的树 queue_free 掉，
+	# 那正是"编辑器里放的树进测试就消失"的根因。
 	if not skip_world_setup and tree_spawner:
 		if get_stage_theme(stage_index) == "":
 			tree_spawner.begin(self)
 		else:
 			tree_spawner.reset()
+	# 关卡编辑器布局：若该关配置了 layout_number，载入对应 user://levels/<编号>.json 放置元素/地块。
+	_apply_stage_layout_if_any(stage_index)
+	_invalidate_nav()
 	if portal_spawner:
 		portal_spawner.begin()
 	state = GameState.PLAYING
@@ -911,6 +914,8 @@ func _advance_after_build() -> void:
 			tree_spawner.begin(self)
 		else:
 			tree_spawner.reset()
+	_apply_stage_layout_if_any(stage_index)
+	_invalidate_nav()
 	if portal_spawner:
 		portal_spawner.begin()
 	state = GameState.PLAYING
@@ -1164,15 +1169,33 @@ func _on_lottery_exit_complete() -> void:
 # stage→编号 绑定属未来工作（在 stages.json 加 layout_number 字段）；此处通过编号直接载入。
 const _TILE_LAYOUT_TYPES := ["water", "stone_floor"]
 
+# 清空上一关遗留的放置元素实体（箭头/锁定块/深坑/阻挡石/宝箱）。
+# field_elements 是跨关共享容器，_clear_stage_transition_presentation 不清它；模板载入前必须清，否则跨关堆积。
+# clear() 同时清注册表 _by_cell，避免 stale 条目让 has_*_blocking_at 误报阻挡。
+func _clear_field_elements() -> void:
+	if field_elements == null:
+		return
+	field_elements.clear()
+	for c in field_elements.get_children():
+		if is_instance_valid(c):
+			c.queue_free()
+
+
 func _apply_level_layout(number) -> void:
 	if not LevelLayoutLoaderScript:
 		return
 	var layout: Dictionary = LevelLayoutLoaderScript.load_layout(number)
 	if layout.is_empty():
+		print("[layout]   template=%s file_missing" % number)
 		return
 	var elements: Array = layout.get("elements", [])
 	if elements.is_empty():
+		print("[layout]   template=%s (0 elements)" % number)
 		return
+	print("[layout]   template=%s (%d elements)" % [number, elements.size()])
+	# 地板类先攒成批量，末尾 terrain.set_tiles_batch 一次性写 grid + bake；
+	# 逐格 set_tile 每格都会 _rebake_texture 整张图，N 格水 = N 次全图重绘 → 进测试卡顿。
+	var tile_changes: Array = []
 	for elem in elements:
 		if not (elem is Dictionary):
 			continue
@@ -1181,10 +1204,11 @@ func _apply_level_layout(number) -> void:
 		var row: int = int(elem.get("row", 0))
 		var facing: String = String(elem.get("facing", "up"))
 		if _TILE_LAYOUT_TYPES.has(t):
-			if terrain and terrain.has_method("set_tile"):
-				terrain.set_tile(col, row, t)
+			tile_changes.append({"col": col, "row": row, "type": t})
 			continue
 		_spawn_field_element(t, col, row, facing)
+	if not tile_changes.is_empty() and terrain and terrain.has_method("set_tiles_batch"):
+		terrain.set_tiles_batch(tile_changes)
 
 
 # 按 kind 实例化一个放置元素到 field_elements 容器，并注册到注册表。
@@ -1248,17 +1272,55 @@ func _cell_center(col: int, row: int) -> Vector2:
 	return Vector2((col + 0.5) * float(ts), (row + 0.5) * float(ts))
 
 
-# 读 stages.json 的 layout_number 字段（未来策划在该列填编号控制地图出现），有则载入对应布局。
-# 编辑器「测试」模式：直接载入 LobbyState.editor_test_layout（编辑器自动保存到 __editor_test__）。
+# 关卡模板载入：
+# - 编辑器测试模式：载入 __editor_test__（编辑器自动保存）。
+# - reward / attr_forge / boss 关：不套模板（特殊房间 / boss 竞技场保持干净）。
+# - 第一关 / 恶魔关 / 天使关：固定模板 0。
+# - 其余普通战斗关：40% 模板 0，60% 其他纯数字名模板随机（见 _roll_stage_template）。
+# 场景贴图（草地→石地→…→王宫）由 terrain_background 按 stage_index 烘焙，与此处模板无关；
+# 模板只在底图烘焙后追加 water/stone_floor 局部地块 + FieldElement 实体（树/坑/阻挡石/宝箱/传送门）。
 func _apply_stage_layout_if_any(stage_idx: int) -> void:
+	_clear_field_elements()  # 清上一关遗留的放置元素（field_elements 跨关共享，否则堆积）
 	if LobbyState and LobbyState.editor_test_mode and not LobbyState.editor_test_layout.is_empty():
+		print("[layout] stage=%d EDITOR_TEST" % stage_idx)
 		_apply_level_layout(LobbyState.editor_test_layout)
 		return
 	var stage_dict: Dictionary = GameConfig.get_stage(stage_idx)
-	var num = stage_dict.get("layout_number", "")
-	if num == null or String(num).strip_edges().is_empty():
+	var rt := str(stage_dict.get("room_type", ""))
+	if rt == "reward" or rt == "attr_forge":
+		print("[layout] stage=%d SKIP(special room %s)" % [stage_idx, rt])
+		return  # 特殊房间不套模板
+	if str(stage_dict.get("boss_id", "")) != "":
+		print("[layout] stage=%d SKIP(boss)" % stage_idx)
+		return  # boss 关不套模板
+	# 第一关 / 恶魔关 / 天使关：固定模板 0。
+	var theme := get_stage_theme(stage_idx)
+	if stage_idx == 0 or theme == "demon" or theme == "angel":
+		print("[layout] stage=%d FORCED_0 (theme=%s)" % [stage_idx, theme])
+		_apply_level_layout("0")
 		return
-	_apply_level_layout(num)
+	# 其余普通战斗关：40% 模板 0，60% 其他模板随机。
+	var picked := _roll_stage_template()
+	print("[layout] stage=%d ROLL -> %s" % [stage_idx, picked])
+	_apply_level_layout(picked)
+
+
+# 40% 概率模板 0；否则在纯数字命名的已保存编号里等权随机抽一个（排除 "0"，它是 40% 桶）。
+# 非纯数字名（default / __editor_test__ 等）不入随机池。池空回落到 "0"。
+func _roll_stage_template() -> String:
+	if randf() < 0.4:
+		return "0"
+	var others: Array = []
+	for n in LevelLayoutLoaderScript.list_numbers():
+		var ns := String(n)
+		if not ns.is_valid_int():
+			continue  # default / __editor_test__ 等非纯数字名不入池
+		if ns == "0":
+			continue
+		others.append(ns)
+	if others.is_empty():
+		return "0"
+	return String(others[randi() % others.size()])
 
 
 # 编辑器测试模式：在战斗 UI 右上角加「停止测试」按钮，点击回关卡编辑器并恢复布局。
@@ -1725,6 +1787,10 @@ func _on_stage_transition_complete(next_index: int) -> void:
 	if _try_enter_reward_room(stage_index):
 		return
 	_apply_stage_meta(false)
+	# 正常切关路径（stage_transition 落地后）在此载入关卡模板：
+	# prespawn/rebase 只搭地形/草地/树容器，没载模板，必须在这里补。
+	_apply_stage_layout_if_any(stage_index)
+	_invalidate_nav()
 	state = GameState.PLAYING
 	EventBus.stage_started.emit(stage_index)
 
@@ -1772,6 +1838,8 @@ func _legacy_advance_to_next_stage() -> void:
 			tree_spawner.begin(self)
 		else:
 			tree_spawner.reset()
+	_apply_stage_layout_if_any(stage_index)
+	_invalidate_nav()
 	if portal_spawner:
 		portal_spawner.begin()
 	state = GameState.PLAYING
@@ -1849,6 +1917,8 @@ func _on_reward_wheel_finished(reward_text: String) -> void:
 				tree_spawner.begin(self)
 			else:
 				tree_spawner.reset()
+		_apply_stage_layout_if_any(stage_index)
+		_invalidate_nav()
 		if portal_spawner:
 			portal_spawner.begin()
 		state = GameState.PLAYING
@@ -2166,12 +2236,11 @@ func _rebase_after_transition(next_index: int) -> void:
 		tree_container = _pending_next_tree_container
 		_pending_next_tree_container = null
 	if tree_spawner:
-		# 让 tree_spawner 认领新树，避免它在 update_trees 中误判"全死"重新刷一波
+		# 让 tree_spawner 认领新树（_pending_next_trees 现为空——预生成树已停用），避免 update_trees 误判"全死"。
 		tree_spawner.trees = _pending_next_trees.duplicate()
-		# 主题关（demon/angel）/ 打造关不再补刷树：active=false 让 update_trees 直接 early return
-		var next_stage_dict: Dictionary = GameConfig.get_stage(next_index)
-		var is_forge_stage := str(next_stage_dict.get("room_type", "")) == "attr_forge"
-		tree_spawner.active = get_stage_theme(next_index) == "" and not is_forge_stage
+		# 随机树生成已停用：树改为模板布局放置（见 _apply_stage_layout_if_any）。
+		# active=false 让 update_trees 直接 early return，不再程序化补刷树（否则普通关每帧 _spawn_wave 刷树）。
+		tree_spawner.active = false
 	_pending_next_trees = []
 	# 3.5) 打造关 ForgePortal：reparent 到 $Entities/Portals，赋值 _active_forge_portal
 	if _pending_next_forge_portal and is_instance_valid(_pending_next_forge_portal):
@@ -2501,6 +2570,28 @@ func spawn_enemy_bounce(
 		effect_key,
 		tint
 	)
+
+
+func spawn_enemy_snake(
+	from_pos: Vector2,
+	to_pos: Vector2,
+	damage: int,
+	speed: float,
+	effect_key: String = "",
+	tint: Color = Color.WHITE
+) -> void:
+	EnemyArrowScript.spawn_snake(self, from_pos, to_pos, damage, speed, effect_key, tint)
+
+
+func spawn_enemy_radial(
+	from_pos: Vector2,
+	damage: int,
+	speed: float,
+	count: int,
+	effect_key: String = "",
+	tint: Color = Color.WHITE
+) -> void:
+	EnemyArrowScript.spawn_radial(self, from_pos, damage, speed, count, effect_key, tint)
 
 
 func _clear_projectiles() -> void:

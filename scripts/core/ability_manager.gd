@@ -707,7 +707,8 @@ func spawn_v6_black_hole(player: BattlePlayer, pos: Vector2, level: int, weapon_
 		"damage": dmg,
 		"dmg_mul": 1.0,
 	}, "black_hole"))
-	_skill_burst(pos, 8.0, 0.2, Color("#9040d8"), 22)
+	# 玩家反馈：黑洞屏震过重 → 调成最轻微（粒子保留，仅 shake_mag/dur 降到最低档）
+	_skill_burst(pos, 1.0, 0.05, Color("#9040d8"), 22)
 
 
 # combo_fireball：line — 1 颗大火球贯穿飞出屏
@@ -831,8 +832,8 @@ func _update_grenade_arcs(delta: float, player: BattlePlayer) -> void:
 		var g: Dictionary = grenade_arcs[i]
 		g["t"] = float(g.t) + delta
 		if float(g.t) >= float(g.total_t):
-			# 着地 → 复用现有 bomb_explosion 视觉 + AOE 伤害
-			spawn_v6_bullet_aoe(player, Vector2(g.end), float(g.atk_mult), float(g.radius_px), str(g.style))
+			# 着地 → 复用现有 bomb_explosion 视觉 + AOE 伤害；手榴弹屏震调成最轻微
+			spawn_v6_bullet_aoe(player, Vector2(g.end), float(g.atk_mult), float(g.radius_px), str(g.style), true)
 			grenade_arcs.remove_at(i)
 		else:
 			grenade_arcs[i] = g
@@ -933,7 +934,8 @@ func spawn_v6_thunder(player: BattlePlayer, pos: Vector2, level: int, weapon_mul
 
 # sr=13 bullet_fire_support / angel_holy_bullet：在命中位置 spawn 小爆炸（火力支援）或天降光柱（圣光子弹）
 # style="bomb" → 橙色像素爆炸圆环；style="holy" → 蓝白雷电像素光柱
-func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, radius_px: float, style: String = "bomb") -> void:
+# light_shake=true 时把屏震调成最轻微（仅手榴弹落地走此分支，避免震屏过重）。
+func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, radius_px: float, style: String = "bomb", light_shake: bool = false) -> void:
 	if battle == null or battle.spawner == null:
 		return
 	var dmg: int = player.get_ability_damage(atk_mult)
@@ -973,8 +975,14 @@ func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, ra
 			"max_life": 0.4,
 			"radius_px": radius_px,
 		}, "bullet_fire_support"))
-		battle.shake_camera(8.0 * FX_SCALE, 0.18)
-	_skill_burst(pos, 4.0, 0.1, Color("#ff8040") if style != "holy" else Color("#a8c8ff"), 10)
+		# 手榴弹落地（light_shake=true）：屏震降到最轻微档；其余 bomb 来源（orb_burst 等）保持原强度
+		if light_shake:
+			battle.shake_camera(1.0 * FX_SCALE, 0.05)
+		else:
+			battle.shake_camera(8.0 * FX_SCALE, 0.18)
+	# _skill_burst 的 shake：light_shake 时归零（只保留粒子），避免叠回大震
+	var burst_shake := 0.0 if light_shake else 4.0
+	_skill_burst(pos, burst_shake, 0.1, Color("#ff8040") if style != "holy" else Color("#a8c8ff"), 10)
 
 
 # 视觉实体生命周期：bomb_explosions / holy_pillars 仅做计时淡出，不再造成伤害（伤害已在 spawn 时结算）
@@ -1486,8 +1494,10 @@ func _apply_projectile_hit(s: Dictionary, m, player: BattlePlayer) -> bool:
 		if kind == "auto" and int(result.get("damage", 0)) > 0:
 			SpecialRuleDispatcher.on_bullet_proc(player, self, m.global_position, float(s.get("rot", 0.0)))
 		if kind == "auto":
+			# 受击特效统一用画线攻击的 hit_a 动画爆光（与 combat_director.spawn_slash_hit_fx 一致）
 			var fx_scale := float(s.get("visual_scale", 1.0))
-			_spawn_auto_hit_fx(m, fx_scale)
+			if battle and battle.combat:
+				battle.combat.spawn_slash_hit_fx(pos, float(s.get("rot", 0.0)), fx_scale)
 		if bool(result.get("started_dying", false)):
 			EventBus.monster_killed.emit(m)
 	return true

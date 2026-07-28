@@ -127,7 +127,7 @@ def export():
         # hard fallback so the game never runs with an empty affix pool
         for stat_key, cn, en in [
             ("atk_pct", "攻击力", "ATK"),
-            ("max_hp_pct", "生命", "HP"),
+            ("bullet_range_pct", "子弹射程", "Bullet Range"),
             ("ki_regen_pct", "气力回复速度", "Stamina Regen"),
             ("crit_rate", "暴击率", "Crit Rate"),
             ("crit_damage", "暴击伤害", "Crit Damage"),

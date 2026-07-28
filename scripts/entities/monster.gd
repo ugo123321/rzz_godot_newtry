@@ -115,6 +115,48 @@ var spawn_lock_timer := 0.0
 # 主题关：demon=暗红+黑气，angel=淡黄+圣光；属性 +15% 速度 +10% 防御
 var _theme := ""
 
+# === JUMPER 跳跃怪状态机 ===
+# 0=idle(接近) 1=windup(酝酿2s) 2=airborne(跳出屏幕+脚下预警2s) 3=land_recover
+var _jumper_state := 0
+var _jumper_timer := 0.0
+var _jumper_target := Vector2.ZERO
+const JUMPER_WINDUP_TIME := 2.0
+const JUMPER_AIR_TIME := 2.0          # 等同脚下预警时长
+const JUMPER_RECOVER_TIME := 0.5
+const JUMPER_SMASH_RADIUS := 70.0
+const JUMPER_TRIGGER_RANGE := 200.0
+const JUMPER_SMASH_DAMAGE_MUL := 1.6
+
+# === LASER 激光怪状态机 ===
+# 0=idle(冷却) 1=windup(红色路径预警2s) 2=fire(激光束) 3=recover
+var _laser_state := 0
+var _laser_timer := 0.0
+var _laser_dir := Vector2.RIGHT
+var _laser_hit := false
+const LASER_WINDUP_TIME := 2.0
+const LASER_FIRE_TIME := 0.45
+const LASER_RECOVER_TIME := 1.2
+const LASER_LENGTH := 1400.0
+const LASER_HALF_WIDTH := 14.0
+const LASER_DAMAGE_MUL := 1.4
+
+# === MINI_CENTIPEDE 迷你千足虫（直线冲锋撞击型，12 节等大方块，共享血量）===
+enum Phase { REPOSITION, CHARGING }
+var _code_drawn := false
+var _centi_phase := Phase.REPOSITION
+var _centi_segments: Array = []          # MiniCentipedeSegment 实例
+var _centi_segment_count := 12
+var _centi_segment_size := 11.0
+var _centi_segment_spacing := 11.0
+var _centi_segment_hitbox := 6.0
+var _centi_charge_speed := 260.0
+var _centi_reposition_delay := 0.5
+var _centi_repos_timer := 0.3
+var _charge_dir := Vector2.RIGHT
+var _charge_entry := Vector2.ZERO
+var _charge_target := Vector2.ZERO
+var _has_hit_this_pass := false
+
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
 
@@ -159,6 +201,13 @@ func setup(monster_kind: String, stage_index: int, spawn_pos: Vector2, elite: St
 	max_split_tier = int(stats.get("max_split_tier", 0))
 	split_count = int(stats.get("split_count", 0))
 	color = Color(str(stats.get("color_hex", "#ffffff")))
+	if kind_id == "MINI_CENTIPEDE":
+		_centi_segment_count = int(stats.get("segment_count", 12))
+		_centi_segment_size = float(stats.get("segment_size", 11.0))
+		_centi_segment_spacing = float(stats.get("segment_spacing", 11.0))
+		_centi_segment_hitbox = float(stats.get("segment_hitbox", 6.0))
+		_centi_charge_speed = float(stats.get("charge_speed", 260.0))
+		_centi_reposition_delay = float(stats.get("reposition_delay", 0.5))
 	global_position = spawn_pos
 	_sprite_folder = str(stats.get("character_folder", "Skeleton"))
 	_sprite_prefix = str(stats.get("sprite_prefix", "Skeleton"))
@@ -207,6 +256,14 @@ func _apply_elite_modifier() -> void:
 
 
 func begin_spawn(duration: float = -1.0, target_scale: Vector2 = Vector2.ONE) -> void:
+	if kind_id == "MINI_CENTIPEDE":
+		spawn_lock_timer = 0.0
+		attack_timer = attack_interval
+		modulate.a = 1.0
+		scale = target_scale
+		_centi_phase = Phase.REPOSITION
+		_centi_repos_timer = 0.3
+		return
 	if duration < 0.0:
 		duration = float(GameConfig.get_tuning("monster_spawn_anim", 0.6))
 	spawn_lock_timer = duration
@@ -226,6 +283,13 @@ func _on_spawn_anim_finished() -> void:
 
 
 func _apply_sprite() -> void:
+	# MINI_CENTIPEDE：纯代码绘制，隐藏精灵帧
+	if kind_id == "MINI_CENTIPEDE":
+		var centi_sp := get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+		if centi_sp:
+			centi_sp.visible = false
+		_code_drawn = true
+		return
 	var anim_sprite := sprite if sprite != null else get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
 	if anim_sprite == null:
 		push_warning("BattleMonster: AnimatedSprite2D not ready")
@@ -318,6 +382,13 @@ func _melee_stop_distance(player: BattlePlayer) -> float:
 
 
 func is_combat_targetable() -> bool:
+	# JUMPER 起跳后离屏，不可被攻击
+	if _jumper_state == 2:
+		return false
+	# MINI_CENTIPEDE 头部纯驱动（画 12 节 + 状态机）；伤害目标只有 12 个节段，
+	# 节段 0 已在头部位置，头部不再独立可击，避免一次命中双重扣血。
+	if kind_id == "MINI_CENTIPEDE":
+		return false
 	return alive and not dying and spawn_lock_timer <= 0.0
 
 
@@ -505,6 +576,11 @@ func begin_dying(stagger_delay: float) -> bool:
 	if dying or not alive:
 		return false
 	dying = true
+	if kind_id == "MINI_CENTIPEDE":
+		for seg in _centi_segments:
+			if is_instance_valid(seg):
+				seg.dying = true
+				seg.alive = false
 	death_fade_dur = float(GameConfig.get_tuning("monster_death_fade", 0.28))
 	var death_anim_dur := _death_anim_duration()
 	death_delay = maxf(0.0, stagger_delay) + death_anim_dur
@@ -535,7 +611,14 @@ func _finish_death() -> void:
 	alive = false
 	dying = false
 	var battle := get_tree().get_first_node_in_group("battle")
-	if battle and battle.spawner:
+	if kind_id == "MINI_CENTIPEDE":
+		for seg in _centi_segments:
+			if is_instance_valid(seg):
+				if battle and battle.has_method("get") and battle.get("spawner") != null:
+					battle.spawner.unregister_monster(seg)
+				seg.queue_free()
+		_centi_segments.clear()
+	if battle and battle.has_method("get") and battle.get("spawner") != null:
 		battle.spawner.unregister_monster(self)
 	queue_free()
 
@@ -557,13 +640,18 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 		return
 	if hurt_reaction_timer > 0.0:
 		hurt_reaction_timer = maxf(0.0, hurt_reaction_timer - delta)
+	if kind_id == "MINI_CENTIPEDE":
+		_update_mini_centipede(delta, player, battle)
+		return
 	var to_player := player.global_position - global_position
 	facing = 1.0 if to_player.x >= 0 else -1.0
 	var anim_sprite := _get_sprite()
 	if anim_sprite:
 		anim_sprite.flip_h = facing < 0
 	var preserve_anim := hurt_reaction_timer > 0.0 or SpriteHelper.is_playing_priority_anim(anim_sprite)
-	if can_move:
+	# JUMPER/LASER 进入非 idle 状态时定身（酝酿/起跳/激光预警/发射期间不移动）
+	var frozen := _jumper_state != 0 or _laser_state != 0
+	if can_move and not frozen:
 		var dist := to_player.length()
 		var stop_dist := _melee_stop_distance(player)
 		if ranged:
@@ -611,6 +699,13 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 				_play_anim(SpriteHelper.ANIM_WALK)
 		elif not preserve_anim:
 			_play_anim(SpriteHelper.ANIM_IDLE)
+		# JUMPER / LASER 用独立状态机驱动攻击循环，不走通用 attack_timer 路径
+	if kind_id == "JUMPER":
+		_update_jumper(delta, player, battle)
+		return
+	if kind_id == "LASER":
+		_update_laser(delta, player, battle)
+		return
 	var can_attack := true
 	if battle and battle.combat:
 		can_attack = battle.combat.should_monsters_attack(player)
@@ -667,6 +762,24 @@ func _perform_attack(player: BattlePlayer, battle: Node) -> void:
 					projectile_effect,
 					sprite_tint
 				)
+			"snake":
+				battle.spawn_enemy_snake(
+					global_position,
+					player.global_position,
+					attack,
+					arrow_speed,
+					projectile_effect,
+					sprite_tint
+				)
+			"radial":
+				battle.spawn_enemy_radial(
+					global_position,
+					attack,
+					arrow_speed,
+					spread_count,
+					projectile_effect,
+					sprite_tint
+				)
 			_:
 				battle.spawn_arrow(
 					global_position,
@@ -681,6 +794,276 @@ func _perform_attack(player: BattlePlayer, battle: Node) -> void:
 		player.take_damage(attack)
 		if ki_drain_on_hit > 0:
 			player.ki = maxf(0.0, player.ki - float(ki_drain_on_hit))
+
+
+# ===================== JUMPER 跳跃怪 =====================
+# 进入触发范围 → 酝酿2s（下沉蓄力）→ 起跳飞出屏幕 + 玩家脚下红色预警2s → 砸落。
+# 砸击伤害由 ground_effect_manager.spawn_smash 在预警结束时结算（同火法师预警观感）。
+func _update_jumper(delta: float, player: BattlePlayer, battle: Node) -> void:
+	match _jumper_state:
+		0:  # idle：接近到触发范围后开始酝酿（attack_timer 作跳跃冷却）
+			if player == null:
+				return
+			attack_timer -= delta
+			if attack_timer > 0.0:
+				return
+			if global_position.distance_to(player.global_position) <= JUMPER_TRIGGER_RANGE:
+				_jumper_state = 1
+				_jumper_timer = JUMPER_WINDUP_TIME
+				_jumper_target = player.global_position
+				_play_anim(SpriteHelper.ANIM_HURT, true)
+		1:  # windup 酝酿：下沉蓄力 + 红色脉动 telegraph
+			_jumper_timer -= delta
+			var p := 1.0 - clampf(_jumper_timer / JUMPER_WINDUP_TIME, 0.0, 1.0)
+			scale = Vector2.ONE * lerpf(1.0, 0.8, p)
+			queue_redraw()
+			if _jumper_timer <= 0.0:
+				# 起跳：锁定玩家当前位置为目标，生成脚下预警，自身飞出屏幕顶部
+				_jumper_target = player.global_position
+				_jumper_state = 2
+				_jumper_timer = JUMPER_AIR_TIME
+				if battle and battle.ground_effects:
+					battle.ground_effects.spawn_smash(
+						_jumper_target,
+						int(round(attack * JUMPER_SMASH_DAMAGE_MUL)),
+						JUMPER_SMASH_RADIUS,
+						JUMPER_AIR_TIME
+					)
+				global_position = Vector2(_jumper_target.x, -300.0)
+				modulate.a = 0.0
+				scale = Vector2.ONE
+		2:  # airborne：等预警结束
+			_jumper_timer -= delta
+			if _jumper_timer <= 0.0:
+				# 下落砸到目标点
+				global_position = _jumper_target
+				modulate.a = 1.0
+				_jumper_state = 3
+				_jumper_timer = JUMPER_RECOVER_TIME
+				_play_anim(SpriteHelper.ANIM_ATTACK, true)
+				if battle and battle.has_method("shake_camera"):
+					battle.shake_camera(7.0, 0.22)
+				if battle and battle.particles:
+					for i in range(12):
+						var ang := float(i) / 12.0 * TAU
+						battle.particles.emit_particle(
+							global_position.x, global_position.y,
+							cos(ang) * 90.0, sin(ang) * 40.0,
+							0.35, 4.0, Color("#b09878"), 90.0, true, false
+						)
+		3:  # recover
+			_jumper_timer -= delta
+			if _jumper_timer <= 0.0:
+				_jumper_state = 0
+				attack_timer = attack_interval
+
+
+# ===================== LASER 激光怪 =====================
+# 冷却结束 → 锁定方向 + 红色路径预警2s → 射出激光束0.45s（沿途伤害一次）→ 恢复。
+func _update_laser(delta: float, player: BattlePlayer, battle: Node) -> void:
+	match _laser_state:
+		0:  # idle 冷却
+			attack_timer -= delta
+			if attack_timer > 0.0 or player == null:
+				return
+			_laser_dir = (player.global_position - global_position).normalized()
+			if _laser_dir.length_squared() < 0.0001:
+				_laser_dir = Vector2.RIGHT
+			_laser_state = 1
+			_laser_timer = LASER_WINDUP_TIME
+			_laser_hit = false
+			_play_anim(SpriteHelper.ANIM_ATTACK, true)
+		1:  # windup 红色路径预警
+			_laser_timer -= delta
+			queue_redraw()
+			if _laser_timer <= 0.0:
+				_laser_state = 2
+				_laser_timer = LASER_FIRE_TIME
+				_laser_hit = false
+				if battle and battle.has_method("shake_camera"):
+					battle.shake_camera(3.0, 0.1)
+		2:  # fire 激光束
+			_laser_timer -= delta
+			_apply_laser_damage(player, battle)
+			queue_redraw()
+			if _laser_timer <= 0.0:
+				_laser_state = 3
+				_laser_timer = LASER_RECOVER_TIME
+		3:  # recover
+			_laser_timer -= delta
+			if _laser_timer <= 0.0:
+				_laser_state = 0
+				attack_timer = attack_interval
+
+
+# 玩家到激光射线（自 monster 沿 _laser_dir）的垂直距离判定，命中则造伤一次。
+func _apply_laser_damage(player: BattlePlayer, battle: Node) -> void:
+	if _laser_hit or player == null or player.hp <= 0:
+		return
+	if player.state == BattlePlayer.State.BULLET_TIME or player.is_attack_invincible():
+		return
+	var to_p: Vector2 = player.global_position - global_position
+	var proj: float = to_p.dot(_laser_dir)
+	if proj < 0.0 or proj > LASER_LENGTH:
+		return
+	var perp: Vector2 = to_p - _laser_dir * proj
+	if perp.length() > LASER_HALF_WIDTH + player.get_effective_radius():
+		return
+	_laser_hit = true
+	var dmg: int = int(round(attack * LASER_DAMAGE_MUL))
+	var dealt := player.take_damage(dmg)
+	if dealt > 0 and battle and battle.combat:
+		battle.combat.spawn_damage_number(
+			player.global_position + Vector2(0.0, -player.get_effective_radius() - 8.0),
+			dealt, false, false, Color("#ff4040")
+		)
+	if battle and battle.particles:
+		battle.particles.hit_spark(player.global_position, false)
+
+
+# 激光预警线 + 激光束绘制（local 空间，原点=怪物；_laser_dir 为世界方向，节点未旋转故 local=世界）
+func _draw_laser() -> void:
+	if not alive or dying:
+		return
+	var end := _laser_dir * LASER_LENGTH
+	if _laser_state == 1:
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.018)
+		draw_line(Vector2.ZERO, end, Color(1.0, 0.12, 0.12, 0.35 + pulse * 0.4), maxf(1.0, GameConfig.scale_world(2.5)))
+		draw_line(Vector2.ZERO, end, Color(1.0, 0.4, 0.3, 0.5 + pulse * 0.3), maxf(1.0, GameConfig.scale_world(1.0)))
+	elif _laser_state == 2:
+		var flicker := 0.85 + 0.15 * sin(Time.get_ticks_msec() * 0.06)
+		# 外发光
+		draw_line(Vector2.ZERO, end, Color(1.0, 0.25, 0.2, 0.35 * flicker), maxf(1.0, GameConfig.scale_world(LASER_HALF_WIDTH * 1.8)))
+		# 主体
+		draw_line(Vector2.ZERO, end, Color(1.0, 0.35, 0.25, 0.9), maxf(1.0, GameConfig.scale_world(LASER_HALF_WIDTH)))
+		# 核心
+		draw_line(Vector2.ZERO, end, Color(1.0, 0.95, 0.85, flicker), maxf(1.0, GameConfig.scale_world(LASER_HALF_WIDTH * 0.35)))
+
+
+# ===================== MINI_CENTIPEDE 迷你千足虫 =====================
+# 代码绘制：12 节等大紫色方块，沿冲锋方向排成直线；头节加高光点。
+func _draw_mini_centipede() -> void:
+	if not alive:
+		return
+	var alpha: float = modulate.a if dying else 1.0
+	var body_col := Color("#7a5ab0")
+	var edge_col := Color("#2e1f44")
+	var ang := _charge_dir.angle()
+	var half := _centi_segment_size * 0.5
+	for i in range(_centi_segment_count):
+		var local := -_charge_dir * (float(i) * _centi_segment_spacing)
+		draw_set_transform(local, ang, Vector2.ONE)
+		draw_rect(Rect2(-half, -half, _centi_segment_size, _centi_segment_size), Color(edge_col, alpha))
+		draw_rect(Rect2(-half + 1.5, -half + 1.5, _centi_segment_size - 3.0, _centi_segment_size - 3.0), Color(body_col, alpha))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# 头节高光
+	draw_circle(Vector2.ZERO, half * 0.4, Color(1.0, 1.0, 1.0, 0.55 * alpha))
+
+
+# ===================== MINI_CENTIPEDE 冲锋状态机 =====================
+func _update_mini_centipede(delta: float, player: BattlePlayer, _battle: Node) -> void:
+	match _centi_phase:
+		Phase.REPOSITION:
+			_centi_repos_timer -= delta
+			if _centi_repos_timer <= 0.0:
+				_begin_charge_pass(player)
+		Phase.CHARGING:
+			_step_charge(delta, player)
+
+
+func _begin_charge_pass(player: BattlePlayer) -> void:
+	var w := float(GameConfig.get_tuning("logical_width", 720))
+	var h := float(GameConfig.get_tuning("logical_height", 1280))
+	var margin := 80.0
+	var side := randi() % 4
+	match side:
+		0: _charge_entry = Vector2(MathUtils.rand_range(margin, w - margin), -margin)
+		1: _charge_entry = Vector2(MathUtils.rand_range(margin, w - margin), h + margin)
+		2: _charge_entry = Vector2(-margin, MathUtils.rand_range(margin, h - margin))
+		_: _charge_entry = Vector2(w + margin, MathUtils.rand_range(margin, h - margin))
+	_charge_target = player.global_position if player != null else Vector2(w * 0.5, h * 0.5)
+	var d := _charge_target - _charge_entry
+	_charge_dir = d.normalized() if d.length() > 0.001 else Vector2.RIGHT
+	global_position = _charge_entry
+	_has_hit_this_pass = false
+	_centi_phase = Phase.CHARGING
+	_position_segments()
+	# 冲锋方向变了 → 必须重画：虫身朝向 baked 进 _draw 的局部 transform，
+	# 不 queue_redraw 的话绘制会沿用上一轮旧方向，与 hitbox 排位错位。
+	queue_redraw()
+
+
+func _step_charge(delta: float, player: BattlePlayer) -> void:
+	var slow := clampf(slow_pct_active, 0.0, 0.95)
+	var spd := _centi_charge_speed * (1.0 - slow)
+	if paralyze_timer > 0.0 or petrify_timer > 0.0:
+		spd = 0.0
+	global_position += _charge_dir * spd * delta
+	_position_segments()
+	# 撞击：每轮一次接触伤害，不停不拐弯
+	if not _has_hit_this_pass and player != null and player.hp > 0.0:
+		var rr := player.get_effective_radius() + GameConfig.scale_world(6.0)
+		if global_position.distance_to(player.global_position) <= rr:
+			player.take_damage(attack)
+			_has_hit_this_pass = true
+	# 飞出对侧屏外 → 进入下一轮
+	if _exited_screen():
+		_has_hit_this_pass = false
+		_centi_phase = Phase.REPOSITION
+		_centi_repos_timer = _centi_reposition_delay
+	# 每帧重画：保持虫身朝向 / HP 条 / 状态染色与当前位置同步（同 LASER 的 windup/fire 路径）
+	queue_redraw()
+
+
+func _position_segments() -> void:
+	for i in range(_centi_segments.size()):
+		_centi_segments[i].global_position = global_position - _charge_dir * (float(i) * _centi_segment_spacing)
+
+
+func _exited_screen() -> bool:
+	var w := float(GameConfig.get_tuning("logical_width", 720))
+	var h := float(GameConfig.get_tuning("logical_height", 1280))
+	var m := 90.0
+	var p := global_position
+	if _charge_dir.x > 0.001 and p.x > w + m: return true
+	if _charge_dir.x < -0.001 and p.x < -m: return true
+	if _charge_dir.y > 0.001 and p.y > h + m: return true
+	if _charge_dir.y < -0.001 and p.y < -m: return true
+	return false
+
+
+# MINI_CENTIPEDE：生成 N 个隐形节段命中节点并注册进 spawner.monsters
+func _init_centipede_segments(spawner: Node, battle: Node) -> void:
+	for seg in _centi_segments:
+		if is_instance_valid(seg):
+			seg.queue_free()
+	_centi_segments.clear()
+	var SegClass := load("res://scripts/entities/mini_centipede_segment.gd")
+	for i in range(_centi_segment_count):
+		var seg = SegClass.new()
+		seg.worm = self
+		seg.segment_index = i
+		seg.alive = true
+		seg.dying = false
+		if battle and battle.has_method("get") and battle.get("monster_container") != null:
+			battle.monster_container.add_child(seg)
+		else:
+			add_child(seg)
+		seg.global_position = global_position
+		_centi_segments.append(seg)
+		if spawner and "monsters" in spawner:
+			spawner.monsters.append(seg)
+
+
+# 节段命中转发：复用 _resolve_take_damage（已处理 def/vuln/抗性/暴击/死亡触发）。
+# 节段不是 BattleMonster，调用方（ability_manager 等）即便对节段 emit monster_killed(seg)
+# 也会被 battle._on_monster_killed 忽略（非 BattleMonster 早退）；所以虫死亡时由虫自己
+# emit 一次 monster_killed(self)，保证经验/灵魂球/掉落正常。后续节段命中因 dying 早退不重发。
+func _apply_segment_hit(info: DamageInfo, _seg, from_pos: Vector2) -> Dictionary:
+	var result := _resolve_take_damage(info, from_pos)
+	if bool(result.get("started_dying", false)):
+		EventBus.monster_killed.emit(self)
+	return result
 
 
 func _get_sprite() -> AnimatedSprite2D:
@@ -791,7 +1174,11 @@ func _draw_hp_bar() -> void:
 
 
 func _draw() -> void:
+	if _code_drawn:
+		_draw_mini_centipede()
 	_draw_theme_aura()
+	if kind_id == "LASER" and _laser_state != 0:
+		_draw_laser()
 	if _should_show_hp_bar():
 		_draw_hp_bar()
 	if elite_kind != "":

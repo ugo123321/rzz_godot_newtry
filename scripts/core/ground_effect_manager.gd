@@ -32,6 +32,22 @@ func spawn_fire_pillar(pos: Vector2, damage: int) -> void:
 	queue_redraw()
 
 
+# 跳跃怪 JUMPER 落地砸击：脚下红色预警（复用 _draw_warning，同火法师观感）→ 撞击伤害 + 灰尘。
+# warning_time 由调用方决定（JUMPER 用 2s），半径/伤害也由调用方传入。
+func spawn_smash(pos: Vector2, damage: int, radius: float, warning_time: float) -> void:
+	effects.append({
+		"type": "smash",
+		"pos": pos,
+		"radius": GameConfig.scale_world(radius),
+		"damage": damage,
+		"phase": "warning",
+		"timer": maxf(0.1, warning_time),
+		"flash_t": 0.0,
+		"hit": false,
+	})
+	queue_redraw()
+
+
 func update_effects(delta: float, player: BattlePlayer) -> void:
 	if effects.is_empty():
 		return
@@ -43,12 +59,18 @@ func update_effects(delta: float, player: BattlePlayer) -> void:
 			"warning":
 				if float(e.timer) <= 0.0:
 					e.phase = "active"
-					e.timer = float(GameConfig.get_tuning("fire_pillar_active_time", 0.5))
+					if str(e.type) == "smash":
+						e.timer = float(GameConfig.get_tuning("smash_active_time", 0.35))
+					else:
+						e.timer = float(GameConfig.get_tuning("fire_pillar_active_time", 0.5))
 					_damage_player(e, player)
 			"active":
 				if float(e.timer) <= 0.0:
 					e.phase = "fade"
-					e.timer = float(GameConfig.get_tuning("fire_pillar_fade_time", 0.3))
+					if str(e.type) == "smash":
+						e.timer = float(GameConfig.get_tuning("smash_fade_time", 0.25))
+					else:
+						e.timer = float(GameConfig.get_tuning("fire_pillar_fade_time", 0.3))
 			"fade":
 				if float(e.timer) <= 0.0:
 					e.phase = "dead"
@@ -72,30 +94,49 @@ func _damage_player(e: Dictionary, player: BattlePlayer) -> void:
 	if dmg <= 0 or battle == null:
 		return
 	if battle.combat:
+		var num_color := Color("#ff7040") if str(e.type) != "smash" else Color("#ffd060")
 		battle.combat.spawn_damage_number(
 			player.global_position + Vector2(0, -player.get_effective_radius() - 8),
 			dmg,
 			false,
 			false,
-			Color("#ff7040")
+			num_color
 		)
 	if battle.particles:
 		battle.particles.hit_spark(player.global_position, false)
-		for i in range(14):
-			var col := Color("#ff6020") if i % 2 == 0 else Color("#ffcc50")
-			battle.particles.emit_particle(
-				float(e.pos.x) + randf_range(-r * 0.45, r * 0.45),
-				float(e.pos.y) + randf_range(-r * 0.45, r * 0.45),
-				randf_range(-40.0, 40.0),
-				randf_range(-80.0, -20.0),
-				randf_range(0.25, 0.5),
-				randf_range(3.0, 6.0),
-				col,
-				80.0,
-				true,
-				false
-			)
-	battle.shake_camera(4.5, 0.12)
+		if str(e.type) == "smash":
+			# 砸击：灰褐色灰尘溅射 + 更强屏震
+			for i in range(16):
+				var col := Color("#8a7a60") if i % 2 == 0 else Color("#b09878")
+				battle.particles.emit_particle(
+					float(e.pos.x) + randf_range(-r * 0.4, r * 0.4),
+					float(e.pos.y) + randf_range(-r * 0.4, r * 0.4),
+					randf_range(-60.0, 60.0),
+					randf_range(-130.0, -30.0),
+					randf_range(0.25, 0.5),
+					randf_range(3.0, 6.0),
+					col,
+					90.0,
+					true,
+					false
+				)
+			battle.shake_camera(7.0, 0.2)
+		else:
+			for i in range(14):
+				var col := Color("#ff6020") if i % 2 == 0 else Color("#ffcc50")
+				battle.particles.emit_particle(
+					float(e.pos.x) + randf_range(-r * 0.45, r * 0.45),
+					float(e.pos.y) + randf_range(-r * 0.45, r * 0.45),
+					randf_range(-40.0, 40.0),
+					randf_range(-80.0, -20.0),
+					randf_range(0.25, 0.5),
+					randf_range(3.0, 6.0),
+					col,
+					80.0,
+					true,
+					false
+				)
+			battle.shake_camera(4.5, 0.12)
 
 
 func _draw() -> void:
@@ -107,10 +148,17 @@ func _draw() -> void:
 			"warning":
 				_draw_warning(pos, r, float(e.flash_t))
 			"active":
-				_draw_fire_pillar(pos, r, float(e.flash_t), 1.0)
+				if str(e.type) == "smash":
+					_draw_smash(pos, r, float(e.flash_t), 1.0)
+				else:
+					_draw_fire_pillar(pos, r, float(e.flash_t), 1.0)
 			"fade":
-				var fade_dur := maxf(0.001, float(GameConfig.get_tuning("fire_pillar_fade_time", 0.3)))
-				_draw_fire_pillar(pos, r, float(e.flash_t), clampf(float(e.timer) / fade_dur, 0.0, 1.0))
+				if str(e.type) == "smash":
+					var smash_fade := maxf(0.001, float(GameConfig.get_tuning("smash_fade_time", 0.25)))
+					_draw_smash(pos, r, float(e.flash_t), clampf(float(e.timer) / smash_fade, 0.0, 1.0))
+				else:
+					var fade_dur := maxf(0.001, float(GameConfig.get_tuning("fire_pillar_fade_time", 0.3)))
+					_draw_fire_pillar(pos, r, float(e.flash_t), clampf(float(e.timer) / fade_dur, 0.0, 1.0))
 
 
 func _draw_warning(pos: Vector2, r: float, flash_t: float) -> void:
@@ -149,3 +197,16 @@ func _draw_fire_pillar(pos: Vector2, r: float, flash_t: float, alpha_mul: float)
 			var colors := [Color("#ff5018"), Color("#ffb038"), Color("#ff2810"), Color("#ff9048")]
 			draw_rect(Rect2(fx - fw * 0.5, fy - fh, fw, fh), Color(colors[i % 4], alpha_mul))
 	draw_arc(pos, r, 0.0, TAU, 48, Color(1.0, 0.75, 0.27, 0.65 * alpha_mul), 2.0)
+
+
+# 跳跃怪落地砸击视觉：暗色撞击坑 + 灰尘溅射环（位置由 flash_t 确定性驱动，稳定不抖）。
+func _draw_smash(pos: Vector2, r: float, flash_t: float, alpha_mul: float) -> void:
+	draw_circle(pos, r, Color(0.18, 0.14, 0.12, 0.55 * alpha_mul))
+	draw_arc(pos, r, 0.0, TAU, 36, Color(0.5, 0.4, 0.32, 0.7 * alpha_mul), 2.5)
+	# 灰尘溅射点
+	for i in range(10):
+		var ang := float(i) / 10.0 * TAU + flash_t * 3.0
+		var dr := r * (0.5 + 0.4 * sin(float(i) * 1.7 + flash_t * 5.0))
+		var dp := pos + Vector2(cos(ang), sin(ang)) * dr
+		var cr := 2.5 + 1.5 * sin(float(i) + flash_t * 8.0)
+		draw_circle(dp, cr, Color(0.6, 0.5, 0.42, 0.6 * alpha_mul))

@@ -112,6 +112,8 @@ var ki_regen_pct_total := 0.0
 var dodge_pct_total := 0.0
 var luck_pct_total := 0.0
 var size_pct_total := 0.0
+# 技能石 affix：子弹射程 ±% 累加器（与 talent_bullet_range_add 同消费点 get_effective_auto_bullet_range）
+var bullet_range_pct_total := 0.0
 var bullet_count_bonus := 0
 var elem_proc_freq_pct := 0.0
 var slow_pct_bonus := 0.0
@@ -545,7 +547,8 @@ func get_auto_bullet_cycle_interval() -> float:
 # 射程卡：base auto_bullet_range + talent bullet_range 加成（ability_manager 消费）
 func get_effective_auto_bullet_range() -> float:
 	var base_range := float(GameConfig.get_player_value("auto_bullet_range", 378))
-	return base_range + talent_bullet_range_add
+	# 技能石 affix（±% 乘 base）+ talent 绝对值（px 加成）同点叠加
+	return base_range * (1.0 + bullet_range_pct_total) + talent_bullet_range_add
 
 
 func sync_auto_bullet_anim_speed() -> void:
@@ -1190,7 +1193,19 @@ func apply_upgrade(upgrade: Dictionary) -> void:
 	# 记录获得顺序（后获得的覆盖之前，用于"普攻换形态"等视觉互斥卡）
 	_card_acquired_counter += 1
 	_card_acquired_seq[id] = _card_acquired_counter
+	var max_hp_before := float(max_hp)
 	_rebuild_upgrades()
+	# 心数制：获得「最大生命 +X」奖励时同步补满新增的心——hp 跟着 max_hp 一起涨，
+	# 即获得一颗满心。只对正向增量生效（恶魔 -X 惩罚卡不补，hp 由 _rebuild 末段
+	# minf(hp, max_hp) 钳制）。覆盖所有走 apply_upgrade 的入口：升级 3 选 1、
+	# 主题关 accept、技能石技能部分进战授予。
+	var max_hp_delta := float(max_hp) - max_hp_before
+	if max_hp_delta > 0.0:
+		var healed := minf(max_hp_delta, float(max_hp) - float(hp))
+		if healed > 0.0:
+			hp = minf(max_hp, float(hp) + max_hp_delta)
+			queue_redraw()
+			EventBus.player_healed.emit(healed, hp)
 	# v6 sv_life_spring 等 on_pickup 卡：选卡瞬间也算一次拾取触发
 	if trigger_dispatcher != null and str(def.get("trigger", "")) == "on_pickup":
 		trigger_dispatcher.fire_on_pickup()
@@ -1324,6 +1339,7 @@ func _rebuild_upgrades() -> void:
 	dodge_pct_total = 0.0
 	luck_pct_total = 0.0
 	size_pct_total = 0.0
+	bullet_range_pct_total = 0.0
 	bullet_count_bonus = 0
 	elem_proc_freq_pct = 0.0
 	slow_pct_bonus = 0.0
@@ -1423,6 +1439,8 @@ func _rebuild_upgrades() -> void:
 	ki_regen_pct_total += float(_ss_totals.get("ki_regen_pct", 0.0))
 	move_speed_pct_total += float(_ss_totals.get("move_speed_pct", 0.0))
 	crit_rate += float(_ss_totals.get("crit_rate", 0.0))
+	# 子弹射程 affix（±% 与 talent 加成同消费点，base_range × (1 + pct) 后再加 talent 绝对值）
+	bullet_range_pct_total += float(_ss_totals.get("bullet_range_pct", 0.0))
 
 	# v6 attr 累加 -> 实际生效字段
 	attack_speed_mult = 1.0 + atk_speed_pct_total

@@ -1,8 +1,8 @@
 extends Node2D
 class_name EnemyArrow
 
-enum Pattern { SINGLE, CROSS, BOUNCE }
-enum DrawStyle { SPRITE, PIXEL_ORB, PIXEL_SQUARE }
+enum Pattern { SINGLE, CROSS, BOUNCE, SNAKE }
+enum DrawStyle { SPRITE, PIXEL_ORB, PIXEL_SQUARE, PIXEL_SNAKE }
 
 const DEFAULT_ARROW_TEXTURES: Array[String] = [
 	"res://assets/Characters/Characters(100x100)/Archer/Arrow(projectile)/Arrow01(32x32).png",
@@ -25,7 +25,7 @@ var velocity := Vector2.ZERO
 var damage := 10
 var pattern := Pattern.SINGLE
 var bounces_left := 0
-var _battle: BattleController
+var _battle: Node
 var _player: BattlePlayer
 var _alive := true
 var _effect_key := ""
@@ -34,6 +34,13 @@ var _static_sprite: Sprite2D
 var _animated_sprite: AnimatedSprite2D
 var _draw_style := DrawStyle.SPRITE
 var _draw_rot := 0.0
+
+# 蛇形子弹（SNAKE_SHOOTER）：沿速度方向直线推进 + 垂直正弦摆动
+var _snake_base_pos := Vector2.ZERO
+var _snake_perp := Vector2.ZERO
+var _snake_phase := 0.0
+const SNAKE_AMP := 16.0      # 摆动幅度 px
+const SNAKE_FREQ := 7.0      # 摆动角速度 rad/s
 
 
 static func spawn(
@@ -128,6 +135,45 @@ static func spawn_bounce(
 	)
 
 
+static func spawn_snake(
+	battle: Node,
+	from_pos: Vector2,
+	to_pos: Vector2,
+	dmg: int,
+	speed: float,
+	effect_key: String = "",
+	tint: Color = Color.WHITE
+) -> void:
+	var dir := _aim_dir(from_pos, to_pos)
+	_create(
+		battle,
+		from_pos,
+		dir,
+		dmg,
+		speed,
+		Pattern.SNAKE,
+		0,
+		effect_key,
+		tint
+	)
+
+
+static func spawn_radial(
+	battle: Node,
+	from_pos: Vector2,
+	dmg: int,
+	speed: float,
+	count: int,
+	effect_key: String = "",
+	tint: Color = Color.WHITE
+) -> void:
+	var shots := maxi(1, count)
+	for i in range(shots):
+		var ang := (float(i) / float(shots)) * TAU
+		var dir := Vector2(cos(ang), sin(ang))
+		_create(battle, from_pos, dir, dmg, speed, Pattern.SINGLE, 0, effect_key, tint)
+
+
 static func _aim_dir(from_pos: Vector2, to_pos: Vector2) -> Vector2:
 	var dir := to_pos - from_pos
 	if dir.length_squared() < 1.0:
@@ -136,7 +182,7 @@ static func _aim_dir(from_pos: Vector2, to_pos: Vector2) -> Vector2:
 
 
 static func _create(
-	battle: BattleController,
+	battle: Node,
 	from_pos: Vector2,
 	dir: Vector2,
 	dmg: int,
@@ -164,6 +210,10 @@ static func _create(
 		arrow.rotation = 0.0
 	else:
 		arrow.rotation = dir.angle()
+	if arrow_pattern == Pattern.SNAKE:
+		arrow._snake_base_pos = arrow.global_position
+		arrow._snake_perp = dir.rotated(PI * 0.5)
+		arrow._snake_phase = 0.0
 	battle.projectiles.add_child(arrow)
 
 
@@ -182,7 +232,12 @@ func update_arrow(delta: float) -> void:
 	if _battle.state != GameState.PLAYING:
 		queue_free()
 		return
-	global_position += velocity * delta
+	if pattern == Pattern.SNAKE:
+		_snake_base_pos += velocity * delta
+		_snake_phase += delta * SNAKE_FREQ
+		global_position = _snake_base_pos + _snake_perp * sin(_snake_phase) * SNAKE_AMP
+	else:
+		global_position += velocity * delta
 	if _try_hit_player():
 		return
 	# 子弹撞到阻挡石/深坑/未解锁锁定块/箭块 → 在格边火花消失
@@ -227,6 +282,8 @@ func _draw() -> void:
 			_draw_pixel_orb()
 		DrawStyle.PIXEL_SQUARE:
 			_draw_pixel_square()
+		DrawStyle.PIXEL_SNAKE:
+			_draw_pixel_snake()
 
 
 # ------ 像素小圆球（cross_shooter）— 紫色魔法 ------
@@ -286,6 +343,40 @@ func _draw_pixel_square() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
+# ------ 像素蛇形子弹（snake_shooter）— 蛇绿，头+分段尾+信子 ------
+# self.rotation 已在 _create 里设为速度方向，所以 local +x = 前进方向，-x = 蛇尾。
+func _draw_pixel_snake() -> void:
+	var base := _tint if _tint != Color.WHITE else Color("#7bc043")
+	var palette := _pixel_palette(base)
+	var px := _pixel_size()
+	var flicker := int(Time.get_ticks_msec() / FLICKER_INTERVAL_MS) % 2 == 0
+	# 外发光晕
+	var halo := base
+	halo.a = 0.22
+	draw_circle(Vector2.ZERO, 5.0 * px, halo)
+	# 蛇身：7 节，从尾(-x)到头(0)，y 用静态正弦做 S 形轮廓
+	var segs := 7
+	var head_y := sin(PI * 1.6) * 2.2 * px
+	for i in range(segs):
+		var t := float(i) / float(segs - 1)   # 0=尾 1=头
+		var sx := lerpf(-6.0, 0.0, t) * px
+		var sy := sin(t * PI * 1.6) * 2.2 * px
+		var rad := lerpf(1.5, 3.0, t) * px
+		# 尾暗头亮：dist_ratio 尾=1.0(最深) 头=0.3(近核心)
+		var col := _orb_block_color(1.0 - t * 0.7, flicker and t > 0.55, palette)
+		draw_circle(Vector2(sx, sy), rad, col)
+	# 蛇头高光 + 眼
+	var head := Vector2(0.0, head_y)
+	var head_col := palette[4] if not flicker else palette[4].lerp(Color.WHITE, 0.5)
+	draw_circle(head, 3.0 * px, head_col)
+	draw_circle(head + Vector2(1.6 * px, -1.2 * px), maxf(0.8, 0.9 * px), Color.WHITE)
+	# 信子（红色分叉）
+	var tongue := Color("#d83030")
+	var tw := maxf(1.0, px * 0.7)
+	draw_line(head + Vector2(3.0 * px, 0.0), head + Vector2(5.5 * px, -1.4 * px), tongue, tw)
+	draw_line(head + Vector2(3.0 * px, 0.0), head + Vector2(5.5 * px, 1.4 * px), tongue, tw)
+
+
 func _pixel_size() -> float:
 	return PIXEL_SIZE_WORLD * GameConfig.get_world_scale()
 
@@ -336,6 +427,11 @@ func _ready() -> void:
 		return
 	if _effect_key == "enemy_bounce_blob":
 		_draw_style = DrawStyle.PIXEL_SQUARE
+		set_process(true)
+		queue_redraw()
+		return
+	if _effect_key == "enemy_snake_bullet":
+		_draw_style = DrawStyle.PIXEL_SNAKE
 		set_process(true)
 		queue_redraw()
 		return

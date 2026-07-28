@@ -15,7 +15,6 @@ from export_config import (
     REWARDS_V6_HEADERS,
     STAGE_HEADERS,
     UPGRADE_FX_HEADERS,
-    UPGRADE_HEADERS,
     write_sheet,
 )
 
@@ -41,10 +40,6 @@ def _stage_row(item: dict) -> list:
 
 def _chapter_row(item: dict) -> list:
     return [item.get(h, "") for h in CHAPTER_HEADERS]
-
-
-def _upgrade_row(item: dict) -> list:
-    return [item.get(h, "") for h in UPGRADE_HEADERS]
 
 
 def _upgrade_fx_row(item: dict) -> list:
@@ -92,13 +87,7 @@ def main() -> None:
         STAGE_HEADERS,
         [_stage_row(s) for s in stages],
     )
-    upgrades = _load_json("upgrades")
     upgrade_fx = _load_json("upgrade_fx")
-    _rewrite_sheet(
-        EXCEL_DIR / "upgrades.xlsx",
-        UPGRADE_HEADERS,
-        [_upgrade_row(u) for u in upgrades],
-    )
     _rewrite_sheet(
         EXCEL_DIR / "upgrade_fx.xlsx",
         UPGRADE_FX_HEADERS,

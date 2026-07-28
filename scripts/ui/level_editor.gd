@@ -108,6 +108,7 @@ func _load_layout(number) -> void:
 	_elements.clear()
 	_tile_overrides.clear()
 	var elements: Array = layout.get("elements", [])
+	var tile_changes: Array = []
 	for elem in elements:
 		if not (elem is Dictionary):
 			continue
@@ -116,7 +117,7 @@ func _load_layout(number) -> void:
 		var row: int = int(elem.get("row", 0))
 		var facing: String = String(elem.get("facing", "up"))
 		if TILE_PLACEMENT_TYPES.has(t):
-			_terrain.set_tile(col, row, t)
+			tile_changes.append({"col": col, "row": row, "type": t})
 			_tile_overrides.append({"col": col, "row": row, "type": t})
 			continue
 		var e: Node = _instantiate_element(t)
@@ -129,6 +130,9 @@ func _load_layout(number) -> void:
 			e.set_facing(facing)
 		_field.add_child(e)
 		_elements.append(e)
+	# 批量写 grid + 末尾一次 bake；逐格 set_tile 每格 rebake 整张图，N 格水 = N 次全图重绘。
+	if not tile_changes.is_empty() and _terrain and _terrain.has_method("set_tiles_batch"):
+		_terrain.set_tiles_batch(tile_changes)
 
 
 func _build_field() -> void:

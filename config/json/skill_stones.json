@@ -14,14 +14,15 @@
     "affix_max": 0.10,
     "decompose_gold_default": 5,
     "equipped_slot_count": 3,
-    "affix_stats": ["atk_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
+    "affix_stats": ["atk_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct", "bullet_range_pct"]
   },
   "affix_display": {
     "atk_pct": { "name_cn": "攻击力", "name_en": "ATK" },
     "ki_regen_pct": { "name_cn": "气力回复速度", "name_en": "Stamina Regen" },
     "crit_rate": { "name_cn": "暴击率", "name_en": "Crit Rate" },
     "crit_damage": { "name_cn": "暴击伤害", "name_en": "Crit Damage" },
-    "move_speed_pct": { "name_cn": "移速", "name_en": "Move Speed" }
+    "move_speed_pct": { "name_cn": "移速", "name_en": "Move Speed" },
+    "bullet_range_pct": { "name_cn": "子弹射程", "name_en": "Bullet Range" }
   },
   "stones": [
     { "skill_id": "basic_warrior_soul", "name_cn": "战士之魂", "name_en": "Warrior's Soul", "rarity": "orange", "icon": "skill_45", "group": "基础属性", "desc_cn_game": "攻击 +35%", "desc_cn_game_en": "Attack +35%", "decompose_gold": 5 },

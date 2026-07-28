@@ -35,6 +35,9 @@ var _build_target_m := 0.0
 var _build_show := false
 var _click_to_start_show := false
 var _click_to_start_t := 0.0
+# 银币/钥匙 widget 是否绘制。当前版本先不做这两个模块，默认隐藏；
+# 底层 player.keys/silver 数据与信号照常，以后启用翻 set_pickup_widgets_visible(true) 即可。
+var _show_pickup_widgets := false
 
 
 func _ui_scale() -> float:
@@ -293,8 +296,9 @@ func _draw() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		viewport_size = get_viewport_rect().size
 
-	_draw_key_widget()
-	_draw_silver_widget()
+	if _show_pickup_widgets:
+		_draw_key_widget()
+		_draw_silver_widget()
 
 	if _countdown_show:
 		_draw_countdown(viewport_size)
@@ -400,6 +404,12 @@ func _draw_silver_widget() -> void:
 		HORIZONTAL_ALIGNMENT_LEFT,
 		VERTICAL_ALIGNMENT_CENTER
 	)
+
+
+# 切换银币/钥匙 widget 显隐（当前版本默认隐藏）。
+func set_pickup_widgets_visible(v: bool) -> void:
+	_show_pickup_widgets = v
+	queue_redraw()
 
 
 # 供 PickupOrb 取飞行目标：返回该 kind icon 屏幕中心（viewport 系，与 draw 同坐标基）。

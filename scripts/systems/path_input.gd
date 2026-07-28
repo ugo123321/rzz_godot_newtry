@@ -53,9 +53,16 @@ func handle_move(screen_pos: Vector2) -> void:
 	if step < 2.0:
 		return
 	if not player.consume_ki_by_distance(step):
-		# 本次画线把气力耗尽 → 标记下次 slash_end 触发"画线末释放"类奖励
-		player.slash_end_ki_drained = true
 		drawing = false
+		# 画线已标红（触碰阻挡块/深坑/锁定块/箭块）→ 气力耗尽也不能发起攻击，丢弃轨迹
+		# （修复：原先这里直接 exit_bullet_time(false) → start_attack，绕过 line_invalid，
+		#   导致红线画线在气力恰好耗尽时仍能顺着轨迹攻击）
+		if line_invalid:
+			_discard_invalid_line()
+			return
+		# 本次画线把气力耗尽 → 标记下次 slash_end 触发"画线末释放"类奖励
+		# （仅当攻击真的发起时才标记；丢弃的画线不算一次 slash）
+		player.slash_end_ki_drained = true
 		if player.attack_path.size() >= 2:
 			battle.exit_bullet_time(false)
 		else:
@@ -123,6 +130,17 @@ func _count_water_tiles_on_segment(terrain, a: Vector2, b: Vector2) -> int:
 	return seen_water.size()
 
 
+# 画线已标红（触碰阻挡块/深坑/锁定块/箭块）→ 丢弃本次轨迹，不发起攻击。
+# handle_end 正常抬手 与 handle_move 气力耗尽 两条路径共用，避免丢弃逻辑散落两处不同步。
+func _discard_invalid_line() -> void:
+	line_invalid = false
+	var player: BattlePlayer = battle.player
+	player.set_preview_invalid(false)
+	battle.hud.show_message(LanguageManager.tr_ui("UI_BATTLE_LINE_BLOCKED"), 1.2)
+	player.invalidate_path()
+	battle.exit_bullet_time(true)
+
+
 func handle_end() -> void:
 	var player: BattlePlayer = battle.player
 	if player == null or player.state != BattlePlayer.State.BULLET_TIME:
@@ -132,11 +150,7 @@ func handle_end() -> void:
 	drawing = false
 	# 画线触碰阻挡块/深坑 → 本次画线失败，丢弃不提交
 	if line_invalid:
-		line_invalid = false
-		player.set_preview_invalid(false)
-		battle.hud.show_message(LanguageManager.tr_ui("UI_BATTLE_LINE_BLOCKED"), 1.2)
-		player.invalidate_path()
-		battle.exit_bullet_time(true)
+		_discard_invalid_line()
 		return
 	if player.attack_path.size() < 2:
 		battle.exit_bullet_time(true)

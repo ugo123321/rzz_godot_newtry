@@ -82,6 +82,9 @@ static func _slot_total(slot: Dictionary, level: int) -> float:
 
 
 # 是否当前帧应该把这张卡的 attr 写到 player（trigger=hp_below 时按条件）
+# 注意：trigger=on_hit/on_pickup/on_kill/on_slash_end/timer 的卡此处返回 false，
+# 但 apply_cards 仍会对其放行 attr 47 max_hp_add_total（常驻最大生命增减，
+# 见 apply_cards 注释）。其余槽位由 SR/TriggerDispatcher 在事件回调里按需补写。
 static func _is_card_active(card_def: Dictionary, player: Node) -> bool:
 	var trig := str(card_def.get("trigger", "passive"))
 	if trig == "passive":
@@ -92,8 +95,10 @@ static func _is_card_active(card_def: Dictionary, player: Node) -> bool:
 		if player != null and "max_hp" in player and float(player.max_hp) > 0.0:
 			ratio = float(player.hp) / float(player.max_hp)
 		return ratio <= threshold
-	# on_kill / on_pickup / 其它触发型卡的 attr 不在 passive rebuild 里写入
-	# （event_amount 槽位由 TriggerDispatcher 在事件里现取）
+	# on_hit / on_pickup / on_kill / on_slash_end / timer 等：非常驻属性槽不在
+	# passive rebuild 里写入（event_amount 19/20 由 TriggerDispatcher 事件现取；
+	# attr 1 atk 由 sr=1 on_hit_window 按窗补写；attr 40/41 cd/dur 由
+	# sr=10/47/52 直接读卡 def）。唯独 attr 47 在 apply_cards 里强制放行。
 	return false
 
 
@@ -108,8 +113,15 @@ static func apply_cards(player: Node, stacks: Dictionary, defs_by_id: Dictionary
 		var def: Dictionary = defs_by_id.get(id, {})
 		if def.is_empty():
 			continue
-		if not _is_card_active(def, player):
-			continue
+		var trig := str(def.get("trigger", "passive"))
+		# on_hit/on_pickup/on_kill/on_slash_end/timer 等触发型卡：_is_card_active 返回
+		# false → 大多数 attr 槽不放行（由 SR/TriggerDispatcher 在事件回调按需补写：
+		# event_amount 19/20、sr=1 的 attr 1 atk、sr=10/47/52 的 attr 40/41 cd/dur）。
+		# 但 attr 47 max_hp_add_total 是常驻属性（恶魔「最大生命 -X」惩罚 / 天使
+		# 「+X/级」加成），没有任何 dispatcher 替它补写——若不放行，触发型卡的最大生命
+		# 增减永远不落地（天使庇护 +1、死神镰刀 -3 等全部失效）。故对触发型卡强制放行 47。
+		var is_trigger_card := trig != "passive" and trig != "hp_below"
+		var active := _is_card_active(def, player)
 		for slot in def.get("attrs", []):
 			var aid := int(slot.get("id", 0))
 			var meta: Dictionary = SCHEMA.get(aid, {})
@@ -123,6 +135,9 @@ static func apply_cards(player: Node, stacks: Dictionary, defs_by_id: Dictionary
 				continue  # Phase 2+ 才接通
 			if not (field in player):
 				push_warning("[AttrEngine] player missing field '%s' for attr %d (card %s)" % [field, aid, id])
+				continue
+			# 非激活（hp_below 未达阈值 / 触发型卡）一律跳过，唯一例外：触发型卡的 attr 47
+			if not active and not (is_trigger_card and aid == 47):
 				continue
 			var amount := _slot_total(slot, level)
 			if kind == "passive_int_add":

@@ -1,8 +1,8 @@
 extends Node2D
 class_name DamageNumbersOverlay
 
-const FONT_SIZE := 19
-const CRIT_FONT_SIZE := 28
+const FONT_SIZE := 34
+const CRIT_FONT_SIZE := 46
 
 var combat: CombatDirector
 

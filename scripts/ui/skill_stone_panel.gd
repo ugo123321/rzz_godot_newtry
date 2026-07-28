@@ -37,7 +37,7 @@ const _AFFIX_COLOR_GREEN := "#1c8a3d"   # = Color(0.12, 0.54, 0.24) 装备生效
 const _AFFIX_COLOR_RED := "#ff2a2a"
 
 # 6 个属性信息栏对应的 stat_key（与场景 StatBar0..5 一一对应）
-const _STAT_BAR_KEYS := ["atk_pct", "max_hp_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
+const _STAT_BAR_KEYS := ["atk_pct", "bullet_range_pct", "ki_regen_pct", "crit_rate", "crit_damage", "move_speed_pct"]
 
 # 进场淡入（参考 equipment_panel）/ 按钮按下（参考 main_menu 开始按钮）
 const INTRO_STEP := 0.018      # 每个元素错峰间隔（秒）
@@ -52,9 +52,10 @@ signal closed
 @onready var _bag_scroll: ScrollContainer = $BagScroll
 @onready var _back_button: TextureButton = %BackButton
 @onready var _decompose_btn: TextureButton = %DecomposeBtn
+@onready var _decompose_label: Label = %DecomposeBtn/Label
 @onready var _confirm_btn: TextureButton = %ConfirmBtn
 @onready var _cancel_btn: TextureButton = %CancelBtn
-@onready var _confirm_label: Label = %ConfirmBtn/Label
+@onready var _confirm_label: Label = %ConfirmBtn/Content/TextLabel
 @onready var _cancel_label: Label = %CancelBtn/Label
 @onready var _stat_bars: Array[Control] = []
 @onready var _fly_layer: Control = %FlyLayer
@@ -255,6 +256,8 @@ func _apply_static_texts() -> void:
 		title.text = LanguageManager.tr_ui("UI_SKILL_STONE_TITLE")
 	if _cancel_label != null:
 		_cancel_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_CANCEL")
+	if _decompose_label != null:
+		_decompose_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_DECOMPOSE")
 	if _detail_tip_label != null:
 		_detail_tip_label.text = LanguageManager.tr_ui("UI_SKILL_STONE_AFFIX_HEADER")
 	if _detail_action_btn != null:

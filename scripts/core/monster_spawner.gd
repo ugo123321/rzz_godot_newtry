@@ -114,6 +114,10 @@ func _refill_queue_for_infinite(stage_index: int) -> void:
 		"SHOTGUN": maxi(0, int(stage.get("shotgun", 0))),
 		"CROSS_SHOOTER": maxi(0, int(stage.get("cross_shooter", 0))),
 		"BOUNCE_SLIME": maxi(0, int(stage.get("bounce_slime", 0))),
+		"SNAKE_SHOOTER": maxi(0, int(stage.get("snake_shooter", 0))),
+		"JUMPER": maxi(0, int(stage.get("jumper", 0))),
+		"LASER": maxi(0, int(stage.get("laser", 0))),
+		"MINI_CENTIPEDE": maxi(0, int(stage.get("mini_centipede", 0))),
 	}
 	var has_any := false
 	for kind_id in counts.keys():
@@ -167,6 +171,10 @@ func _spawn_stage_content(stage_index: int, battle: Node) -> void:
 		"SHOTGUN": maxi(0, int(stage.get("shotgun", 0))),
 		"CROSS_SHOOTER": maxi(0, int(stage.get("cross_shooter", 0))),
 		"BOUNCE_SLIME": maxi(0, int(stage.get("bounce_slime", 0))),
+		"SNAKE_SHOOTER": maxi(0, int(stage.get("snake_shooter", 0))),
+		"JUMPER": maxi(0, int(stage.get("jumper", 0))),
+		"LASER": maxi(0, int(stage.get("laser", 0))),
+		"MINI_CENTIPEDE": maxi(0, int(stage.get("mini_centipede", 0))),
 	}
 	_init_clusters(battle)
 	for kind_id in counts.keys():
@@ -374,6 +382,8 @@ func _spawn_monster(kind_id: String, stage_index: int, battle: Node, elite_kind:
 	monster.setup(kind_id, stage_index, _pick_spawn_pos(battle), elite_kind)
 	monster.begin_spawn()
 	monsters.append(monster)
+	if kind_id == "MINI_CENTIPEDE":
+		monster._init_centipede_segments(self, battle)
 
 
 func spawn_split_children(parent: BattleMonster) -> Array:

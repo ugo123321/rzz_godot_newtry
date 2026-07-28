@@ -328,6 +328,28 @@ func clear_all_tiles(tile_type: String) -> void:
 	_rebake_texture()
 	queue_redraw()
 
+# 批量改若干格后只烘焙一次。编辑器布局载入大量水/石地板时，逐格 set_tile 每格都会
+# _rebake_texture() 整张图（720×1280 全格 _paint_tile + ImageTexture 重建）→ N 格 = N 次全图
+# 重绘，进测试 / 恢复现场卡顿。这里先写 grid，末尾一次 bake。
+func set_tiles_batch(changes: Array) -> void:
+	var dirty := false
+	for ch in changes:
+		if not (ch is Dictionary):
+			continue
+		var col: int = int(ch.get("col", 0))
+		var row: int = int(ch.get("row", 0))
+		var tile_type: String = String(ch.get("type", ""))
+		if row < 0 or row >= _rows or col < 0 or col >= _cols:
+			continue
+		if not TILE_DATA.has(tile_type):
+			push_warning("TerrainBackground: unknown tile type '%s'" % tile_type)
+			continue
+		_grid[row][col] = tile_type
+		dirty = true
+	if dirty:
+		_rebake_texture()
+		queue_redraw()
+
 
 func get_tile(col: int, row: int) -> String:
 	if row < 0 or row >= _rows or col < 0 or col >= _cols:

@@ -13,16 +13,17 @@
 [ext_resource type="Texture2D" uid="uid://bvl27najm1ci0" path="res://assets/ui/icons/system/skill_stone_icon.png" id="11_ss_icon"]
 [ext_resource type="Texture2D" uid="uid://cg1g2n0td1mhj" path="res://assets/ui/buttons/btn_dismantle.png" id="12_disman"]
 [ext_resource type="Texture2D" uid="uid://bqydu488pwhpf" path="res://assets/ui/icons/system/icon_attack.png" id="13_atk"]
-[ext_resource type="Texture2D" uid="uid://de1rwjnxwv63r" path="res://assets/ui/icons/system/icon_hp.png" id="14_hp"]
 [ext_resource type="Texture2D" uid="uid://4m42u4jf4jiu" path="res://assets/ui/icons/system/icon_reco.png" id="15_reco"]
 [ext_resource type="Texture2D" uid="uid://dao60s4sp2f6" path="res://assets/ui/icons/system/icon_ctr.png" id="16_ctr"]
 [ext_resource type="Texture2D" uid="uid://b08ivj0j207jl" path="res://assets/ui/icons/system/icon_ctd.png" id="17_ctd"]
 [ext_resource type="Texture2D" uid="uid://4gj31hqixnrg" path="res://assets/ui/icons/system/icon_speed.png" id="18_speed"]
+[ext_resource type="Texture2D" uid="uid://3llgbl5v8ck6" path="res://assets/ui/icons/cards/Gear_Helmet_03.png" id="20_range"]
 [ext_resource type="Texture2D" uid="uid://byj4bey4r4rya" path="res://assets/ui/buttons/btn_dismantle02.png" id="19_disman02"]
 [ext_resource type="Texture2D" uid="uid://b01xpa2d67vo" path="res://assets/ui/panels/popup01.png" id="30_popup01"]
 [ext_resource type="Texture2D" uid="uid://k6eedbsvyfnb" path="res://assets/ui/decorations/deco_rare_common.png" id="31_deco_common"]
 [ext_resource type="Texture2D" uid="uid://e86mlai64t6a" path="res://assets/ui/buttons/btn_blue.png" id="32_btn_blue"]
 [ext_resource type="Texture2D" uid="uid://bjbhw6n7kmune" path="res://assets/ui/equipment/slot_bg_white.png" id="35_slotbg_white"]
+[ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="40_gold"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
 bg_color = Color(0.16, 0.1, 0.03, 0.9)
@@ -285,7 +286,7 @@ offset_top = 6.0
 offset_right = 60.0
 offset_bottom = 50.0
 mouse_filter = 2
-texture = ExtResource("14_hp")
+texture = ExtResource("20_range")
 expand_mode = 1
 stretch_mode = 5
 
@@ -539,6 +540,22 @@ texture_normal = ExtResource("12_disman")
 ignore_texture_size = true
 stretch_mode = 0
 
+[node name="Label" type="Label" parent="DecomposeBtn" unique_id=331697934]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 28
+text = "分解"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="ConfirmBtn" type="TextureButton" parent="." unique_id=620068801]
 unique_name_in_owner = true
 visible = false
@@ -551,18 +568,34 @@ texture_normal = ExtResource("19_disman02")
 ignore_texture_size = true
 stretch_mode = 0
 
-[node name="Label" type="Label" parent="ConfirmBtn" unique_id=620068810]
+[node name="Content" type="HBoxContainer" parent="ConfirmBtn" unique_id=620068810]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="TextLabel" type="Label" parent="ConfirmBtn/Content" unique_id=620068820]
+layout_mode = 2
+size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.227451, 0.188235, 0.156863, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 26
 text = "分解"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="IconRect" type="TextureRect" parent="ConfirmBtn/Content" unique_id=620068821]
+layout_mode = 2
+mouse_filter = 2
+size_flags_vertical = 4
+custom_minimum_size = Vector2(26, 26)
+expand_mode = 1
+stretch_mode = 0
+texture = ExtResource("40_gold")
 
 [node name="CancelBtn" type="TextureButton" parent="." unique_id=1643805063]
 unique_name_in_owner = true

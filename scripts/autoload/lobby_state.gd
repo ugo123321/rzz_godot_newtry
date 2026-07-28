@@ -38,7 +38,13 @@ const QUALITY_COLORS := ["#f2f2f2", "#57a8ff", "#b172ff", "#ffa640"]
 const DROP_RATE := 0.10
 const EQUIPMENT_DROP_ENABLED := true
 
+# 分解装备奖励：暂定每件 5 强化水晶（后续若要按品质/等级配置再改 get_equipment_decompose_gem）。
+const EQUIP_DECOMPOSE_GEM_PER_ITEM := 5
+
 var gold: int = 5000
+# 强化水晶：装备强化专用货币（消耗数量与原金币强化一致；初始 5000 便于调试，
+# 后续接入掉落/获取来源时改这里）。会话内存 no-savedata，与 gold 同生命周期。
+var enhance_gem: int = 5000
 var wood: int = 0
 # 关卡编辑器「测试」模式：切到真实战斗场景跑当前布局；停止时回编辑器。
 var editor_test_mode: bool = false
@@ -403,6 +409,7 @@ func consume_battle_launch() -> bool:
 func _emit_all_state() -> void:
 	if EventBus:
 		EventBus.gold_changed.emit(gold)
+		EventBus.enhance_gem_changed.emit(enhance_gem)
 		EventBus.wood_changed.emit(wood)
 		EventBus.equipment_changed.emit()
 
@@ -429,6 +436,26 @@ func spend_gold(amount: int) -> bool:
 	gold -= amount
 	if EventBus:
 		EventBus.gold_changed.emit(gold)
+	return true
+
+
+# 强化水晶（装备强化专用货币）：与 gold 同构的 add/spend + 信号推送。
+func add_enhance_gem(amount: int) -> void:
+	if amount <= 0:
+		return
+	enhance_gem += amount
+	if EventBus:
+		EventBus.enhance_gem_changed.emit(enhance_gem)
+
+
+func spend_enhance_gem(amount: int) -> bool:
+	if amount <= 0:
+		return true
+	if enhance_gem < amount:
+		return false
+	enhance_gem -= amount
+	if EventBus:
+		EventBus.enhance_gem_changed.emit(enhance_gem)
 	return true
 
 
@@ -697,7 +724,8 @@ func upgrade_item(uid: int) -> Dictionary:
 		return {}
 	var item: Dictionary = equipment_inventory[idx]
 	var cost := get_upgrade_cost(item)
-	if not spend_gold(cost):
+	# 装备强化消耗强化水晶（不再是金币）；消耗数量公式不变。
+	if not spend_enhance_gem(cost):
 		return {}
 	item["level"] = int(item.get("level", 1)) + 1
 	equipment_inventory[idx] = item
@@ -764,6 +792,40 @@ func compose_three_items(uids: Array) -> Dictionary:
 	if EventBus:
 		EventBus.equipment_changed.emit()
 	return result
+
+
+## 分解装备的单件奖励强化水晶（暂定常量 5；后续可按 def/品质/等级配置）。
+func get_equipment_decompose_gem(_item: Dictionary) -> int:
+	return maxi(0, EQUIP_DECOMPOSE_GEM_PER_ITEM)
+
+
+## 分解多件装备。仅未装备的允许（背包本就过滤已装备，这里再兜底）；
+## 返回总强化水晶（已 add_enhance_gem）；空/无效返回 -1。
+func decompose_equipments(uids: Array) -> int:
+	var parsed: Array[int] = []
+	for raw in uids:
+		var uid := int(raw)
+		if uid < 0:
+			continue
+		if parsed.has(uid):
+			continue
+		if _find_item_index(uid) < 0:
+			continue
+		if is_item_equipped(uid):
+			continue
+		parsed.append(uid)
+	if parsed.is_empty():
+		return -1
+	var total := 0
+	for uid in parsed:
+		var item := get_item_by_uid(uid)
+		total += get_equipment_decompose_gem(item)
+		remove_item(uid)  # remove_item 不 emit，下面统一 emit
+	if total > 0:
+		add_enhance_gem(total)  # 内部已 emit enhance_gem_changed
+	if EventBus:
+		EventBus.equipment_changed.emit()
+	return total
 
 
 func get_item_power(item: Dictionary) -> int:

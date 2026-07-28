@@ -89,6 +89,8 @@ const SLOT_BUTTON_NODES := {
 @onready var _capsule_attack_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/AttackCapsule/Value
 @onready var _capsule_hp_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/HpCapsule/Value
 @onready var _capsule_speed_label: Label = $Frame/RootMargin/BaseRoot/UpperArea/StatCapsuleRow/SpeedCapsule/Value
+# 左上角强化水晶栏（装备强化专用货币，与金币 UI 同款 money_bg 背景）
+@onready var _enhance_gem_label: Label = $Frame/EnhanceGemBar/Value
 @onready var _preview_viewport: SubViewport = $Frame/RootMargin/BaseRoot/UpperArea/CharacterRow/VBoxContainer/PreviewWrap/PreviewContainer/PreviewViewport
 @onready var _preview_sprite: AnimatedSprite2D = %PreviewSprite
 
@@ -115,9 +117,22 @@ const SLOT_BUTTON_NODES := {
 @onready var _attr_note_text: RichTextLabel = $AttrDetailPopup/Panel/NoteText
 @onready var _synth_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/SynthBtn
 @onready var _skill_stone_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/SkillStoneBtn
+@onready var _decompose_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn
+@onready var _cancel_btn: TextureButton = $Frame/RootMargin/BaseRoot/SynthRow/CancelBtn
+@onready var _decompose_text: Label = $Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn/Content/TextLabel
+@onready var _decompose_icon: TextureRect = $Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn/Content/IconRect
+@onready var _toast: Label = %Toast
 
 # 合成 / 技能石 按钮按下缩放（参考 main_menu 开始按钮）
 const _ACTION_BTN_PRESS_SCALE := 0.9
+
+# 装备分解多选模式（参 skill_stone_panel：_multi_select + _selected_uids）
+var _multi_select := false
+var _selected_uids: Dictionary = {}  # uid(int) -> true
+# toast 反馈（参 skill_stone_panel._show_toast / _process）
+var _toast_timer := 0.0
+var _toast_duration := 1.9
+var _toast_base_top := 150.0
 
 var _icon_cache: Dictionary = {}
 var _preview_state := "walk"
@@ -153,7 +168,10 @@ func _ready() -> void:
 	_apply_static_texts()
 	_setup_action_button_press(_synth_btn)
 	_setup_action_button_press(_skill_stone_btn)
+	_setup_action_button_press(_decompose_btn)
+	_setup_action_button_press(_cancel_btn)
 	_refresh_all()
+	_refresh_action_buttons()
 	set_process(true)
 	# 进场动效：每次面板可见时所有区块快速依次淡入显形
 	visibility_changed.connect(_on_visibility_changed)
@@ -163,6 +181,7 @@ func _ready() -> void:
 func _on_language_changed(_lang: String) -> void:
 	_apply_static_texts()
 	_refresh_all()
+	_refresh_action_buttons()
 
 
 # ─── 进场动效：所有区块快速依次淡入显形 ───────────────────
@@ -176,8 +195,8 @@ func _play_intro() -> void:
 		return
 	# 收集要"依次显形"的细粒度元素，按视觉从上到下排列
 	var elems: Array[Control] = []
-	# 0) 顶部标题 icon + 文字
-	for title_path in ["Frame/TitleIcon", "Frame/Title"]:
+	# 0) 顶部标题 icon + 文字 + 强化水晶栏
+	for title_path in ["Frame/TitleIcon", "Frame/Title", "Frame/EnhanceGemBar"]:
 		var t := get_node_or_null(title_path) as Control
 		if t != null and t.visible:
 			elems.append(t)
@@ -287,6 +306,12 @@ func _apply_static_texts() -> void:
 		var ss_lbl := _skill_stone_btn.get_node_or_null("Label") as Label
 		if ss_lbl != null:
 			ss_lbl.text = LanguageManager.tr_ui("UI_SKILL_STONE_TITLE")
+	if _decompose_text != null and not _multi_select:
+		_decompose_text.text = LanguageManager.tr_ui("UI_EQUIP_DECOMPOSE")
+	if _cancel_btn != null:
+		var cc_lbl := _cancel_btn.get_node_or_null("Label") as Label
+		if cc_lbl != null:
+			cc_lbl.text = LanguageManager.tr_ui("UI_EQUIP_CANCEL")
 
 
 # 合成 / 技能石 按钮按下效果（参考 main_menu 开始按钮：缩放 0.9 + 轻微暗化）
@@ -317,6 +342,7 @@ func _connect_signals() -> void:
 	if EventBus:
 		EventBus.equipment_changed.connect(_on_equipment_changed)
 		EventBus.gold_changed.connect(_on_gold_changed)
+		EventBus.enhance_gem_changed.connect(_on_enhance_gem_changed)
 		EventBus.language_changed.connect(_on_language_changed)
 
 
@@ -494,11 +520,11 @@ func _apply_detail_icon_slot(item: Dictionary, quality: int, slot: String) -> vo
 	_detail_icon_slot.self_modulate = Color.WHITE
 
 
-# 升级按钮：第一行 "升级" + 第二行 [金币 icon] cost/total；金币不足置灰、数字转红
+# 升级按钮：第一行 "升级" + 第二行 [强化水晶 icon] cost/total；强化水晶不足置灰、数字转红
 func _refresh_upgrade_button(cost: int) -> void:
 	if _btn_upgrade == null:
 		return
-	var held := int(LobbyState.gold)
+	var held := int(LobbyState.enhance_gem)
 	var title := _btn_upgrade.get_node_or_null("VBox/TitleLabel") as Label
 	if title != null:
 		title.text = LanguageManager.tr_ui("UI_EQUIP_UPGRADE_BTN")
@@ -597,6 +623,9 @@ func _should_keep_ci_nearest(node: Node) -> bool:
 	# 详情弹窗金币 icon 也是像素图
 	if n == "GoldIcon":
 		return true
+	# 左上角强化水晶栏 icon 也是像素图
+	if n == "GemIcon":
+		return true
 	return false
 
 
@@ -632,6 +661,100 @@ func _on_skill_stone_pressed() -> void:
 		panel.connect("closed", _refresh_all)
 
 
+# ─── 装备分解多选模式（参 skill_stone_panel 的 decompose 流程）──────────
+# 正常态：[分解][技能石][合成]；多选态：[分解(N金币)][取消]
+func _on_decompose_pressed() -> void:
+	if _multi_select:
+		_confirm_decompose()
+	else:
+		_enter_decompose_mode()
+
+
+func _enter_decompose_mode() -> void:
+	_multi_select = true
+	_selected_uids.clear()
+	if _detail_popup != null:
+		_detail_popup.visible = false
+	_current_detail_uid = -1
+	_refresh_inventory()
+	_refresh_action_buttons()
+	_show_toast(LanguageManager.tr_ui("UI_EQUIP_DECOMPOSE_MULTI_HINT"))
+
+
+func _on_cancel_pressed() -> void:
+	_multi_select = false
+	_selected_uids.clear()
+	_refresh_inventory()
+	_refresh_action_buttons()
+
+
+func _confirm_decompose() -> void:
+	if _selected_uids.is_empty():
+		return
+	var uids: Array = []
+	for k in _selected_uids.keys():
+		uids.append(int(k))
+	var gained := LobbyState.decompose_equipments(uids)
+	_multi_select = false
+	_selected_uids.clear()
+	if gained > 0:
+		_show_toast(LanguageManager.tr_ui("UI_EQUIP_DECOMPOSE_OK_FMT") % gained)
+	_refresh_all()
+	_refresh_action_buttons()
+
+
+# 切换两态按钮可见性 + 多选态下分解按钮文案/置灰（参 skill_stone_panel._refresh_action_buttons）
+# 多选态：文字“分解 N” + 强化水晶 icon（HBox 内 TextLabel + IconRect），字体缩到 20 避免 140px 按钮溢出
+func _refresh_action_buttons() -> void:
+	if _decompose_btn == null:
+		return
+	var normal := not _multi_select
+	if _skill_stone_btn != null:
+		_skill_stone_btn.visible = normal
+	if _synth_btn != null:
+		_synth_btn.visible = normal
+	if _cancel_btn != null:
+		_cancel_btn.visible = not normal
+	_decompose_btn.visible = true  # 两种态都可见
+	if _multi_select:
+		var est := _estimate_decompose_gem()
+		if _decompose_text != null:
+			_decompose_text.add_theme_font_size_override("font_size", 20)
+			_decompose_text.text = LanguageManager.tr_ui("UI_EQUIP_DECOMPOSE_FMT") % est
+		if _decompose_icon != null:
+			_decompose_icon.visible = true
+		var empty := _selected_uids.is_empty()
+		_decompose_btn.disabled = empty
+		_decompose_btn.modulate = Color(0.6, 0.6, 0.6, 1.0) if empty else Color(1, 1, 1, 1)
+	else:
+		if _decompose_text != null:
+			_decompose_text.add_theme_font_size_override("font_size", 28)
+			_decompose_text.text = LanguageManager.tr_ui("UI_EQUIP_DECOMPOSE")
+		if _decompose_icon != null:
+			_decompose_icon.visible = false
+		_decompose_btn.disabled = false
+		_decompose_btn.modulate = Color(1, 1, 1, 1)
+
+
+func _estimate_decompose_gem() -> int:
+	return _selected_uids.size() * LobbyState.EQUIP_DECOMPOSE_GEM_PER_ITEM
+
+
+func _show_toast(text: String) -> void:
+	if _toast == null:
+		return
+	_toast.text = text
+	_toast.visible = true
+	_toast.modulate = Color("#fff4be")
+	_toast.scale = Vector2(0.86, 0.86)
+	_toast.offset_top = _toast_base_top + 10.0
+	_toast.offset_bottom = _toast_base_top + 52.0
+	_toast_timer = _toast_duration
+	var tween := create_tween()
+	tween.tween_property(_toast, "scale", Vector2(1.04, 1.04), 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_toast, "scale", Vector2(1.0, 1.0), 0.09).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+
+
 func _synthesis_overlay_host() -> Node:
 	# 主菜单根节点在两层之上（Content -> MainMenu）；单独打开场景时回退到自身。
 	var content := get_parent()
@@ -649,10 +772,31 @@ func _on_gold_changed(_value: int) -> void:
 		_refresh_detail_content(_current_detail_uid)
 
 
+# 强化水晶变化：刷新左上角栏；若详情弹窗打开则同步升级按钮 cost/held。
+func _on_enhance_gem_changed(_value: int) -> void:
+	_refresh_enhance_gem_bar()
+	if _current_detail_uid >= 0 and _detail_popup.visible:
+		var cur := LobbyState.get_item_by_uid(_current_detail_uid)
+		if not cur.is_empty():
+			_refresh_upgrade_button(LobbyState.get_upgrade_cost(cur))
+	_refresh_action_buttons()
+
+
+func _refresh_enhance_gem_bar() -> void:
+	if _enhance_gem_label == null:
+		return
+	# 编辑器 @tool 模式下 LobbyState 是 placeholder，统一显示 0 占位。
+	if Engine.is_editor_hint():
+		_enhance_gem_label.text = "0"
+		return
+	_enhance_gem_label.text = str(maxi(0, LobbyState.enhance_gem))
+
+
 func _refresh_all() -> void:
 	_refresh_slots()
 	_refresh_attributes()
 	_refresh_inventory()
+	_refresh_enhance_gem_bar()
 
 
 func _refresh_slots() -> void:
@@ -865,7 +1009,17 @@ func _on_bag_slot_pressed(slot_index: int) -> void:
 	if slot_index < 0 or slot_index >= _bag_slot_uids.size():
 		return
 	var uid := int(_bag_slot_uids[slot_index])
-	if uid >= 0:
+	if uid < 0:
+		return
+	if _multi_select:
+		# 多选分解模式：点击切换选中态（参 skill_stone_panel._on_bag_slot_pressed）
+		if _selected_uids.has(uid):
+			_selected_uids.erase(uid)
+		else:
+			_selected_uids[uid] = true
+		_refresh_inventory()
+		_refresh_action_buttons()
+	else:
 		_open_item_detail(uid)
 
 
@@ -888,6 +1042,11 @@ func _refresh_inventory() -> void:
 		else:
 			_bag_slot_uids[i] = -1
 			_apply_empty_bag_slot(btn)
+		# 选中高亮（参 skill_stone_panel._refresh_bag：选中=金色调）—— 放在视觉应用之后避免被重置
+		if _multi_select and _selected_uids.has(int(_bag_slot_uids[i])):
+			btn.modulate = Color(1.0, 0.85, 0.4, 1.0)
+		else:
+			btn.modulate = Color(1, 1, 1, 1)
 	if _inventory_empty_label != null:
 		_inventory_empty_label.visible = false
 
@@ -999,7 +1158,7 @@ func _on_detail_upgrade() -> void:
 		return
 	var upgraded := LobbyState.upgrade_item(_current_detail_uid)
 	if upgraded.is_empty():
-		# 金币不足：刷新按钮置灰，不关弹窗、不动 "基础属性" 段头
+		# 强化水晶不足：刷新按钮置灰，不关弹窗、不动 "基础属性" 段头
 		var cur := LobbyState.get_item_by_uid(_current_detail_uid)
 		if not cur.is_empty():
 			_refresh_upgrade_button(LobbyState.get_upgrade_cost(cur))
@@ -1096,6 +1255,18 @@ func _make_quality_pixel_ball(quality: int, unlocked: bool) -> String:
 
 
 func _process(delta: float) -> void:
+	# toast 淡出（参 skill_stone_panel._process）—— 放在预览精灵早退之前，避免被 return 吞掉
+	if _toast != null and _toast.visible:
+		_toast_timer -= delta
+		if _toast_timer <= 0.0:
+			_toast.visible = false
+		else:
+			var life_t := clampf(_toast_timer / _toast_duration, 0.0, 1.0)
+			var alpha := life_t
+			if life_t > 0.65:
+				alpha = clampf((1.0 - life_t) / 0.35, 0.0, 1.0)
+			alpha = maxf(alpha, life_t)
+			_toast.modulate.a = alpha
 	if _preview_sprite == null or _preview_sprite.sprite_frames == null:
 		return
 	_preview_timer -= delta
