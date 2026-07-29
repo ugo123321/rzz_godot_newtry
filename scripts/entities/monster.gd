@@ -140,6 +140,22 @@ const LASER_LENGTH := 1400.0
 const LASER_HALF_WIDTH := 14.0
 const LASER_DAMAGE_MUL := 1.4
 
+# === DASHER 冲刺怪状态机 ===
+# 0=idle(接近+冷却) 1=windup(蓄力变红,锁定方向) 2=dash(直线冲刺固定距离) 3=recover
+var _dasher_state := 0
+var _dasher_timer := 0.0          # windup/recover 通用倒计时
+var _dasher_dash_dist_acc := 0.0  # 本轮已推进距离
+var _dash_dir := Vector2.ZERO
+var _has_hit_this_dash := false
+var _dasher_cooldown_t := 0.0     # idle 内下次可触发倒计时
+# json 扩展字段（setup 读取；缺省给安全默认）
+var _dasher_trigger_range := 180.0
+var _dasher_windup_sec := 0.6
+var _dasher_dash_speed := 320.0
+var _dasher_dash_distance := 220.0
+var _dasher_recover_sec := 0.5
+var _dasher_cooldown_sec := 1.5
+
 # === MINI_CENTIPEDE 迷你千足虫（直线冲锋撞击型，12 节等大方块，共享血量）===
 enum Phase { REPOSITION, CHARGING }
 var _code_drawn := false
@@ -208,6 +224,13 @@ func setup(monster_kind: String, stage_index: int, spawn_pos: Vector2, elite: St
 		_centi_segment_hitbox = float(stats.get("segment_hitbox", 6.0))
 		_centi_charge_speed = float(stats.get("charge_speed", 260.0))
 		_centi_reposition_delay = float(stats.get("reposition_delay", 0.5))
+	if kind_id == "DASHER":
+		_dasher_trigger_range = float(stats.get("trigger_range", 180.0))
+		_dasher_windup_sec = float(stats.get("windup_sec", 0.6))
+		_dasher_dash_speed = float(stats.get("dash_speed", 320.0))
+		_dasher_dash_distance = float(stats.get("dash_distance", 220.0))
+		_dasher_recover_sec = float(stats.get("recover_sec", 0.5))
+		_dasher_cooldown_sec = float(stats.get("cooldown_sec", 1.5))
 	global_position = spawn_pos
 	_sprite_folder = str(stats.get("character_folder", "Skeleton"))
 	_sprite_prefix = str(stats.get("sprite_prefix", "Skeleton"))
