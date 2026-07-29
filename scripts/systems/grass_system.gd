@@ -2,9 +2,10 @@ extends Node2D
 class_name GrassSystem
 
 const GRASS_PALETTES := [
-	[Color("#3a6838"), Color("#4a8048"), Color("#5a9858")],
-	[Color("#3a6038"), Color("#4a7848"), Color("#5a9050")],
-	[Color("#446840"), Color("#528050"), Color("#609860")],
+	# 三档由深→浅（palette[0]=草根暗色，末位=草尖高光）；整体调浅偏黄绿，青草鲜嫩感。
+	[Color("#5a9648"), Color("#6cac58"), Color("#82c468")],
+	[Color("#569044"), Color("#68a854"), Color("#7cba64")],
+	[Color("#5e9450"), Color("#70ac60"), Color("#86c270")],
 ]
 
 var blades: Array = []

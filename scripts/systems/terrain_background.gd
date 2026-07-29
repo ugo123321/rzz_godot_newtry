@@ -7,6 +7,23 @@ const PIXEL := 2
 # 石地板美术素材（40×40，与 TILE_SIZE 对齐）：_paint_tile 直接 blit，不再过程化绘制。
 const STONE_FLOOR_TEX := preload("res://assets/ui/terrains/stone_floor.png")
 
+# 草地美术素材（256×256）：第一章默认地块改用贴图，不再过程化铺色。
+# GRASS_MAIN_TEX = grass_01_tile_256_11（75% 的格用这张做基底），其余 10 张做 25% 的随机变化。
+const GRASS_MAIN_TEX := preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_11.png")
+const GRASS_VARIATION_TEXES := [
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_01.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_02.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_03.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_04.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_05.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_06.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_07.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_08.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_09.png"),
+	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_10.png"),
+]
+const GRASS_MAIN_CHANCE := 0.97  # 97% 的草格用主贴图 _11，余 3% 从变化池随机
+
 # 水簇生成参数（第 2 关起 stage_index >= 1 才启用）
 const WATER_TILES_PER_CLUSTER_BASE := 85    # 单簇基础约 55 格（之前 35 偏稀疏）
 const WATER_CLUSTER_MIN_LEN := 6             # 河流最短 6 格
@@ -280,11 +297,28 @@ var _rows := 0
 var _grid: Array = []
 var _current_theme := ""
 var _stone_floor_img: Image = null
+var _grass_main_img: Image = null
+var _grass_variation_imgs: Array = []
 
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_stone_floor_img = STONE_FLOOR_TEX.get_image()
+	# grass01 PNG 是 256×256：导入成 FORMAT_RGB8（无 alpha），而 _rebake_texture 目标 img 是 RGBA8；
+	# blit_rect 跨格式会静默失败 → 先 convert 成 RGBA8，再把整张缩到 40×40（NEAREST 保像素感）。
+	_grass_main_img = GRASS_MAIN_TEX.get_image()
+	_ensure_rgba8(_grass_main_img)
+	_grass_main_img.resize(TILE_SIZE, TILE_SIZE, Image.INTERPOLATE_NEAREST)
+	for tex in GRASS_VARIATION_TEXES:
+		var vimg: Image = tex.get_image()
+		_ensure_rgba8(vimg)
+		vimg.resize(TILE_SIZE, TILE_SIZE, Image.INTERPOLATE_NEAREST)
+		_grass_variation_imgs.append(vimg)
+
+
+func _ensure_rgba8(img: Image) -> void:
+	if img.get_format() != Image.FORMAT_RGBA8:
+		img.convert(Image.FORMAT_RGBA8)
 
 
 func setup_for_stage(stage_index: int, safe_zone: Dictionary = {}) -> void:
@@ -630,6 +664,16 @@ func _paint_tile(img: Image, col: int, row: int, tile_type: String) -> void:
 	if tile_type == TYPE_STONE_FLOOR and _stone_floor_img != null:
 		img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))
 		img.blit_rect(_stone_floor_img, Rect2i(0, 0, w, h), Vector2i(ox, oy))
+		return
+	# 草地走美术素材（grass01 256×256 → 缩到 40×40 整张贴满）：75% 用主贴图 _11，
+	# 25% 从变化池随机；col/row 种子决定选哪张，rebake 不闪烁。
+	if tile_type == TYPE_GRASS and _grass_main_img != null and not _grass_variation_imgs.is_empty():
+		var seed_v: int = (col * 73856093) ^ (row * 19349663) ^ hash(tile_type)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_v
+		img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))  # 防素材边缘透明露黑
+		var src: Image = _grass_main_img if rng.randf() < GRASS_MAIN_CHANCE else _grass_variation_imgs[rng.randi() % _grass_variation_imgs.size()]
+		img.blit_rect(src, Rect2i(0, 0, w, h), Vector2i(ox, oy))
 		return
 	img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))
 	var seed_v: int = (col * 73856093) ^ (row * 19349663) ^ hash(tile_type)

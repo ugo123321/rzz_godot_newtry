@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cpsj2t18vxsyd"
+path="res://.godot/imported/Bat.aseprite-69d5d1ab999be3fc0ba67d9c70e88dd9.res"
+
+[deps]
+
+source_file="res://assets/Characters/Characters(100x100)/Bat/Bat.aseprite"
+dest_files=["res://.godot/imported/Bat.aseprite-69d5d1ab999be3fc0ba67d9c70e88dd9.res"]
+
+[params]
+
