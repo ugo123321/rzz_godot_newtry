@@ -20,7 +20,7 @@
     "warning_time": 3,
     "hp": 1600,
     "def": 8,
-    "hitbox_radius": 14,
+    "hitbox_radius": 56,
     "body_scale_mult": 1.3,
     "move_speed": 48,
     "super_speed_mult": 3.0,
@@ -34,8 +34,7 @@
     "contact_damage": 18,
     "contact_interval": 0.8,
     "defeat_exp": 140,
-    "character_folder": "Lancer",
-    "sprite_prefix": "Lancer",
+    "display_height": 320,
     "elem_resist_fire": 0.3,
     "vuln_thunder": 0.4
   },

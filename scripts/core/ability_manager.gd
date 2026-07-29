@@ -1889,14 +1889,12 @@ func _draw_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
 
 
 const AUTO_BULLET_PIXEL: float = 3.0
-# 月牙剑气：以 (cx, 0) 为圆心的圆环段，内外半径给出"赤道"处的边界；实际厚度沿 y 抛物线 taper 收窄。
-# 赤道 (by=0) 处：blade tip 在 bx=+10（cx=-16 + r_o=26），内凹在 bx=+4，厚度 6 块（r_o-r_i）。
-# 两端 (|by|→half_h=9)：厚度 → 0，自然收成 1 像素尖点，构成月牙 horns。
-# 凸缘朝 +x（飞行方向），沿 rot 旋转贴齐弹道。
-const AUTO_BULLET_SWORD_ARC_CENTER_X: float = -16.0
-const AUTO_BULLET_SWORD_ARC_R_INNER: float = 20.0
-const AUTO_BULLET_SWORD_ARC_R_OUTER: float = 26.0
-const AUTO_BULLET_SWORD_ARC_HALF_HEIGHT: float = 9.0
+# V 形剑气：双臂笔触从尖端 (tip,0) 张向尾部 (back,±H)，沿臂 taper 收尖 → 1px 尖点。
+# 尖端朝 +x（飞行方向），沿 rot 旋转贴齐弹道。无元素时走白蓝调色板（核心白 → 外缘淡蓝）。
+const AUTO_BULLET_V_TIP_X: float = 5       # 尖端 x（朝 +x）
+const AUTO_BULLET_V_BACK_X: float = -1.0      # 张口尾部 x
+const AUTO_BULLET_V_HALF_HEIGHT: float = 4  # 尾部半高
+const AUTO_BULLET_V_HALF_THICK: float = 1.5    # 双臂笔触半厚（尾部全厚，尖端 taper 收尖）
 
 # "白色剑气"专用调色板：外缘淡蓝描边 → 核心白，无元素时用这套保持"剑气"质感
 static var SWORD_AURA_WHITE_PALETTE: PackedColorArray = PackedColorArray([
@@ -1920,7 +1918,21 @@ func _derive_sword_aura_palette(base: Color) -> PackedColorArray:
 	out.push_back(base.lerp(Color.WHITE, 0.55))     # 核心：55% 白 + 45% 元素色，视觉上仍是彩色而非纯白
 	return out
 
-# 默认普攻子弹：白色月牙剑气（圆环段 + y 抛物线 taper：cx=-13、r=18~21、|y|→7 收尖、px=3、80ms 闪烁）
+# 点到线段距离 + 参数 s（s=0 在起点 A0，s=1 在终点 A0+e）；返回 Vector2(dist, s)
+func _seg_dist_s(px: float, py: float, ax: float, ay: float, ex: float, ey: float) -> Vector2:
+	var wx: float = px - ax
+	var wy: float = py - ay
+	var len2: float = ex * ex + ey * ey
+	var t: float = 0.0
+	if len2 > 0.0001:
+		t = clampf((wx * ex + wy * ey) / len2, 0.0, 1.0)
+	var cx: float = ax + ex * t
+	var cy: float = ay + ey * t
+	var ddx: float = px - cx
+	var ddy: float = py - cy
+	return Vector2(sqrt(ddx * ddx + ddy * ddy), t)
+
+# 默认普攻子弹：白色 V 形剑气（双臂笔触 + 沿臂 taper 收尖：tip=10、back=-3、H=8、px=3、80ms 闪烁）
 # 基色仍走 _bullet_element_tint()（无元素返回白），保留元素染色的调色板派生规则。
 # returning=true（sr=16 mirror 回弹）强制蓝调色板。
 func _draw_pixel_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
@@ -1936,40 +1948,45 @@ func _draw_pixel_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
 		base_color = _bullet_element_tint()
 	var palette: PackedColorArray = _derive_sword_aura_palette(base_color)
 	var px: float = AUTO_BULLET_PIXEL
-	var cx: float = AUTO_BULLET_SWORD_ARC_CENTER_X
-	var r_in: float = AUTO_BULLET_SWORD_ARC_R_INNER
-	var r_out: float = AUTO_BULLET_SWORD_ARC_R_OUTER
-	var half_h: float = AUTO_BULLET_SWORD_ARC_HALF_HEIGHT
-	var mid_r: float = (r_in + r_out) * 0.5
-	var max_half_thick: float = (r_out - r_in) * 0.5
 	var local: Vector2 = pos - canvas.global_position
-	# 月牙弧栅格：凸缘朝 +x（沿 rot 旋转到飞行方向）— 元素染色直接落在栅格调色板上，不再叠圆晕
+	# V 形栅格：双臂从尖端 (T,0) 张向尾部 (B,±H)；沿臂 taper（s 0→1 尖→尾）半厚 floor→full
+	# 元素染色直接落在栅格调色板上（核心白 → 外缘淡蓝），不再叠圆晕
 	canvas.draw_set_transform(local, rot, Vector2.ONE)
-	var x_min: int = int(floor(cx + r_in)) - 1
-	var x_max: int = int(ceil(cx + r_out)) + 1
+	var tip_x: float = AUTO_BULLET_V_TIP_X
+	var back_x: float = AUTO_BULLET_V_BACK_X
+	var half_h: float = AUTO_BULLET_V_HALF_HEIGHT
+	var half_thick: float = AUTO_BULLET_V_HALF_THICK
+	var ex: float = back_x - tip_x            # 两臂公共 x 分量（自尖端起）
+	var x_min: int = int(floor(back_x)) - 1
+	var x_max: int = int(ceil(tip_x)) + 1
 	var y_max: int = int(ceil(half_h)) + 1
 	for by in range(-y_max, y_max + 1):
-		var abs_by: float = absf(float(by))
-		if abs_by > half_h + 0.35:
+		var fy: float = float(by)
+		if absf(fy) > half_h + 1.0:
 			continue
-		# 抛物线 taper：赤道 (t_end=0) 全厚，两端 (t_end=1) 归零 → 收成尖
-		var t_end: float = clampf(abs_by / half_h, 0.0, 1.0)
-		var local_half_thick: float = max_half_thick * (1.0 - t_end * t_end)
 		for bx in range(x_min, x_max + 1):
-			var dx: float = float(bx) - cx
-			if dx <= 0.0:
+			var fx: float = float(bx)
+			# 两臂：A=尖→(B,-H)（上臂），B=尖→(B,+H)（下臂）；取较近者
+			var da: Vector2 = _seg_dist_s(fx, fy, tip_x, 0.0, ex, -half_h)
+			var db: Vector2 = _seg_dist_s(fx, fy, tip_x, 0.0, ex, half_h)
+			var dist: float
+			var arm_s: float
+			if da.x <= db.x:
+				dist = da.x
+				arm_s = da.y
+			else:
+				dist = db.x
+				arm_s = db.y
+			# 沿臂 taper：尖端 arm_s=0 半厚=35% floor（保留 1px 尖点），尾部 arm_s=1 全厚
+			var local_half_thick: float = half_thick * (0.35 + 0.65 * arm_s)
+			if dist > local_half_thick + 0.35:
 				continue
-			var d: float = sqrt(dx * dx + float(by * by))
-			var offset: float = d - mid_r
-			# 环形段收窄判 hit：|d - 中线| ≤ 该 y 处的局部半厚（+0.35 让尖端还能画出 1 像素点）
-			if absf(offset) > local_half_thick + 0.35:
-				continue
-			# 归一化：外弧侧 (offset > 0) → t_pos 小 → 白刀刃；内凹侧 → t_pos 大 → 深描边
+			# t_pos：0=笔触中心（白核 / 尖端）→ 1=外缘（淡蓝描边）；混入 arm_s 让尾部偏深，强化尖→尾渐变
 			var denom: float = maxf(0.35, local_half_thick)
-			var t_pos: float = clampf(0.5 - offset / (2.0 * denom), 0.0, 1.0)
+			var t_pos: float = clampf(dist / denom * 0.7 + arm_s * 0.3, 0.0, 1.0)
 			var idx: int
 			if t_pos < 0.20:
-				idx = 4  # 核心白（外弧刀刃）
+				idx = 4  # 核心白（笔触中线 / 尖端）
 			elif t_pos < 0.40:
 				idx = 3  # 近白
 			elif t_pos < 0.60:
@@ -1977,14 +1994,14 @@ func _draw_pixel_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
 			elif t_pos < 0.80:
 				idx = 1  # 深
 			else:
-				idx = 0  # 内凹缘描边
+				idx = 0  # 外缘描边
 			var col: Color = palette[idx]
-			# 全体块参与闪烁（刀刃处 lerp 向 palette[3] 产生"剑气抖动"，边缘处 lerp 向更深加对比）
+			# 全体块参与闪烁（核心 lerp 向 palette[3] 产生"剑气抖动"，边缘 lerp 向更深加对比）
 			if flicker:
 				var adj_idx: int = clamp(idx - 1, 0, palette.size() - 1)
 				col = col.lerp(palette[adj_idx], 0.35)
 			col.a *= 0.75 + life_t * 0.25
-			canvas.draw_rect(Rect2(float(bx) * px - px * 0.5, float(by) * px - px * 0.5, px, px), col)
+			canvas.draw_rect(Rect2(fx * px - px * 0.5, fy * px - px * 0.5, px, px), col)
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

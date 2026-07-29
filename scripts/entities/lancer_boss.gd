@@ -8,6 +8,14 @@ enum SkillState { CHASE, WINDUP, SUPER_SPEED }
 
 const SkillId := {"SPECTER_SUMMON": "specter_summon", "SUPER_SPEED": "super_speed"}
 
+# 死亡骑士素材(idle/walk 256² 4×4/64,attack 640×512 5×4/128):4 行方向图,
+# 1/4 行=正面/背面(不用),2/3 行=朝左/朝右。只取第 3 行(朝右),朝左靠 flip_h —— 同龙。
+# 三张图身体高度都 ~60px(idle/walk 帧被身体填满,attack 128 画布身体只占 ~一半,其余留白),
+# 用同一每像素缩放(以 idle 帧 64 为基准),身体自然等大;attack 画布大但留白透明无妨。
+const KNIGHT_BASE_FRAME_H := 64.0
+const KNIGHT_ROW := 2
+const HURT_FLASH_DUR := 0.18
+
 var battle
 var stage_index := 0
 var cfg: Dictionary = {}
@@ -63,6 +71,8 @@ var _warning_alpha := 0.0
 var _speed_fx_t := 0.0
 var _specter_archers: Array = []
 var _base_sprite_scale := 1.0      # _apply_sprite 算出来的最终 scale，appear tween 用作目标值
+var _anim_comp := {}               # 每动画帧补偿(idle/walk/attack 全 1.0，身体等高)
+var _hurt_flash_t := 0.0           # 受击闪红计时(无 hurt 动画，同龙)
 
 var logical_w := 720.0
 var logical_h := 1280.0
@@ -70,12 +80,18 @@ var play_top := 88.0
 var play_bottom := 580.0
 
 var sprite: AnimatedSprite2D
+var _marker_overlay: Node2D  # 画线攻击标记圆圈,画在精灵之上(同龙)
 
 
 func _init() -> void:
 	sprite = AnimatedSprite2D.new()
 	sprite.name = "AnimatedSprite2D"
 	add_child(sprite)
+	# 标记圆圈 overlay:排在精灵之后的子节点,画在顶层 —— 父 _draw 永远在子节点之后,
+	# 直接画在 _draw 会被骑士贴图盖住(同龙 BossMarkerOverlay 方案)
+	_marker_overlay = BossMarkerOverlay.new()
+	_marker_overlay.name = "MarkerOverlay"
+	add_child(_marker_overlay)
 
 
 func is_boss_active() -> bool:
@@ -170,14 +186,37 @@ func _spawn_appear_particles() -> void:
 
 
 func _apply_sprite() -> void:
-	var folder := str(cfg.get("character_folder", "Lancer"))
-	var prefix := str(cfg.get("sprite_prefix", "Lancer"))
-	sprite.sprite_frames = SpriteHelper.build_character_frames(folder, prefix)
+	# 死亡骑士素材:三张 4 行 spritesheet(idle 256² 4×4/64 / walk 256² 4×4/64 / attack 640×512 5×4/128)。
+	# 只取第 3 行(朝右,0-indexed=2),朝左靠 flip_h —— 实现方式同龙(DarkDragonBoss)。
+	var specs := {
+		SpriteHelper.ANIM_IDLE: {
+			"path": "res://assets/Characters/Characters2/DeathKnight/DeathKnight_idle.png",
+			"frame_w": 64, "frame_h": 64, "row": KNIGHT_ROW, "cols": 4, "fps": 6.0, "loop": true,
+		},
+		SpriteHelper.ANIM_WALK: {
+			"path": "res://assets/Characters/Characters2/DeathKnight/DeathKnight_walk.png",
+			"frame_w": 64, "frame_h": 64, "row": KNIGHT_ROW, "cols": 4, "fps": 10.0, "loop": true,
+		},
+		SpriteHelper.ANIM_ATTACK: {
+			"path": "res://assets/Characters/Characters2/DeathKnight/DeathKnight_attack_NOhitbox.png",
+			"frame_w": 128, "frame_h": 128, "row": KNIGHT_ROW, "cols": 5, "fps": 12.0, "loop": false,
+		},
+	}
+	sprite.sprite_frames = EffectHelper.build_row_character_frames("char_death_knight", specs)
 	SpriteHelper.apply_pixel_art(sprite)
-	var scale_val := float(GameConfig.get_tuning("monster_sprite_scale", 1.0))
-	# pixel_scale 接受 size_mult 参数自动按 0.5 步进对齐避免糊边
-	_base_sprite_scale = SpriteHelper.pixel_scale(scale_val, body_scale_mult)
+	# 同龙:_anim_comp 留空(三张图身体等高),只按 idle 帧高 64 做每像素缩放。
+	# display_height 默认 320 → pixel_scale(320/64,1.0)=5.0,与旧 monster_sprite_scale 体系一致。
+	_anim_comp.clear()
+	var target_h := float(cfg.get("display_height", 320))
+	_base_sprite_scale = SpriteHelper.pixel_scale(target_h / KNIGHT_BASE_FRAME_H, 1.0)
 	sprite.scale = Vector2.ONE * _base_sprite_scale
+
+
+func _apply_knight_scale(anim_name: String = "") -> void:
+	if anim_name.is_empty():
+		anim_name = sprite.animation
+	var comp := float(_anim_comp.get(anim_name, 1.0))
+	sprite.scale = Vector2.ONE * _base_sprite_scale * comp
 
 
 func _pick_spawn_position() -> Vector2:
@@ -256,8 +295,9 @@ func _resolve_apply_damage(info: DamageInfo, _from_pos: Vector2) -> Dictionary:
 	hp = maxi(0, hp - actual)
 	facing = 1.0 if _from_pos.x >= global_position.x else -1.0
 	sprite.flip_h = facing < 0
+	# 受击闪红(无 hurt 动画,同龙)——DeathKnight 图集无 hurt 行
 	if hp > 0:
-		_play_anim(SpriteHelper.ANIM_HURT, true)
+		_hurt_flash_t = HURT_FLASH_DUR
 	if hp <= 0:
 		_defeat()
 	return {"damage": actual, "is_crit": bool(res.get("is_crit", false))}
@@ -290,7 +330,7 @@ func update_boss(delta: float, player: BattlePlayer) -> void:
 		sprite.modulate.a = clampf(p * 1.6, 0.0, 1.0)
 		if appear_timer <= 0.0:
 			appear_active = false
-			sprite.scale = Vector2.ONE * _base_sprite_scale
+			_apply_knight_scale(sprite.animation)
 			sprite.modulate.a = 1.0
 			modulate = Color.WHITE
 		queue_redraw()
@@ -308,6 +348,9 @@ func update_boss(delta: float, player: BattlePlayer) -> void:
 		Phase.ACTIVE:
 			_update_active(delta, player)
 			queue_redraw()
+	# 标记圆圈 overlay 每帧重绘(CombatDirector 写入 path_target_hit_count 后下一帧显示)
+	if _marker_overlay:
+		_marker_overlay.queue_redraw()
 
 
 func _update_active(delta: float, player: BattlePlayer) -> void:
@@ -315,6 +358,13 @@ func _update_active(delta: float, player: BattlePlayer) -> void:
 		return
 	contact_timer = maxf(0.0, contact_timer - delta)
 	_speed_fx_t += delta
+	# 受击闪红计时 —— 用 sprite.modulate(子精灵)避免与 super_speed 的 self.modulate 冲突
+	if _hurt_flash_t > 0.0:
+		_hurt_flash_t = maxf(0.0, _hurt_flash_t - delta)
+		var kk := _hurt_flash_t / HURT_FLASH_DUR
+		sprite.modulate = Color(1.0, 1.0 - 0.6 * kk, 1.0 - 0.6 * kk)
+	else:
+		sprite.modulate = Color.WHITE
 	_update_specter_archers(delta, player)
 	match skill_state:
 		SkillState.CHASE:
@@ -362,7 +412,10 @@ func _update_chase(delta: float, player: BattlePlayer) -> void:
 func _begin_skill(_player: BattlePlayer) -> void:
 	skill_state = SkillState.WINDUP
 	windup_timer = float(cfg.get("skill_windup", 1.5))
-	pending_skill = SkillId.SPECTER_SUMMON if randf() < 0.5 else SkillId.SUPER_SPEED
+	# 召唤弓箭手(SPECTER_SUMMON)技能已从冲锋骑士下线 —— 未来改给别的 boss 用。
+	# 相关召唤/绘制/更新函数(_summon_specter_archers / _draw_specter_summon_windup /
+	# _update_specter_archers / SkillId.SPECTER_SUMMON 等)故意保留在文件里供复用，勿删。
+	pending_skill = SkillId.SUPER_SPEED
 	_play_anim(SpriteHelper.ANIM_IDLE)
 
 
@@ -502,11 +555,13 @@ func _play_anim(anim_name: String, force: bool = false) -> void:
 			_play_anim(SpriteHelper.ANIM_IDLE, force)
 		return
 	if not force and sprite.animation == anim_name and sprite.is_playing():
+		_apply_knight_scale(anim_name)
 		return
 	if force and sprite.animation == anim_name:
 		sprite.stop()
 		sprite.frame = 0
 	sprite.play(anim_name)
+	_apply_knight_scale(anim_name)
 
 
 func _defeat() -> void:
@@ -519,7 +574,8 @@ func _defeat() -> void:
 	dying = true
 	phase = Phase.DEAD
 	death_fade_timer = death_fade_dur
-	_play_anim(SpriteHelper.ANIM_DEATH, true)
+	# 死亡无动画(DeathKnight 图集无 death 行),停 sprite 只渐隐,同龙
+	sprite.stop()
 	if battle and battle.blood_stains:
 		var hit_angle := 0.0
 		if battle.player:
@@ -670,9 +726,7 @@ func _draw() -> void:
 		_draw_super_speed_windup()
 	if phase == Phase.ACTIVE and skill_state == SkillState.SUPER_SPEED:
 		_draw_super_speed_fx()
-	if path_target_hit_count > 0:
-		var ring := CombatDirector.path_preview_ring_color(path_target_hit_count)
-		draw_arc(Vector2.ZERO, hitbox_radius + 5.0, 0.0, TAU, 24, ring, 3.0)
+	# 画线攻击标记圆圈由 _marker_overlay 子节点画在精灵之上(同龙,见 BossMarkerOverlay)
 	# Boss 出现冲击波（warning 阶段前 0.65s，扩散黄色 ring）
 	if appear_active or _appear_shockwave_alpha > 0.01:
 		_draw_appear_shockwave()
