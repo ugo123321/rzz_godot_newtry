@@ -68,6 +68,7 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
+    "dasher": 1,
     "boss_id": "",
     "display_name_en": "Stage 4·Shield Trial"
   },
@@ -123,6 +124,7 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 14,
+    "dasher": 2,
     "boss_id": "",
     "display_name_en": "Stage 7·Ricochet"
   },
@@ -197,6 +199,7 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
+    "dasher": 2,
     "boss_id": "",
     "display_name_en": "Stage 11·Bash & Break"
   },
