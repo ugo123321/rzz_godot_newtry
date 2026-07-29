@@ -1,5 +1,5 @@
 extends Node
-# 回归：4 种新怪（SNAKE_SHOOTER / JUMPER / LASER / MINI_CENTIPEDE）
+# 回归：5 种新怪（SNAKE_SHOOTER / JUMPER / LASER / MINI_CENTIPEDE / DASHER）
 # 以场景方式运行（autoload 可用，monster.gd 能编译）。
 # 验证：配置可加载、setup 不崩、update_ai 多帧推进状态机不崩、_draw 不崩、
 #       snake/radial 投射物 spawn+update 不崩、smash 地面效果 spawn+update 不崩。
@@ -39,7 +39,7 @@ func _make_script(src: String) -> GDScript:
 func _ready() -> void:
 	var ok := true
 	var report := []
-	var kinds := ["SNAKE_SHOOTER", "JUMPER", "LASER", "MINI_CENTIPEDE"]
+	var kinds := ["SNAKE_SHOOTER", "JUMPER", "LASER", "MINI_CENTIPEDE", "DASHER"]
 
 	# 1) 配置加载
 	for k in kinds:
@@ -102,7 +102,7 @@ func _ready() -> void:
 		for _i in range(20):
 			m.update_death(0.05)
 		m.queue_free()
-	report.append("ok: 4 怪 update_ai/update_death/_draw 跑完无崩溃")
+	report.append("ok: 5 怪 update_ai/update_death/_draw 跑完无崩溃")
 
 	# 4) smash 地面效果（玩家在远处，不中弹）
 	ge.spawn_smash(Vector2(200, 300), 30, 70.0, 2.0)
