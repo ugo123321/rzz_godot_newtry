@@ -672,8 +672,8 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 	if anim_sprite:
 		anim_sprite.flip_h = facing < 0
 	var preserve_anim := hurt_reaction_timer > 0.0 or SpriteHelper.is_playing_priority_anim(anim_sprite)
-	# JUMPER/LASER 进入非 idle 状态时定身（酝酿/起跳/激光预警/发射期间不移动）
-	var frozen := _jumper_state != 0 or _laser_state != 0
+	# JUMPER/LASER/DASHER 进入非 idle 状态时定身（酝酿/起跳/激光预警/发射/蓄力/冲刺/恢复期间不走通用移动）
+	var frozen := _jumper_state != 0 or _laser_state != 0 or _dasher_state != 0
 	if can_move and not frozen:
 		var dist := to_player.length()
 		var stop_dist := _melee_stop_distance(player)
@@ -728,6 +728,9 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 		return
 	if kind_id == "LASER":
 		_update_laser(delta, player, battle)
+		return
+	if kind_id == "DASHER":
+		_update_dasher(delta, player, battle)
 		return
 	var can_attack := true
 	if battle and battle.combat:
@@ -917,6 +920,53 @@ func _update_laser(delta: float, player: BattlePlayer, battle: Node) -> void:
 			if _laser_timer <= 0.0:
 				_laser_state = 0
 				attack_timer = attack_interval
+
+
+# ===================== DASHER 冲刺怪 =====================
+# 进入触发范围 → 蓄力 windup_sec（定身+渐变变红,modulate 由 _apply_status_tint 处理）
+# → 锁定方向直线冲刺 dash_distance（每轮命中玩家一次,不停不拐弯）→ 恢复 recover_sec → 回 idle 冷却。
+func _update_dasher(delta: float, player: BattlePlayer, _battle: Node) -> void:
+	match _dasher_state:
+		0:  # idle：通用移动已在外层处理；这里只做冷却+触发范围检测
+			if _dasher_cooldown_t > 0.0:
+				_dasher_cooldown_t = maxf(0.0, _dasher_cooldown_t - delta)
+			if player == null or _dasher_cooldown_t > 0.0:
+				return
+			if global_position.distance_to(player.global_position) <= _dasher_trigger_range:
+				_dasher_state = 1
+				_dasher_timer = _dasher_windup_sec
+				_dasher_dash_dist_acc = 0.0
+				_has_hit_this_dash = false
+				var d := player.global_position - global_position
+				_dash_dir = d.normalized() if d.length_squared() > 0.0001 else Vector2.RIGHT
+				_play_anim(SpriteHelper.ANIM_HURT, true)
+		1:  # windup 蓄力：定身变红（tint 在 _apply_status_tint）
+			_dasher_timer -= delta
+			if _dasher_timer <= 0.0:
+				_dasher_state = 2
+				_play_anim(SpriteHelper.ANIM_ATTACK01, true)
+		2:  # dash 直线冲刺固定距离（受 slow/paralyze/petrify 影响,同 _step_charge）
+			var slow := clampf(slow_pct_active, 0.0, 0.95)
+			var spd := _dasher_dash_speed * (1.0 - slow)
+			if paralyze_timer > 0.0 or petrify_timer > 0.0:
+				spd = 0.0
+			global_position += _dash_dir * spd * delta
+			_dasher_dash_dist_acc += spd * delta
+			# 撞击：每轮一次接触伤害,不停不拐弯（仿 _step_charge:1004-1008）
+			if not _has_hit_this_dash and player != null and player.hp > 0.0:
+				var rr := player.get_effective_radius() + GameConfig.scale_world(6.0)
+				if global_position.distance_to(player.global_position) <= rr:
+					player.take_damage(attack)
+					_has_hit_this_dash = true
+			if _dasher_dash_dist_acc >= _dasher_dash_distance:
+				_dasher_state = 3
+				_dasher_timer = _dasher_recover_sec
+				_play_anim(SpriteHelper.ANIM_IDLE)
+		3:  # recover
+			_dasher_timer -= delta
+			if _dasher_timer <= 0.0:
+				_dasher_state = 0
+				_dasher_cooldown_t = _dasher_cooldown_sec
 
 
 # 玩家到激光射线（自 monster 沿 _laser_dir）的垂直距离判定，命中则造伤一次。
