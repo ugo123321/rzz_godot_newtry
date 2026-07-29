@@ -571,6 +571,68 @@ static func _character_frames_complete(frames: SpriteFrames) -> bool:
 	return true
 
 
+# 通用"按行取帧"角色加载器 —— 适用于"4 行 = 前/后/左/右,只用第 2/3 行(朝左/朝右)"
+# 这类没有 Aseprite json、帧尺寸各异、且只需左右朝向的手工 spritesheet 素材
+# (暗黑龙 / 未来同类怪)。
+#
+# 朝向处理:与 Werewolf 等现有怪物一致 —— 只取一行(默认朝右那行),朝左由
+# AnimatedSprite2D.flip_h 镜像;若该图朝右其实是另一行,改 spec 里的 row 即可。
+# 不做"左右两套帧 + 方向动画",以保持与全怪物系统一致、零特殊状态机代码。
+#
+# 多张图帧尺寸不一(idle 144 / fly 192×144 / attack 432…)时,调用方(boss 脚本)按每动画
+# 首帧高度做补偿缩放,把显示高度统一到一个基准 —— 加载器只管切帧,显示归调用方。
+#
+# specs: { anim_name: { path, frame_w, frame_h, row, cols, fps=8.0, loop=true } }
+# row/cols/frame_* 描述该图的单帧几何;row=2 表示第 3 排(0-indexed)。
+static func build_row_character_frames(cache_key: String, specs: Dictionary) -> SpriteFrames:
+	if _cache.has(cache_key):
+		return _cache[cache_key]
+	var frames := SpriteFrames.new()
+	for anim_name in specs.keys():
+		var spec: Dictionary = specs[anim_name]
+		var path := str(spec.get("path", ""))
+		var fw := int(spec.get("frame_w", 0))
+		var fh := int(spec.get("frame_h", 0))
+		var row := int(spec.get("row", 0))
+		var cols := int(spec.get("cols", 0))
+		if path.is_empty() or fw <= 0 or fh <= 0 or cols <= 0:
+			continue
+		var regions := slice_sheet_row_frames(path, fw, fh, row, cols)
+		if regions.is_empty():
+			continue
+		if not frames.has_animation(anim_name):
+			frames.add_animation(anim_name)
+		for r in regions:
+			frames.add_frame(anim_name, r)
+		frames.set_animation_speed(anim_name, float(spec.get("fps", 8.0)))
+		frames.set_animation_loop(anim_name, bool(spec.get("loop", true)))
+	# 至少要有 idle 才算成功;调用方回退到自己兜底
+	if frames.has_animation(SpriteHelper.ANIM_IDLE) and frames.get_frame_count(SpriteHelper.ANIM_IDLE) > 0:
+		_cache[cache_key] = frames
+		return frames
+	return null
+
+
+# 从单张 spritesheet 取第 row 行(0-indexed)的前 cols 列帧,返回 AtlasTexture 数组。
+# 越界帧(图实际不够 cols 列/越界行)自动跳过。
+static func slice_sheet_row_frames(path: String, frame_w: int, frame_h: int, row: int, cols: int) -> Array[AtlasTexture]:
+	var result: Array[AtlasTexture] = []
+	if not ResourceLoader.exists(path):
+		return result
+	var tex: Texture2D = load(path)
+	if tex == null:
+		return result
+	for col in range(cols):
+		if (col + 1) * frame_w > tex.get_width() or (row + 1) * frame_h > tex.get_height():
+			continue
+		var atlas := AtlasTexture.new()
+		atlas.atlas = tex
+		atlas.filter_clip = true
+		atlas.region = Rect2(col * frame_w, row * frame_h, frame_w, frame_h)
+		result.append(atlas)
+	return result
+
+
 static func _character_tag_to_anim(tag_name: String) -> String:
 	var lower := tag_name.to_lower().strip_edges()
 	if lower.ends_with("_effect") and not lower.contains("with"):
