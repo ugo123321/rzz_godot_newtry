@@ -42,10 +42,19 @@ def main() -> None:
     sheet_h = rows * FRAME
     sheet = Image.new("RGBA", (sheet_w, sheet_h), (0, 0, 0, 0))
 
+    # 每张 strip 打开一次并校验宽度，避免未来换图后静默产生空白格
+    strips = {}
+    for fname, _tag, start, count in STRIPS:
+        strip = Image.open(BAT_DIR / fname).convert("RGBA")
+        assert strip.width >= count * FRAME, (
+            f"{fname} 太窄: {strip.width} < {count * FRAME} (需要 {count} 帧 × {FRAME}px)"
+        )
+        strips[fname] = strip
+
     frames_arr = []
     for idx in range(total):
         fname, sub = frames_meta[idx]
-        strip = Image.open(BAT_DIR / fname).convert("RGBA")
+        strip = strips[fname]
         cell = strip.crop((sub * FRAME, 0, (sub + 1) * FRAME, FRAME))
         cx = (idx % cols) * FRAME
         cy = (idx // cols) * FRAME
@@ -64,13 +73,14 @@ def main() -> None:
     sheet.save(sheet_path)
     print("sheet:", sheet_path, sheet.size)
 
-    tags = [
-        {"name": "Idle", "from": 0, "to": 0, "direction": "forward", "color": "#000000ff"},
-        {"name": "Walk", "from": 0, "to": 5, "direction": "forward", "color": "#000000ff"},
-        {"name": "Attack01", "from": 6, "to": 11, "direction": "forward", "color": "#000000ff"},
-        {"name": "Attack", "from": 12, "to": 18, "direction": "forward", "color": "#000000ff"},
-        {"name": "Hurt", "from": 19, "to": 22, "direction": "forward", "color": "#000000ff"},
-        {"name": "Death", "from": 23, "to": 26, "direction": "forward", "color": "#000000ff"},
+    # tags 由 STRIPS 派生（DRY：避免 tag 名称/范围与 strip 定义漂移），
+    # Idle 是合成的单帧，from/to 指向第一帧（与 Walk 共享 Flying[0]）。
+    idle_tag = {"name": "Idle", "from": IDLE_FRAME_INDEX, "to": IDLE_FRAME_INDEX,
+                "direction": "forward", "color": "#000000ff"}
+    tags = [idle_tag] + [
+        {"name": tag, "from": start, "to": start + count - 1,
+         "direction": "forward", "color": "#000000ff"}
+        for (_fname, tag, start, count) in STRIPS
     ]
     data = {
         "frames": frames_arr,
