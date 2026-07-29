@@ -118,6 +118,7 @@ func _refill_queue_for_infinite(stage_index: int) -> void:
 		"JUMPER": maxi(0, int(stage.get("jumper", 0))),
 		"LASER": maxi(0, int(stage.get("laser", 0))),
 		"MINI_CENTIPEDE": maxi(0, int(stage.get("mini_centipede", 0))),
+		"DASHER": maxi(0, int(stage.get("dasher", 0))),
 	}
 	var has_any := false
 	for kind_id in counts.keys():
@@ -175,6 +176,7 @@ func _spawn_stage_content(stage_index: int, battle: Node) -> void:
 		"JUMPER": maxi(0, int(stage.get("jumper", 0))),
 		"LASER": maxi(0, int(stage.get("laser", 0))),
 		"MINI_CENTIPEDE": maxi(0, int(stage.get("mini_centipede", 0))),
+		"DASHER": maxi(0, int(stage.get("dasher", 0))),
 	}
 	_init_clusters(battle)
 	for kind_id in counts.keys():
