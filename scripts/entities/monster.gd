@@ -1366,6 +1366,11 @@ func _apply_status_tint() -> void:
 	if anim_sprite == null:
 		return
 	var base_tint: Color = sprite_tint if sprite_tint != Color.WHITE else Color.WHITE
+	# DASHER 蓄力：最高优先级，按进度渐变变红 telegraph（windup 期间每帧重算）
+	if _dasher_state == 1:
+		var p := 1.0 - clampf(_dasher_timer / maxf(_dasher_windup_sec, 0.001), 0.0, 1.0)
+		anim_sprite.modulate = base_tint.lerp(Color(1.0, 0.3, 0.3, 1.0), p)
+		return
 	# sr=51 念力石化：优先级最高，覆盖所有其它 tint
 	if petrify_timer > 0.0:
 		anim_sprite.modulate = Color(0.55, 0.55, 0.6, 1.0)
