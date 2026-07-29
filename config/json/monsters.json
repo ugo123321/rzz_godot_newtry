@@ -470,7 +470,7 @@
     "spawn_order": 15,
     "unlock_at_stage": 3,
     "name_cn": "冲刺怪",
-    "hp": 10,
+    "hp": 110,
     "def": 0,
     "attack": 1,
     "attack_interval": 1.0,
