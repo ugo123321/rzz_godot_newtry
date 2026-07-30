@@ -2,7 +2,7 @@ extends Node2D
 class_name EnemyArrow
 
 enum Pattern { SINGLE, CROSS, BOUNCE, SNAKE }
-enum DrawStyle { SPRITE, PIXEL_ORB, PIXEL_SQUARE, PIXEL_SNAKE }
+enum DrawStyle { SPRITE, PIXEL_ORB, PIXEL_SQUARE, PIXEL_SNAKE, PIXEL_BOLT }
 
 const DEFAULT_ARROW_TEXTURES: Array[String] = [
 	"res://assets/Characters/Characters(100x100)/Archer/Arrow(projectile)/Arrow01(32x32).png",
@@ -44,7 +44,7 @@ const SNAKE_FREQ := 7.0      # 摆动角速度 rad/s
 
 
 static func spawn(
-	battle: BattleController,
+	battle: Node,
 	from_pos: Vector2,
 	to_pos: Vector2,
 	dmg: int,
@@ -284,6 +284,8 @@ func _draw() -> void:
 			_draw_pixel_square()
 		DrawStyle.PIXEL_SNAKE:
 			_draw_pixel_snake()
+		DrawStyle.PIXEL_BOLT:
+			_draw_pixel_bolt()
 
 
 # ------ 像素小圆球（cross_shooter）— 紫色魔法 ------
@@ -377,6 +379,45 @@ func _draw_pixel_snake() -> void:
 	draw_line(head + Vector2(3.0 * px, 0.0), head + Vector2(5.5 * px, 1.4 * px), tongue, tw)
 
 
+# ------ 像素暗紫魔法弹（teleporter）— 死灵系光球 + 尾迹 ------
+# self.rotation 已在 _create 里设为速度方向，所以 local +x = 前进方向，-x = 尾部。
+func _draw_pixel_bolt() -> void:
+	var base := _tint if _tint != Color.WHITE else Color("#6a3a98")
+	var palette := _pixel_palette(base)
+	var px := _pixel_size()
+	var rb := float(ORB_RADIUS_BLOCKS)
+	var flicker := int(Time.get_ticks_msec() / FLICKER_INTERVAL_MS) % 2 == 0
+	# 外发光晕（两层圆晕）
+	var halo := base
+	halo.a = 0.28
+	draw_circle(Vector2.ZERO, (rb + 1.6) * px, halo)
+	halo.a = 0.14
+	draw_circle(Vector2.ZERO, (rb + 3.0) * px, halo)
+	# 尾迹：沿 -x 方向 3 节递减半径/alpha 小圆，模拟运动残影
+	for i in range(3):
+		var t := float(i + 1) / 3.0
+		var tx := lerpf(-1.5, -5.5, t) * px
+		var trad := lerpf(3.0, 1.2, t) * px
+		var tcol := palette[1].lerp(palette[0], t)
+		tcol.a = lerpf(0.55, 0.18, t)
+		draw_circle(Vector2(tx, 0.0), trad, tcol)
+	# 主体：每方块按到中心距离取色
+	for by in range(-int(rb), int(rb) + 1):
+		for bx in range(-int(rb), int(rb) + 1):
+			var d := sqrt(float(bx * bx + by * by))
+			if d > rb + 0.3:
+				continue
+			var ratio := d / rb
+			var col := _orb_block_color(ratio, flicker and ratio > 0.5, palette)
+			draw_rect(Rect2(bx * px - px * 0.5, by * px - px * 0.5, px, px), col)
+	# 核心 2x2 高光
+	var core: Color = palette[4] if not flicker else palette[4].lerp(Color.WHITE, 0.5)
+	draw_rect(Rect2(-px, -px, px, px), core)
+	draw_rect(Rect2(0.0, -px, px, px), core)
+	draw_rect(Rect2(-px, 0.0, px, px), core)
+	draw_rect(Rect2(0.0, 0.0, px, px), core)
+
+
 func _pixel_size() -> float:
 	return PIXEL_SIZE_WORLD * GameConfig.get_world_scale()
 
@@ -432,6 +473,11 @@ func _ready() -> void:
 		return
 	if _effect_key == "enemy_snake_bullet":
 		_draw_style = DrawStyle.PIXEL_SNAKE
+		set_process(true)
+		queue_redraw()
+		return
+	if _effect_key == "enemy_teleport_bolt":
+		_draw_style = DrawStyle.PIXEL_BOLT
 		set_process(true)
 		queue_redraw()
 		return
