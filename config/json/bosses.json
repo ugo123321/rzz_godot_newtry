@@ -78,5 +78,24 @@
     "elem_resist_poison": 0.5,
     "vuln_fire": 0.4,
     "vuln_ice": 0.3
+  },
+  "laser_snail": {
+    "name": "激光蜗牛",
+    "warning_time": 3,
+    "hp": 3000,
+    "def": 8,
+    "hitbox_radius": 28,
+    "body_scale_mult": 1.0,
+    "move_speed": 38,
+    "skill_interval": 3.0,
+    "standoff_range": 220,
+    "laser_spread_deg": 70,
+    "laser_damage": 18,
+    "contact_damage": 16,
+    "contact_interval": 1.0,
+    "defeat_exp": 180,
+    "display_height": 130,
+    "elem_resist_poison": 0.5,
+    "vuln_thunder": 0.4
   }
 }

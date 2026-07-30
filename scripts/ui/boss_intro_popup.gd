@@ -10,6 +10,7 @@ const BOSS_POPUP_ART := {
 	"lancer_knight": "res://assets/ui/icons/boss_popup/DeathKnight_popup.png",
 	"dark_dragon": "res://assets/ui/icons/boss_popup/AncientBlackDragon_popup.png",
 	"bounce_slime": "res://assets/ui/icons/boss_popup/Slime_popup.png",
+	"laser_snail": "res://assets/ui/icons/boss_popup/ElderSnail_popup.png",
 }
 
 const DARKEN_ALPHA := 0.72            # 屏幕变暗目标 alpha（黑罩）
