@@ -1,6 +1,8 @@
 extends Node2D
 class_name MonsterSpawner
 
+const BossIntroPopupScript = preload("res://scripts/ui/boss_intro_popup.gd")
+
 # 精英化（修饰层，与 stages.json 的 ELITE kind_id 是两个独立概念）
 # 概率 idx=0 5% → idx=19 15% 线性；主题关保底 1 只精英
 # phantom（隐形）已从掷骰列表移除 — 剩余 3 种等权随机（uniform pick）
@@ -119,6 +121,7 @@ func _refill_queue_for_infinite(stage_index: int) -> void:
 		"LASER": maxi(0, int(stage.get("laser", 0))),
 		"MINI_CENTIPEDE": maxi(0, int(stage.get("mini_centipede", 0))),
 		"DASHER": maxi(0, int(stage.get("dasher", 0))),
+		"TELEPORTER": maxi(0, int(stage.get("teleporter", 0))),
 	}
 	var has_any := false
 	for kind_id in counts.keys():
@@ -160,6 +163,9 @@ func _spawn_stage_content(stage_index: int, battle: Node) -> void:
 	if not boss_id.is_empty():
 		_pending_boss_stage = stage_index
 		_pending_boss_id = boss_id
+		# 有特写原画的 boss：播特写并把生成延迟到特写播完（屏幕恢复后 boss 才下落震屏 + 血条展开）
+		if BossIntroPopupScript.has_popup(boss_id) and battle.has_method("start_boss_intro") and battle.start_boss_intro(boss_id):
+			_spawn_timer = maxf(_spawn_timer, BossIntroPopupScript.DURATION)
 		return
 	var counts := {
 		"NORMAL": maxi(0, int(stage.get("normal", 0))),
@@ -177,6 +183,7 @@ func _spawn_stage_content(stage_index: int, battle: Node) -> void:
 		"LASER": maxi(0, int(stage.get("laser", 0))),
 		"MINI_CENTIPEDE": maxi(0, int(stage.get("mini_centipede", 0))),
 		"DASHER": maxi(0, int(stage.get("dasher", 0))),
+		"TELEPORTER": maxi(0, int(stage.get("teleporter", 0))),
 	}
 	_init_clusters(battle)
 	for kind_id in counts.keys():
