@@ -428,6 +428,8 @@ func _spawn_boss(battle: Node, stage_index: int, boss_id: String) -> void:
 			boss = LancerBoss.new()
 		"dark_dragon":
 			boss = DarkDragonBoss.new()
+		"bounce_slime":
+			boss = BounceSlimeBoss.new()
 		_:
 			push_warning("MonsterSpawner: unknown boss_id %s" % boss_id)
 			return

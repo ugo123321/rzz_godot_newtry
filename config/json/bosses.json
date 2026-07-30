@@ -62,5 +62,21 @@
     "defeat_exp": 160,
     "elem_resist_fire": 0.5,
     "vuln_ice": 0.4
+  },
+  "bounce_slime": {
+    "name": "弹射史莱姆",
+    "warning_time": 3,
+    "segment_hp": 420,
+    "def": 6,
+    "hitbox_radius": 30,
+    "body_scale_mult": 1.0,
+    "display_height": 100,
+    "bounce_speed": 280,
+    "contact_damage": 12,
+    "contact_interval": 0.8,
+    "defeat_exp": 160,
+    "elem_resist_poison": 0.5,
+    "vuln_fire": 0.4,
+    "vuln_ice": 0.3
   }
 }

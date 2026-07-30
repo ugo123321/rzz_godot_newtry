@@ -33,7 +33,7 @@
     "shotgun": 0,
     "cross_shooter": 0,
     "bounce_slime": 0,
-    "boss_id": "lancer_knight",
+    "boss_id": "bounce_slime",
     "display_name_en": "Stage 2·Charge"
   },
   {

@@ -335,39 +335,6 @@ func get_warning_text() -> String:
 	return str(maxi(1, int(ceil(warning_timer))))
 
 
-func _draw_warning_overlay() -> void:
-	var pulse := 0.45 + sin(warning_pulse) * 0.35
-	var border_w := maxf(6.0, 10.0 + pulse * 8.0)
-	var alpha := 0.5 + pulse * 0.45
-	var col := Color(1.0, 0.16, 0.16, alpha)
-	var inset := border_w * 0.5
-	draw_rect(
-		Rect2(inset, inset, logical_w - border_w, logical_h - border_w),
-		col,
-		false,
-		border_w
-	)
-
-
-func _draw_warning_countdown() -> void:
-	var sec := maxi(1, int(ceil(warning_timer)))
-	var pulse := 0.88 + sin(warning_pulse * 2.2) * 0.12
-	var center := Vector2(logical_w * 0.5, logical_h * 0.46)
-	var font := PixelUiHelper.get_ui_font()
-	var font_size := 52
-	var text := str(sec)
-	var text_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-	draw_string(
-		font,
-		center - Vector2(text_size.x * 0.5, text_size.y * 0.35),
-		text,
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		font_size,
-		Color(1.0, 0.19, 0.19, pulse)
-	)
-
-
 func _draw() -> void:
 	for b in bullets:
 		draw_circle(b.pos - global_position, float(b.radius), Color(0.95, 0.35, 0.25, 0.9))
