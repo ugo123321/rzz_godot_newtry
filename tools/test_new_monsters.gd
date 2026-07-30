@@ -21,6 +21,7 @@ var state := 0
 func is_in_bounds(p): return p.x >= -50 and p.y >= -50 and p.x <= 770 and p.y <= 1330
 func shake_camera(_a, _b): pass
 func is_bullet_blocked_at(_p): return false
+func spawn_arrow(_f, _t, _d, _s, _e, _c): pass
 """
 
 const COMBAT_SRC := """
@@ -39,7 +40,7 @@ func _make_script(src: String) -> GDScript:
 func _ready() -> void:
 	var ok := true
 	var report := []
-	var kinds := ["SNAKE_SHOOTER", "JUMPER", "LASER", "MINI_CENTIPEDE", "DASHER"]
+	var kinds := ["SNAKE_SHOOTER", "JUMPER", "LASER", "MINI_CENTIPEDE", "DASHER", "TELEPORTER"]
 
 	# 1) 配置加载
 	for k in kinds:
@@ -102,7 +103,7 @@ func _ready() -> void:
 		for _i in range(20):
 			m.update_death(0.05)
 		m.queue_free()
-	report.append("ok: 5 怪 update_ai/update_death/_draw 跑完无崩溃")
+	report.append("ok: 6 怪 update_ai/update_death/_draw 跑完无崩溃")
 
 	# 4) smash 地面效果（玩家在远处，不中弹）
 	ge.spawn_smash(Vector2(200, 300), 30, 70.0, 2.0)

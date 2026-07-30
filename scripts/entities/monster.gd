@@ -156,6 +156,22 @@ var _dasher_dash_distance := 220.0
 var _dasher_recover_sec := 0.5
 var _dasher_cooldown_sec := 1.5
 
+# === TELEPORTER 瞬移怪状态机 ===
+# 0=APPEAR(现身,播 teleport_in) 1=VISIBLE(发1发子弹+播attack,停2s)
+# 2=DISAPPEAR(播 teleport_out) 3=GONE(隐形免疫1.5s,末尾画预警圈,再选位→APPEAR)
+var _teleport_state := 0
+var _teleport_timer := 0.0
+var _teleport_next_pos := Vector2.ZERO
+const TELEPORT_APPEAR_SEC := 0.35
+const TELEPORT_VISIBLE_SEC := 2.0
+const TELEPORT_DISAPPEAR_SEC := 0.35
+const TELEPORT_GONE_SEC := 1.5
+const TELEPORT_EDGE_MARGIN := 60.0
+const TELEPORT_MIN_PLAYER_DIST := 160.0
+const TELEPORT_TELEGRAPH_SEC := 0.30
+const ANIM_TELEPORT_IN := "teleport_in"
+const ANIM_TELEPORT_OUT := "teleport_out"
+
 # === MINI_CENTIPEDE 迷你千足虫（直线冲锋撞击型，12 节等大方块，共享血量）===
 enum Phase { REPOSITION, CHARGING }
 var _code_drawn := false
@@ -287,6 +303,15 @@ func begin_spawn(duration: float = -1.0, target_scale: Vector2 = Vector2.ONE) ->
 		_centi_phase = Phase.REPOSITION
 		_centi_repos_timer = 0.3
 		return
+	if kind_id == "TELEPORTER":
+		spawn_lock_timer = 0.0
+		attack_timer = attack_interval
+		modulate.a = 1.0
+		scale = target_scale
+		_teleport_state = 0
+		_teleport_timer = TELEPORT_APPEAR_SEC
+		_play_anim(ANIM_TELEPORT_IN, true)
+		return
 	if duration < 0.0:
 		duration = float(GameConfig.get_tuning("monster_spawn_anim", 0.6))
 	spawn_lock_timer = duration
@@ -327,6 +352,41 @@ func _apply_sprite() -> void:
 		anim_sprite.play(SpriteHelper.ANIM_IDLE)
 	if not anim_sprite.animation_finished.is_connected(_on_animation_finished):
 		anim_sprite.animation_finished.connect(_on_animation_finished)
+	if kind_id == "TELEPORTER":
+		_build_teleport_anims(anim_sprite)
+
+
+# TELEPORTER：从 death 动画前 5 帧派生 teleport_out(正放)/teleport_in(倒放)。
+# 在缓存 SpriteFrames 对象上幂等添加，多实例共享安全。
+func _build_teleport_anims(anim_sprite: AnimatedSprite2D) -> void:
+	if anim_sprite == null or anim_sprite.sprite_frames == null:
+		return
+	var frames := anim_sprite.sprite_frames
+	if not frames.has_animation(SpriteHelper.ANIM_DEATH):
+		return
+	var n := frames.get_frame_count(SpriteHelper.ANIM_DEATH)
+	if n < 5:
+		return
+	if not frames.has_animation(ANIM_TELEPORT_OUT):
+		frames.add_animation(ANIM_TELEPORT_OUT)
+		for i in range(5):
+			frames.add_frame(
+				ANIM_TELEPORT_OUT,
+				frames.get_frame_texture(SpriteHelper.ANIM_DEATH, i),
+				frames.get_frame_duration(SpriteHelper.ANIM_DEATH, i)
+			)
+		frames.set_animation_speed(ANIM_TELEPORT_OUT, 14.0)
+		frames.set_animation_loop(ANIM_TELEPORT_OUT, false)
+	if not frames.has_animation(ANIM_TELEPORT_IN):
+		frames.add_animation(ANIM_TELEPORT_IN)
+		for i in range(4, -1, -1):
+			frames.add_frame(
+				ANIM_TELEPORT_IN,
+				frames.get_frame_texture(SpriteHelper.ANIM_DEATH, i),
+				frames.get_frame_duration(SpriteHelper.ANIM_DEATH, i)
+			)
+		frames.set_animation_speed(ANIM_TELEPORT_IN, 14.0)
+		frames.set_animation_loop(ANIM_TELEPORT_IN, false)
 
 
 func _on_animation_finished() -> void:
@@ -412,6 +472,9 @@ func is_combat_targetable() -> bool:
 	# 节段 0 已在头部位置，头部不再独立可击，避免一次命中双重扣血。
 	if kind_id == "MINI_CENTIPEDE":
 		return false
+	# TELEPORTER 隐形期间不可选中
+	if kind_id == "TELEPORTER" and _teleport_state == 3:
+		return false
 	return alive and not dying and spawn_lock_timer <= 0.0
 
 
@@ -470,6 +533,9 @@ func take_damage_info(info: DamageInfo, from_pos: Vector2) -> Dictionary:
 
 func _resolve_take_damage(info: DamageInfo, from_pos: Vector2) -> Dictionary:
 	if not alive or dying:
+		return {"damage": 0, "is_crit": false}
+	# TELEPORTER GONE 隐形期间免疫（防止接触/范围伤害穿透）
+	if kind_id == "TELEPORTER" and _teleport_state == 3:
 		return {"damage": 0, "is_crit": false}
 	if has_shield:
 		has_shield = false
@@ -732,6 +798,9 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 	if kind_id == "DASHER":
 		_update_dasher(delta, player, battle)
 		return
+	if kind_id == "TELEPORTER":
+		_update_teleporter(delta, player, battle)
+		return
 	var can_attack := true
 	if battle and battle.combat:
 		can_attack = battle.combat.should_monsters_attack(player)
@@ -967,6 +1036,78 @@ func _update_dasher(delta: float, player: BattlePlayer, _battle: Node) -> void:
 			if _dasher_timer <= 0.0:
 				_dasher_state = 0
 				_dasher_cooldown_t = _dasher_cooldown_sec
+
+
+# ===================== TELEPORTER 瞬移怪 =====================
+# APPEAR(现身,teleport_in) → VISIBLE(发1发子弹+attack,停2s)
+# → DISAPPEAR(teleport_out) → GONE(隐形免疫1.5s,末尾画预警圈,再选位→APPEAR)
+func _update_teleporter(delta: float, player: BattlePlayer, battle: Node) -> void:
+	if player == null:
+		return
+	_teleport_timer -= delta
+	match _teleport_state:
+		0:  # APPEAR
+			if _teleport_timer <= 0.0:
+				_teleport_state = 1
+				_teleport_timer = TELEPORT_VISIBLE_SEC
+				# 进入 VISIBLE 立即向玩家发射 1 发暗紫魔法弹
+				facing = 1.0 if player.global_position.x >= global_position.x else -1.0
+				var anim_sprite := _get_sprite()
+				if anim_sprite:
+					anim_sprite.flip_h = facing < 0
+				_play_anim(SpriteHelper.ANIM_ATTACK, true)
+				if battle and battle.has_method("spawn_arrow"):
+					battle.spawn_arrow(
+						global_position,
+						player.global_position,
+						attack,
+						arrow_speed,
+						projectile_effect,
+						sprite_tint
+					)
+		1:  # VISIBLE 停留
+			if _teleport_timer <= 0.0:
+				_teleport_state = 2
+				_teleport_timer = TELEPORT_DISAPPEAR_SEC
+				_play_anim(ANIM_TELEPORT_OUT, true)
+		2:  # DISAPPEAR
+			if _teleport_timer <= 0.0:
+				_teleport_state = 3
+				_teleport_timer = TELEPORT_GONE_SEC
+				modulate.a = 0.0
+				_teleport_next_pos = _pick_teleport_pos(battle, player)
+		3:  # GONE 隐形免疫；末尾画预警圈
+			if _teleport_timer <= 0.0:
+				global_position = _teleport_next_pos
+				modulate.a = 1.0
+				_teleport_state = 0
+				_teleport_timer = TELEPORT_APPEAR_SEC
+				_play_anim(ANIM_TELEPORT_IN, true)
+			else:
+				queue_redraw()  # 维持预警圈重绘
+
+
+# 屏幕边缘随机选位：4 边中随机一边，沿边内缩 EDGE_MARGIN 处取点；
+# 拒绝距玩家 < MIN_PLAYER_DIST 的点；失败兜底屏幕中上部。
+func _pick_teleport_pos(battle: Node, player: BattlePlayer) -> Vector2:
+	var w := float(GameConfig.get_tuning("logical_width", 720))
+	var h := float(GameConfig.get_tuning("logical_height", 1280))
+	var m := TELEPORT_EDGE_MARGIN
+	var safe := player.global_position if player != null else Vector2(w * 0.5, h * 0.5)
+	for _i in range(20):
+		var edge := randi() % 4
+		var pos := Vector2.ZERO
+		match edge:
+			0: pos = Vector2(MathUtils.rand_range(m, w - m), m)
+			1: pos = Vector2(MathUtils.rand_range(m, w - m), h - m)
+			2: pos = Vector2(m, MathUtils.rand_range(m, h - m))
+			_: pos = Vector2(w - m, MathUtils.rand_range(m, h - m))
+		if MathUtils.dist(pos, safe) < TELEPORT_MIN_PLAYER_DIST:
+			continue
+		if battle and battle.has_method("is_move_blocked_at") and battle.is_move_blocked_at(pos, hitbox_radius):
+			continue
+		return pos
+	return Vector2(w * 0.5, h * 0.25)
 
 
 # 玩家到激光射线（自 monster 沿 _laser_dir）的垂直距离判定，命中则造伤一次。
@@ -1250,6 +1391,16 @@ func _draw() -> void:
 	if _code_drawn:
 		_draw_mini_centipede()
 	_draw_theme_aura()
+	if kind_id == "TELEPORTER" and _teleport_state == 3 and _teleport_timer <= TELEPORT_TELEGRAPH_SEC:
+		# GONE 末尾：在将出现点画紫色脉动预警圈
+		var local := to_local(_teleport_next_pos)
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.020)
+		var r := GameConfig.scale_world(hitbox_radius + 6.0)
+		var c := Color("#9a5ad0")
+		c.a = 0.30 + 0.30 * pulse
+		draw_circle(local, r, c)
+		c.a = 0.55
+		draw_arc(local, r, 0.0, TAU, 28, c, GameConfig.scale_world(2.0))
 	if kind_id == "LASER" and _laser_state != 0:
 		_draw_laser()
 	if _should_show_hp_bar():
