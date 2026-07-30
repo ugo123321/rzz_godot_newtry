@@ -163,9 +163,9 @@ var _teleport_state := 0
 var _teleport_timer := 0.0
 var _teleport_next_pos := Vector2.ZERO
 var _teleport_telegraphed := false
-const TELEPORT_APPEAR_SEC := 0.35
+const TELEPORT_APPEAR_SEC := 0.18
 const TELEPORT_VISIBLE_SEC := 2.0
-const TELEPORT_DISAPPEAR_SEC := 0.35
+const TELEPORT_DISAPPEAR_SEC := 0.18
 const TELEPORT_GONE_SEC := 1.5
 const TELEPORT_EDGE_MARGIN := 60.0
 const TELEPORT_MIN_PLAYER_DIST := 160.0
@@ -376,7 +376,7 @@ func _build_teleport_anims(anim_sprite: AnimatedSprite2D) -> void:
 				frames.get_frame_texture(SpriteHelper.ANIM_DEATH, i),
 				frames.get_frame_duration(SpriteHelper.ANIM_DEATH, i)
 			)
-		frames.set_animation_speed(ANIM_TELEPORT_OUT, 14.0)
+		frames.set_animation_speed(ANIM_TELEPORT_OUT, 28.0)
 		frames.set_animation_loop(ANIM_TELEPORT_OUT, false)
 	if not frames.has_animation(ANIM_TELEPORT_IN):
 		frames.add_animation(ANIM_TELEPORT_IN)
@@ -386,7 +386,7 @@ func _build_teleport_anims(anim_sprite: AnimatedSprite2D) -> void:
 				frames.get_frame_texture(SpriteHelper.ANIM_DEATH, i),
 				frames.get_frame_duration(SpriteHelper.ANIM_DEATH, i)
 			)
-		frames.set_animation_speed(ANIM_TELEPORT_IN, 14.0)
+		frames.set_animation_speed(ANIM_TELEPORT_IN, 28.0)
 		frames.set_animation_loop(ANIM_TELEPORT_IN, false)
 
 
