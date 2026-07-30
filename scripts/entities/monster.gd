@@ -162,6 +162,7 @@ var _dasher_cooldown_sec := 1.5
 var _teleport_state := 0
 var _teleport_timer := 0.0
 var _teleport_next_pos := Vector2.ZERO
+var _teleport_telegraphed := false
 const TELEPORT_APPEAR_SEC := 0.35
 const TELEPORT_VISIBLE_SEC := 2.0
 const TELEPORT_DISAPPEAR_SEC := 0.35
@@ -1076,15 +1077,18 @@ func _update_teleporter(delta: float, player: BattlePlayer, battle: Node) -> voi
 				_teleport_timer = TELEPORT_GONE_SEC
 				modulate.a = 0.0
 				_teleport_next_pos = _pick_teleport_pos(battle, player)
-		3:  # GONE 隐形免疫；末尾画预警圈
+				_teleport_telegraphed = false
+		3:  # GONE 隐形免疫；末尾在将出现点画紫色预警圈（独立 ground_effect，不受 modulate.a=0 影响）
+			if not _teleport_telegraphed and _teleport_timer <= TELEPORT_TELEGRAPH_SEC:
+				_teleport_telegraphed = true
+				if battle and battle.ground_effects:
+					battle.ground_effects.spawn_teleport_marker(_teleport_next_pos, hitbox_radius + 6.0, TELEPORT_TELEGRAPH_SEC)
 			if _teleport_timer <= 0.0:
 				global_position = _teleport_next_pos
 				modulate.a = 1.0
 				_teleport_state = 0
 				_teleport_timer = TELEPORT_APPEAR_SEC
 				_play_anim(ANIM_TELEPORT_IN, true)
-			else:
-				queue_redraw()  # 维持预警圈重绘
 
 
 # 屏幕边缘随机选位：4 边中随机一边，沿边内缩 EDGE_MARGIN 处取点；
@@ -1391,16 +1395,6 @@ func _draw() -> void:
 	if _code_drawn:
 		_draw_mini_centipede()
 	_draw_theme_aura()
-	if kind_id == "TELEPORTER" and _teleport_state == 3 and _teleport_timer <= TELEPORT_TELEGRAPH_SEC:
-		# GONE 末尾：在将出现点画紫色脉动预警圈
-		var local := to_local(_teleport_next_pos)
-		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.020)
-		var r := GameConfig.scale_world(hitbox_radius + 6.0)
-		var c := Color("#9a5ad0")
-		c.a = 0.30 + 0.30 * pulse
-		draw_circle(local, r, c)
-		c.a = 0.55
-		draw_arc(local, r, 0.0, TAU, 28, c, GameConfig.scale_world(2.0))
 	if kind_id == "LASER" and _laser_state != 0:
 		_draw_laser()
 	if _should_show_hp_bar():

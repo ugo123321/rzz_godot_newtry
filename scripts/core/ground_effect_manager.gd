@@ -48,6 +48,20 @@ func spawn_smash(pos: Vector2, damage: int, radius: float, warning_time: float) 
 	queue_redraw()
 
 
+# TELEPORTER 瞬移怪：在将出现点画紫色脉动预警圈（warning 期结束直接 dead，无 active/伤害）。
+# 独立 ground_effect 节点绘制，不受 monster 的 modulate.a=0 隐形影响。
+func spawn_teleport_marker(pos: Vector2, radius: float, duration: float) -> void:
+	effects.append({
+		"type": "teleport_marker",
+		"pos": pos,
+		"radius": GameConfig.scale_world(radius),
+		"phase": "warning",
+		"timer": maxf(0.1, duration),
+		"flash_t": 0.0,
+	})
+	queue_redraw()
+
+
 func update_effects(delta: float, player: BattlePlayer) -> void:
 	if effects.is_empty():
 		return
@@ -58,12 +72,15 @@ func update_effects(delta: float, player: BattlePlayer) -> void:
 		match str(e.phase):
 			"warning":
 				if float(e.timer) <= 0.0:
-					e.phase = "active"
-					if str(e.type) == "smash":
-						e.timer = float(GameConfig.get_tuning("smash_active_time", 0.35))
+					if str(e.type) == "teleport_marker":
+						e.phase = "dead"
 					else:
-						e.timer = float(GameConfig.get_tuning("fire_pillar_active_time", 0.5))
-					_damage_player(e, player)
+						e.phase = "active"
+						if str(e.type) == "smash":
+							e.timer = float(GameConfig.get_tuning("smash_active_time", 0.35))
+						else:
+							e.timer = float(GameConfig.get_tuning("fire_pillar_active_time", 0.5))
+						_damage_player(e, player)
 			"active":
 				if float(e.timer) <= 0.0:
 					e.phase = "fade"
@@ -146,7 +163,10 @@ func _draw() -> void:
 		var r: float = float(e.radius)
 		match str(e.phase):
 			"warning":
-				_draw_warning(pos, r, float(e.flash_t))
+				if str(e.type) == "teleport_marker":
+					_draw_teleport_marker(pos, r, float(e.flash_t))
+				else:
+					_draw_warning(pos, r, float(e.flash_t))
 			"active":
 				if str(e.type) == "smash":
 					_draw_smash(pos, r, float(e.flash_t), 1.0)
@@ -169,6 +189,17 @@ func _draw_warning(pos: Vector2, r: float, flash_t: float) -> void:
 	draw_circle(pos, r, Color(1.0, 0.14, 0.11, fill_a))
 	draw_arc(pos, r, 0.0, TAU, 48, Color(1.0, 0.18 if flash else 0.37, 0.14, stroke_a), 3.0 if flash else 2.0)
 	draw_arc(pos, r * 0.7, 0.0, TAU, 36, Color(1.0, 0.43, 0.27, 0.38 + pulse * 0.28), 1.0)
+
+
+# TELEPORTER 紫色脉动预警圈：fill + 外环 + 内环（同 _draw_warning 结构，换色）。
+func _draw_teleport_marker(pos: Vector2, r: float, flash_t: float) -> void:
+	var pulse := sin(flash_t * 14.0) * 0.5 + 0.5
+	var flash := int(floor(flash_t * 10.0)) % 2 == 0
+	var fill_a := 0.10 + pulse * 0.16
+	var stroke_a := 0.85 if flash else 0.42
+	draw_circle(pos, r, Color(0.60, 0.35, 0.82, fill_a))
+	draw_arc(pos, r, 0.0, TAU, 48, Color(0.78, 0.55, 0.95, stroke_a), 3.0 if flash else 2.0)
+	draw_arc(pos, r * 0.7, 0.0, TAU, 36, Color(0.85, 0.65, 1.0, 0.38 + pulse * 0.28), 1.0)
 
 
 func _draw_fire_pillar(pos: Vector2, r: float, flash_t: float, alpha_mul: float) -> void:
