@@ -23,6 +23,9 @@ var _pause_btn: TextureButton
 var _pause_btn_pressed := false
 var _last_ki_draw := -1.0
 var _redraw_timer := 0.0
+# Boss 血条登场伸长动画（埃尔登法环式：boss 出现瞬间从中心伸长 0.9s，ease-out）
+var _boss_bar_intro_t := 1.0  # 1.0 = 已完成（无 boss 时保持完成态，不强制重绘）
+var _boss_bar_intro_id := 0  # boss.get_instance_id()，每个 boss 实例只播一次
 var _wood := 0
 var _keys := 0
 var _silver := 0
@@ -286,6 +289,19 @@ func _process(delta: float) -> void:
 			need_redraw = true
 	if _countdown_show:
 		need_redraw = true
+	# Boss 血条登场伸长：检测新 boss 实例即起播 0.9s ease-out，期间每帧重绘
+	var boss_node: Node = battle.spawner.boss if (battle and battle.spawner) else null
+	if boss_node != null and is_instance_valid(boss_node):
+		var bid := boss_node.get_instance_id()
+		if bid != _boss_bar_intro_id:
+			_boss_bar_intro_id = bid
+			_boss_bar_intro_t = 0.0
+		if _boss_bar_intro_t < 1.0:
+			_boss_bar_intro_t = minf(1.0, _boss_bar_intro_t + delta / 0.9)
+			need_redraw = true
+	else:
+		# boss 死亡/释放：重置 id，下个 boss 重新起播
+		_boss_bar_intro_id = 0
 	if need_redraw or _redraw_timer <= 0.0:
 		_redraw_timer = 0.033
 		queue_redraw()
@@ -342,7 +358,7 @@ func _draw() -> void:
 			ki_ready
 		)
 
-	PixelUi.draw_boss_hp_bar(self, boss, layout)
+	PixelUi.draw_boss_hp_bar(self, boss, layout, _boss_bar_intro_t)
 	if player and not in_build_house:
 		PixelUi.draw_turn_buff_icons(self, player, layout)
 		PixelUi.draw_combo_banner(self, player, layout, viewport_size.x)

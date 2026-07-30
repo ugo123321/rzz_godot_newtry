@@ -10,6 +10,7 @@ const GroundEffectManagerScript = preload("res://scripts/core/ground_effect_mana
 const LevelOverlayScript = preload("res://scripts/ui/level_overlay.gd")
 const CombatAfterimagesScript = preload("res://scripts/ui/combat_afterimages.gd")
 const EquipmentDropFxScript = preload("res://scripts/ui/equipment_drop_fx.gd")
+const BossIntroPopupScript = preload("res://scripts/ui/boss_intro_popup.gd")
 const SoulOrbManagerScript = preload("res://scripts/effects/soul_orb_manager.gd")
 const PickupOrbManagerScript = preload("res://scripts/effects/pickup_orb_manager.gd")
 const SakuraSystemScript = preload("res://scripts/systems/sakura_system.gd")
@@ -137,6 +138,7 @@ var stage_intro_timer := 0.0
 var _lobby_entry_intro_active := false
 var _lobby_intro_phase := ""
 var _lobby_intro_timer := 0.0
+var _boss_intro_popup: CanvasLayer = null
 # 当玩家在"点击开始"等待界面时，世界（地块/草地/樱花/树）已经预先生成好。
 # 点击进入 _start_run 时跳过这些重建步骤，避免视觉上的"场景重置"。
 var _world_pre_populated := false
@@ -530,6 +532,15 @@ func _finish_lobby_entry_intro() -> void:
 	_lobby_entry_intro_active = false
 	_lobby_intro_phase = ""
 	_trigger_lobby_start_upgrade()
+
+
+## Boss 出场原画特写（屏幕变暗 → 长条原画从左滑入正中 + 下方白字 boss 名 → 滑出 → 恢复）。
+## 无特写映射的 boss（如 centipede）→ 返回 false，调用方按原 wave_delay 生成。
+func start_boss_intro(boss_id: String) -> bool:
+	if _boss_intro_popup == null:
+		_boss_intro_popup = BossIntroPopupScript.new()
+		add_child(_boss_intro_popup)
+	return _boss_intro_popup.play(boss_id)
 
 
 func _trigger_lobby_start_upgrade() -> void:

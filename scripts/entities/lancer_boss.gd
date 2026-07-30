@@ -119,7 +119,7 @@ func setup(battle_node, p_stage_index: int) -> void:
 	# body_scale_mult 同步放大 hitbox（与精英化 size_mult 思路一致）
 	hitbox_radius *= body_scale_mult
 	move_speed = float(cfg.get("move_speed", 48))
-	warning_timer = float(cfg.get("warning_time", 3))
+	warning_timer = float(cfg.get("warning_time", 1.0))
 	warning_total = warning_timer
 	skill_cooldown = float(cfg.get("skill_interval", 5.0))
 	phase = Phase.WARNING
@@ -718,8 +718,6 @@ func _draw_super_speed_fx() -> void:
 
 
 func _draw() -> void:
-	if phase == Phase.WARNING:
-		_draw_warning_overlay()
 	if phase == Phase.ACTIVE and skill_state == SkillState.WINDUP and pending_skill == SkillId.SPECTER_SUMMON:
 		_draw_specter_summon_windup()
 	elif phase == Phase.ACTIVE and skill_state == SkillState.WINDUP and pending_skill == SkillId.SUPER_SPEED:

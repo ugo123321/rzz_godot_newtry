@@ -66,7 +66,7 @@ func setup(battle_node, p_stage_index: int) -> void:
 	play_bottom = logical_h - 120.0
 	segment_radius = float(cfg.get("segment_radius", 23))
 	crawl_speed = float(cfg.get("crawl_speed", 240))
-	warning_timer = float(cfg.get("warning_time", 3))
+	warning_timer = float(cfg.get("warning_time", 1.0))
 	phase = Phase.WARNING
 	defeated = false
 	defeat_rewarded = false
@@ -369,8 +369,5 @@ func _draw_warning_countdown() -> void:
 
 
 func _draw() -> void:
-	if phase == Phase.WARNING:
-		_draw_warning_overlay()
-		_draw_warning_countdown()
 	for b in bullets:
 		draw_circle(b.pos - global_position, float(b.radius), Color(0.95, 0.35, 0.25, 0.9))

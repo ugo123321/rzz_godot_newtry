@@ -9,10 +9,11 @@ const UI_ATLAS_PATH := "res://assets/ui/UI assets (1x).png"
 # HUD 条实际绘制高度（px，乘 ui_scale）
 const BAR_VISUAL_HEIGHT := 18.0
 
-# 气力 / 经验条素材（整条贴图：empty=空槽背景，blue=气力填充，green=经验填充）
+# 气力 / 经验条素材（整条贴图：empty=空槽背景，blue=气力填充，green=经验填充，red=Boss 血条填充）
 const ENERGY_EMPTY_PATH := "res://assets/ui/battle/energy_empty.png"
 const ENERGY_BLUE_PATH := "res://assets/ui/battle/energy_blue.png"
 const ENERGY_GREEN_PATH := "res://assets/ui/battle/energy_green.png"
+const ENERGY_RED_PATH := "res://assets/ui/battle/energy_red.png"
 
 # 暂停按钮（MINI ICONS 行 y≈736 的 ||，勿用 287,785 横条或 48,176 大块）
 const PAUSE_ICON_REGION := Rect2(210, 740, 12, 12)
@@ -26,6 +27,7 @@ static var _cache: Dictionary = {}
 static var _energy_empty_tex: Texture2D
 static var _energy_blue_tex: Texture2D
 static var _energy_green_tex: Texture2D
+static var _energy_red_tex: Texture2D
 
 
 static func _load_energy_tex(path: String) -> Texture2D:
@@ -50,6 +52,12 @@ static func _get_energy_green() -> Texture2D:
 	if _energy_green_tex == null:
 		_energy_green_tex = _load_energy_tex(ENERGY_GREEN_PATH)
 	return _energy_green_tex
+
+
+static func _get_energy_red() -> Texture2D:
+	if _energy_red_tex == null:
+		_energy_red_tex = _load_energy_tex(ENERGY_RED_PATH)
+	return _energy_red_tex
 
 
 static func _load_atlas() -> Texture2D:
@@ -170,6 +178,47 @@ static func draw_ki_bar(
 		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.009)
 		mod = Color.WHITE.lerp(Color(0.70, 0.92, 1.0), pulse * 0.45)
 	_draw_energy_bar(canvas, rect, ratio, _get_energy_blue(), mod)
+
+
+# Boss 血条：energy_empty 作槽、energy_red 作填充，埃尔登法环式登场——
+# 满血血条从血条位置中心向两侧伸长至设定尺寸（ease-out cubic，约 0.9s 由 hud 驱动）。
+# 伸长期间强制满血显示，结束后用真实 ratio；名字/血量数字 alpha 随 intro_t 渐显。
+static func draw_boss_hp_bar(
+	canvas: CanvasItem,
+	rect: Rect2,
+	ratio: float,
+	intro_t: float,
+	display_name: String,
+	hp: int,
+	max_hp: int
+) -> void:
+	if canvas == null:
+		return
+	var t: float = clampf(intro_t, 0.0, 1.0)
+	var grow: float = 1.0 - pow(1.0 - t, 3.0)  # ease-out cubic
+	var full_w: float = rect.size.x
+	var cur_w: float = full_w * grow
+	if cur_w <= 0.5:
+		return
+	var cx: float = rect.position.x + full_w * 0.5
+	var cur_rect := Rect2(cx - cur_w * 0.5, rect.position.y, cur_w, rect.size.y)
+	var display_ratio: float = 1.0 if t < 1.0 else clampf(ratio, 0.0, 1.0)
+	_draw_energy_bar(canvas, cur_rect, display_ratio, _get_energy_red())
+
+	var alpha: float = t
+	var ui_scale := GameConfig.get_resolution_scale() * GameConfig.get_ui_scale()
+	var name_font := PixelUiHelper.snap_pixel_font_size(int(round(9.0 * ui_scale)))
+	PixelUiHelper.draw_pixel_text(
+		canvas, display_name,
+		Vector2(rect.position.x + 8.0 * ui_scale, rect.position.y + rect.size.y * 0.5),
+		name_font, Color(1.0, 0.88, 0.78, alpha), HORIZONTAL_ALIGNMENT_LEFT
+	)
+	var hp_font := PixelUiHelper.snap_pixel_font_size(int(round(8.0 * ui_scale)))
+	PixelUiHelper.draw_pixel_text(
+		canvas, "%d/%d" % [hp, max_hp],
+		Vector2(rect.position.x + full_w - 8.0 * ui_scale, rect.position.y + rect.size.y * 0.5),
+		hp_font, Color(1.0, 0.82, 0.75, alpha), HORIZONTAL_ALIGNMENT_RIGHT
+	)
 
 
 static func make_pause_button_icon() -> Texture2D:

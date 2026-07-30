@@ -119,7 +119,7 @@ func setup(battle_node, p_stage_index: int) -> void:
 	hitbox_radius = float(cfg.get("hitbox_radius", 18))
 	body_scale_mult = float(cfg.get("body_scale_mult", 1.4))
 	hitbox_radius *= body_scale_mult
-	warning_timer = float(cfg.get("warning_time", 3))
+	warning_timer = float(cfg.get("warning_time", 1.0))
 	warning_total = warning_timer
 	skill_cooldown = float(cfg.get("skill_interval", 5.0))
 	fire_timer = float(cfg.get("fire_interval", 1.3))
@@ -568,8 +568,6 @@ func get_warning_text() -> String:
 # 照搬 LancerBoss 的 warning overlay / appear shockwave(已验证可用),加跳跃蓄力红环。
 
 func _draw() -> void:
-	if phase == Phase.WARNING:
-		_draw_warning_overlay()
 	if phase == Phase.ACTIVE and move_state == MoveState.JUMP_WINDUP:
 		_draw_jump_windup()
 	# 画线攻击标记圆圈由 _marker_overlay 子节点画在精灵之上(见 BossMarkerOverlay)
@@ -582,6 +580,18 @@ func _draw_jump_windup() -> void:
 	var pulse := 0.55 + sin(_speed_fx_t * 12.0) * 0.25
 	draw_arc(Vector2.ZERO, hitbox_radius + 12.0, -PI * 0.5, -PI * 0.5 + TAU * progress, 28, Color(1.0, 0.20, 0.18, pulse), 3.0)
 	draw_circle(Vector2.ZERO, hitbox_radius + 12.0, Color(1.0, 0.10, 0.08, 0.10 + 0.10 * pulse))
+
+
+# Boss 出现：黄色扩散冲击波（绘制在 _draw 末尾，不受 warning vignette 影响）
+func _draw_appear_shockwave() -> void:
+	if not appear_active and _appear_shockwave_alpha <= 0.01:
+		return
+	var ring_w: float = 6.0 * _appear_shockwave_alpha
+	var col_outer := Color(1.0, 0.85, 0.30, 0.6 * _appear_shockwave_alpha)
+	var col_inner := Color(1.0, 1.0, 0.7, 0.85 * _appear_shockwave_alpha)
+	draw_arc(Vector2.ZERO, _appear_shockwave_r, 0.0, TAU, 48, col_outer, ring_w)
+	draw_arc(Vector2.ZERO, _appear_shockwave_r * 0.7, 0.0, TAU, 48, col_inner, ring_w * 0.6)
+	draw_circle(Vector2.ZERO, maxf(0.0, 28.0 - _appear_shockwave_r * 0.1), Color(1.0, 0.95, 0.65, 0.45 * _appear_shockwave_alpha))
 
 
 func _draw_warning_overlay() -> void:
@@ -640,14 +650,3 @@ func _draw_warning_chevron_band(top_left: Vector2, band_w: float, t: float, dir:
 			Vector2(base_x + shrink * dir, bot_y - 3.0),
 		])
 		draw_polygon(pts2, inner_colors)
-
-
-func _draw_appear_shockwave() -> void:
-	if not appear_active and _appear_shockwave_alpha <= 0.01:
-		return
-	var ring_w: float = 6.0 * _appear_shockwave_alpha
-	var col_outer := Color(1.0, 0.85, 0.30, 0.6 * _appear_shockwave_alpha)
-	var col_inner := Color(1.0, 1.0, 0.7, 0.85 * _appear_shockwave_alpha)
-	draw_arc(Vector2.ZERO, _appear_shockwave_r, 0.0, TAU, 48, col_outer, ring_w)
-	draw_arc(Vector2.ZERO, _appear_shockwave_r * 0.7, 0.0, TAU, 48, col_inner, ring_w * 0.6)
-	draw_circle(Vector2.ZERO, maxf(0.0, 28.0 - _appear_shockwave_r * 0.1), Color(1.0, 0.95, 0.65, 0.45 * _appear_shockwave_alpha))

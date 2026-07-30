@@ -367,7 +367,7 @@ static func compute_hud_layout(
 	var pad := 12.0 * s
 	var ki_y := 30.0 * s
 	var ki_h := 22.0 * s
-	var show_boss_bar: bool = boss != null and boss.has_method("is_boss_active") and boss.is_boss_active()
+	var show_boss_bar: bool = boss != null and boss.has_method("get_hp_ratio")
 	var boss_bar_h := 22.0 * s if show_boss_bar else 0.0
 	var boss_bar_y := ki_y + ki_h + 6.0 * s
 	var buff_row_y := boss_bar_y + boss_bar_h + ((6.0 if show_boss_bar else 8.0) * s)
@@ -579,47 +579,23 @@ static func draw_heart_hp_bar(
 			canvas.draw_rect(rect, mod)
 
 
-static func draw_boss_hp_bar(canvas: CanvasItem, boss: Node, layout: Dictionary) -> void:
+static func draw_boss_hp_bar(canvas: CanvasItem, boss: Node, layout: Dictionary, intro_t: float = 0.0) -> void:
 	if boss == null or not bool(layout.get("show_boss_bar", false)):
 		return
 	if not boss.has_method("get_hp_ratio") or not boss.has_method("get_display_name"):
 		return
-	var x: float = float(layout.get("ki_x", 0.0))
-	var y: float = float(layout.get("boss_bar_y", 0.0))
-	var w: float = float(layout.get("ki_w", 0.0))
-	var h: float = float(layout.get("boss_bar_h", 0.0))
-	var ratio: float = float(boss.call("get_hp_ratio"))
-	var border := maxi(2, int(round(_scaled(2.0))))
-	draw_pixel_panel(canvas, Rect2(x, y, w, h), Color("#281820"), Color("#c84848"), border)
-	var inner_x := x + border
-	var inner_y := y + border
-	var inner_w := w - border * 2
-	var inner_h := h - border * 2
-	var fill_w := int(floor(inner_w * ratio))
-	canvas.draw_rect(Rect2(inner_x, inner_y, inner_w, inner_h), Color("#3a1818"))
-	if fill_w > 0:
-		canvas.draw_rect(Rect2(inner_x, inner_y, fill_w, inner_h), Color("#c83030"))
-		canvas.draw_rect(
-			Rect2(inner_x, inner_y, fill_w, maxi(2, int(floor(inner_h * 0.4)))),
-			Color("#ff6868")
-		)
-	draw_pixel_text(
-		canvas,
-		boss.get_display_name(),
-		Vector2(x + _scaled(8.0), y + h * 0.5),
-		int(round(_scaled(9.0))),
-		Color("#ffe0c8"),
-		HORIZONTAL_ALIGNMENT_LEFT
+	# 尺寸与原代码绘制完全一致：x=ki_x, y=boss_bar_y, w=ki_w, h=boss_bar_h
+	var rect := Rect2(
+		float(layout.get("ki_x", 0.0)),
+		float(layout.get("boss_bar_y", 0.0)),
+		float(layout.get("ki_w", 0.0)),
+		float(layout.get("boss_bar_h", 0.0))
 	)
+	var ratio: float = float(boss.call("get_hp_ratio"))
 	var boss_hp: int = int(boss.get("hp")) if boss.get("hp") != null else 0
 	var boss_max_hp: int = int(boss.get("max_hp")) if boss.get("max_hp") != null else 1
-	draw_pixel_text(
-		canvas,
-		"%d/%d" % [ceili(boss_hp), boss_max_hp],
-		Vector2(x + w - _scaled(8.0), y + h * 0.5),
-		int(round(_scaled(8.0))),
-		Color("#ffd0c0"),
-		HORIZONTAL_ALIGNMENT_RIGHT
+	UiSpriteHelper.draw_boss_hp_bar(
+		canvas, rect, ratio, intro_t, boss.get_display_name(), boss_hp, boss_max_hp
 	)
 
 
