@@ -44,7 +44,7 @@ const SNAKE_FREQ := 7.0      # 摆动角速度 rad/s
 
 
 static func spawn(
-	battle: Node,
+	battle: BattleController,
 	from_pos: Vector2,
 	to_pos: Vector2,
 	dmg: int,

@@ -114,7 +114,7 @@ func _ready() -> void:
 	# 5) snake / radial 投射物
 	EnemyArrow.spawn_snake(battle, Vector2(100, 100), Vector2(300, 300), 10, 80.0, "enemy_snake_bullet", Color("#4fd6a0"))
 	EnemyArrow.spawn_radial(battle, Vector2(200, 200), 10, 80.0, 8, "enemy_cross_magic")
-	EnemyArrow.spawn(battle, Vector2(100, 100), Vector2(300, 300), 10, 140.0, "enemy_teleport_bolt", Color("#6a3a98"))
+	EnemyArrow.spawn_radial(battle, Vector2(100, 100), 10, 140.0, 1, "enemy_teleport_bolt", Color("#6a3a98"))
 	for _i in range(30):
 		for c in proj.get_children():
 			if c is EnemyArrow and is_instance_valid(c):
