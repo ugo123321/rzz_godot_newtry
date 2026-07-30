@@ -16,10 +16,10 @@ const FRAME_H := 100
 const CHAR_HEAD_Y_FACTOR := 0.36
 
 
-static func get_character_head_top_global(sprite: Node2D, fallback_global: Vector2) -> Vector2:
+static func get_character_head_top_global(sprite: Node2D, fallback_global: Vector2, head_factor: float = CHAR_HEAD_Y_FACTOR) -> Vector2:
 	if sprite == null or not is_instance_valid(sprite):
 		return fallback_global
-	var head_local_y := -FRAME_H * 0.5 * CHAR_HEAD_Y_FACTOR
+	var head_local_y := -FRAME_H * 0.5 * head_factor
 	return sprite.to_global(Vector2(0.0, head_local_y))
 
 

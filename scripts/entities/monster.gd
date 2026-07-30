@@ -417,9 +417,13 @@ func get_feet_global_position() -> Vector2:
 
 
 func get_head_top_global_position() -> Vector2:
+	# Necromancer（TELEPORTER）头部在 100px 帧里偏上（顶 y≈30，Skeleton 是 y≈42），
+	# 默认 0.36 factor 算出的头顶偏低，血条会压到脸上 → 用更大 factor 把血条抬到头上方。
+	var factor := 0.60 if kind_id == "TELEPORTER" else SpriteHelper.CHAR_HEAD_Y_FACTOR
 	return SpriteHelper.get_character_head_top_global(
 		_get_sprite(),
-		global_position + Vector2(0.0, -hitbox_radius * 1.5)
+		global_position + Vector2(0.0, -hitbox_radius * 1.5),
+		factor
 	)
 
 
