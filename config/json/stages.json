@@ -4,7 +4,7 @@
   "chapter_id": 1,
   "stage_in_chapter": 1,
   "display_name": "第1关·出击",
-  "normal": 24,
+  "normal": 0,
   "elite": 0,
   "shield": 0,
   "berserker": 0,
@@ -15,7 +15,8 @@
   "cross_shooter": 0,
   "bounce_slime": 0,
   "boss_id": "",
-  "display_name_en": "Stage 1·Sortie"
+  "display_name_en": "Stage 1·Sortie",
+  "teleporter": 10
  },
  {
   "stage_index": 1,
@@ -25,7 +26,7 @@
   "normal": 15,
   "elite": 0,
   "shield": 0,
-  "berserker": 10,
+  "berserker": 0,
   "splitter": 0,
   "archer": 0,
   "fire_mage": 0,
@@ -33,7 +34,8 @@
   "cross_shooter": 0,
   "bounce_slime": 0,
   "boss_id": "lancer_knight",
-  "display_name_en": "Stage 2·Charge"
+  "display_name_en": "Stage 2·Charge",
+  "teleporter": 0
  },
  {
   "stage_index": 2,
