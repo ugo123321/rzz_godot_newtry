@@ -7,8 +7,12 @@ const PIXEL := 2
 # 石地板美术素材（40×40，与 TILE_SIZE 对齐）：_paint_tile 直接 blit，不再过程化绘制。
 const STONE_FLOOR_TEX := preload("res://assets/ui/terrains/stone_floor.png")
 
-# 草地美术素材（256×256）：第一章默认地块改用贴图，不再过程化铺色。
-# GRASS_MAIN_TEX = grass_01_tile_256_11（75% 的格用这张做基底），其余 10 张做 25% 的随机变化。
+# 地块美术素材（256×256，每套 11 张：_11 为主贴图，_01.._10 为变化池）。
+# 4 套地面共用同一套拼贴逻辑：主贴图 TILE_MAIN_CHANCE 概率铺底，余下从变化池随机选一张。
+# grass01 = 普通关 / 章节段位演进 / 打造关（暂全压成 grass01）
+# lava    = 恶魔主题关
+# ice     = 天使主题关
+# sand02  = Boss 关
 const GRASS_MAIN_TEX := preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_11.png")
 const GRASS_VARIATION_TEXES := [
 	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_01.png"),
@@ -22,18 +26,47 @@ const GRASS_VARIATION_TEXES := [
 	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_09.png"),
 	preload("res://assets/ui/terrains/base_tile/grass01/grass_01_tile_256_10.png"),
 ]
-const GRASS_MAIN_CHANCE := 0.97  # 97% 的草格用主贴图 _11，余 3% 从变化池随机
-
-# 水簇生成参数（第 2 关起 stage_index >= 1 才启用）
-const WATER_TILES_PER_CLUSTER_BASE := 85    # 单簇基础约 55 格（之前 35 偏稀疏）
-const WATER_CLUSTER_MIN_LEN := 6             # 河流最短 6 格
-const WATER_PROB_CLUSTERS := [0.25, 0.45, 0.20, 0.08, 0.02]  # 0/1/2/3/4 簇
-const WATER_PROB_RIVER := 0.6                # 河流 vs 水池
-const WATER_PROB_BIG_RIVER := 0.15           # 河流长度 ×1.6
-const WATER_PROB_BIG_POND := 0.12            # 水池放大到 8×8
-const WATER_SAFE_PAD := 18.0                 # 安全区外缘缓冲（额外避让玩家出生点）
+const LAVA_MAIN_TEX := preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_11.png")
+const LAVA_VARIATION_TEXES := [
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_01.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_02.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_03.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_04.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_05.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_06.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_07.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_08.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_09.png"),
+	preload("res://assets/ui/terrains/base_tile/lava/lava_tile_256_10.png"),
+]
+const ICE_MAIN_TEX := preload("res://assets/ui/terrains/base_tile/ice/ice_tile_256_11.png")
+# ice 文件夹只有 _06.._11（6 张），_11 当主贴图，余 5 张做变化池
+const ICE_VARIATION_TEXES := [
+	preload("res://assets/ui/terrains/base_tile/ice/ice_tile_256_06.png"),
+	preload("res://assets/ui/terrains/base_tile/ice/ice_tile_256_07.png"),
+	preload("res://assets/ui/terrains/base_tile/ice/ice_tile_256_08.png"),
+	preload("res://assets/ui/terrains/base_tile/ice/ice_tile_256_09.png"),
+	preload("res://assets/ui/terrains/base_tile/ice/ice_tile_256_10.png"),
+]
+const SAND_MAIN_TEX := preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_11.png")
+const SAND_VARIATION_TEXES := [
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_01.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_02.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_03.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_04.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_05.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_06.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_07.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_08.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_09.png"),
+	preload("res://assets/ui/terrains/base_tile/sand02/sand_02_tile_256_10.png"),
+]
+const TILE_MAIN_CHANCE := 0.97  # 97% 的格用主贴图 _11，余 3% 从变化池随机（4 套地面共用）
 
 const TYPE_GRASS := "grass"
+const TYPE_LAVA := "lava"        # 恶魔主题关：熔岩地块（贴图）
+const TYPE_ICE := "ice"          # 天使主题关：冰地块（贴图）
+const TYPE_SAND := "sand02"      # Boss 关：沙地地块（贴图）
 const TYPE_WATER := "water"
 const TYPE_EMPTY := "empty"
 const TYPE_DIRT := "dirt"
@@ -50,17 +83,22 @@ const TYPE_PALACE := "palace"
 const TYPE_PALACE_CORRIDOR := "palace_corridor"
 
 # 局内特殊地块（与水地块同 40px 尺寸；由 set_tile 写入 grid 后过程化烘焙）
-const TYPE_PIT := "pit"                  # 深坑：只阻挡移动 + 画线（玩家/怪不能走过/斩过，但子弹飞过、视线穿过）
+const TYPE_PIT := "pit"                  # 深坑：只阻挡移动（玩家/怪不能走过，但子弹飞过、视线穿过、画线斩过）
 const TYPE_STONE_FLOOR := "stone_floor"  # 石地板：可通行，但怪物/树/草不在其上生成
 const TYPE_BLOCKING_STONE := "blocking_stone"  # 阻挡石块：阻挡移动 + 子弹 + 画线
 
-# 阻挡移动/画线的地块类型集合（water 不在内 —— water 走 path_input 的额外 ki 消耗逻辑）
-# 注意：深坑在这里 → 玩家/怪不能走过/斩过深坑；但深坑不在 BULLET_BLOCKING_TILE_TYPES → 子弹可飞过、视线可穿过
+# 阻挡移动的地块类型集合（water 不在内 —— water 走 path_input 的额外 ki 消耗逻辑）
+# 注意：深坑在这里 → 玩家/怪不能走过深坑；但深坑不在 LINE/BULLET 阻挡集 → 画线可斩过、子弹可飞过、视线可穿过
 const BLOCKING_TILE_TYPES := [TYPE_PIT, TYPE_BLOCKING_STONE]
+# 只阻挡画线（不含深坑：深坑是地面上的洞，画线从上方斩过；只含实体石块）
+const LINE_BLOCKING_TILE_TYPES := [TYPE_BLOCKING_STONE]
 # 只阻挡子弹（不含深坑：深坑是地面上的洞，子弹从上方飞过；阻挡石是实体石块才挡子弹）
 const BULLET_BLOCKING_TILE_TYPES := [TYPE_BLOCKING_STONE]
-# 怪物/树/草生成时需避让的地块类型集合（含水 + 阻挡 + 石地板）
+# 树/草生成时需避让的地块类型集合（含水 + 阻挡 + 石地板——树草不長在水里）
 const SPAWN_AVOID_TILE_TYPES := [TYPE_WATER, TYPE_PIT, TYPE_BLOCKING_STONE, TYPE_STONE_FLOOR]
+# 怪物生成时需避让的地块类型集合：深坑/阻挡石/石地板避开，但 water 允许刷怪
+# （深坑会掉下去、阻挡石会卡死、石地板是铺装地面不刷怪；水里怪可正常活动）
+const MONSTER_SPAWN_AVOID_TILE_TYPES := [TYPE_PIT, TYPE_BLOCKING_STONE, TYPE_STONE_FLOOR]
 
 # 段索引 → 地面 tile 类型：每 4 关一段（打造/主题/boss 关会 override）
 # 段 7 是 boss 前一关（idx=28）的专用火把长廊过渡地面
@@ -130,6 +168,36 @@ const TILE_DATA := {
 		"deco_chance": 0.04,
 		"deco_kind": "flower",
 		"deco_palette": [Color("#f5e060"), Color("#f2a0c8"), Color("#ffffff"), Color("#558e52")],
+	},
+	"lava": {
+		# 熔岩地块：走贴图，base 仅用于防素材边缘透明露黑
+		"base": Color("#2a0608"),
+		"shade": Color("#1a0406"),
+		"highlight": Color("#3a0a10"),
+		"speckle_chance": 0.0,
+		"deco_chance": 0.0,
+		"deco_kind": "",
+		"deco_palette": [],
+	},
+	"ice": {
+		# 冰地块：走贴图
+		"base": Color("#b0c4d8"),
+		"shade": Color("#9aaccc"),
+		"highlight": Color("#c8d8e8"),
+		"speckle_chance": 0.0,
+		"deco_chance": 0.0,
+		"deco_kind": "",
+		"deco_palette": [],
+	},
+	"sand02": {
+		# Boss 关沙地：走贴图
+		"base": Color("#b08a58"),
+		"shade": Color("#967040"),
+		"highlight": Color("#c89e68"),
+		"speckle_chance": 0.0,
+		"deco_chance": 0.0,
+		"deco_kind": "",
+		"deco_palette": [],
 	},
 	"water": {
 		"base": Color("#82b5d4"),
@@ -297,23 +365,33 @@ var _rows := 0
 var _grid: Array = []
 var _current_theme := ""
 var _stone_floor_img: Image = null
-var _grass_main_img: Image = null
-var _grass_variation_imgs: Array = []
+# 4 套地面贴图集：{tile_type => {"main": Image, "variations": [Image, ...]}}，_ready 时加载并缩到 40×40。
+var _sprite_sets: Dictionary = {}
 
 
 func _ready() -> void:
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# 去掉像素滤镜：地形贴图走 LINEAR 平滑采样，不再 NEAREST 像素化。
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_stone_floor_img = STONE_FLOOR_TEX.get_image()
-	# grass01 PNG 是 256×256：导入成 FORMAT_RGB8（无 alpha），而 _rebake_texture 目标 img 是 RGBA8；
-	# blit_rect 跨格式会静默失败 → 先 convert 成 RGBA8，再把整张缩到 40×40（NEAREST 保像素感）。
-	_grass_main_img = GRASS_MAIN_TEX.get_image()
-	_ensure_rgba8(_grass_main_img)
-	_grass_main_img.resize(TILE_SIZE, TILE_SIZE, Image.INTERPOLATE_NEAREST)
-	for tex in GRASS_VARIATION_TEXES:
+	# 4 套地面 PNG 都是 256×256：导入成 FORMAT_RGB8（无 alpha），而 _rebake_texture 目标 img 是 RGBA8；
+	# blit_rect 跨格式会静默失败 → _load_tileset 内先 convert 成 RGBA8，再把整张缩到 40×40（LANCZOS 平滑过渡）。
+	_sprite_sets[TYPE_GRASS] = _load_tileset(GRASS_MAIN_TEX, GRASS_VARIATION_TEXES)
+	_sprite_sets[TYPE_LAVA] = _load_tileset(LAVA_MAIN_TEX, LAVA_VARIATION_TEXES)
+	_sprite_sets[TYPE_ICE] = _load_tileset(ICE_MAIN_TEX, ICE_VARIATION_TEXES)
+	_sprite_sets[TYPE_SAND] = _load_tileset(SAND_MAIN_TEX, SAND_VARIATION_TEXES)
+
+
+func _load_tileset(main_tex: Resource, variation_texes: Array) -> Dictionary:
+	var main_img: Image = main_tex.get_image()
+	_ensure_rgba8(main_img)
+	main_img.resize(TILE_SIZE, TILE_SIZE, Image.INTERPOLATE_LANCZOS)
+	var variations: Array = []
+	for tex in variation_texes:
 		var vimg: Image = tex.get_image()
 		_ensure_rgba8(vimg)
-		vimg.resize(TILE_SIZE, TILE_SIZE, Image.INTERPOLATE_NEAREST)
-		_grass_variation_imgs.append(vimg)
+		vimg.resize(TILE_SIZE, TILE_SIZE, Image.INTERPOLATE_LANCZOS)
+		variations.append(vimg)
+	return {"main": main_img, "variations": variations}
 
 
 func _ensure_rgba8(img: Image) -> void:
@@ -405,16 +483,17 @@ func get_tile_at_world(world_x: float, world_y: float) -> String:
 	return get_tile(col, row)
 
 
-# 局内特殊地块：是否阻挡移动 / 画线（pit + blocking_stone）。
+# 局内特殊地块：是否阻挡移动（pit + blocking_stone）。
 # water 不算阻挡（走 path_input 的额外 ki 消耗逻辑）。
-# 注意：子弹/视线走 is_blocking_for_bullet（不含 pit）。
+# 注意：画线走 is_blocking_for_line（只含 blocking_stone，不含 pit）；子弹/视线走 is_blocking_for_bullet（不含 pit）。
 func is_blocking_tile(tile_type: String) -> bool:
 	return BLOCKING_TILE_TYPES.has(tile_type)
 
 
 # 坐标版本：越界或空串返回 false（不阻挡）。
+# 只含实体石块——深坑是地面上的洞，画线可从上方斩过。
 func is_blocking_for_line(col: int, row: int) -> bool:
-	return is_blocking_tile(get_tile(col, row))
+	return LINE_BLOCKING_TILE_TYPES.has(get_tile(col, row))
 
 
 func is_blocking_for_movement(col: int, row: int) -> bool:
@@ -434,6 +513,15 @@ func is_spawn_avoid_tile(tile_type: String) -> bool:
 
 func is_spawn_avoid_at(col: int, row: int) -> bool:
 	return is_spawn_avoid_tile(get_tile(col, row))
+
+
+# 怪物生成避让判定：水允许刷怪，深坑/阻挡石/石地板仍避开。
+func is_monster_spawn_avoid_tile(tile_type: String) -> bool:
+	return MONSTER_SPAWN_AVOID_TILE_TYPES.has(tile_type)
+
+
+func is_monster_spawn_avoid_at(col: int, row: int) -> bool:
+	return is_monster_spawn_avoid_tile(get_tile(col, row))
 
 
 func iter_water_cells() -> Array:
@@ -479,20 +567,19 @@ func has_grass_tiles() -> bool:
 
 # Override hook: stages can return any tile type key for a given cell. Default = grass everywhere.
 func _pick_tile_type_for(stage_index: int, _col: int, _row: int) -> String:
-	# 打造关（room_type == attr_forge）→ 全部 forge_ground 紫色 tile
 	var stage_dict: Dictionary = GameConfig.get_stage(stage_index)
-	if str(stage_dict.get("room_type", "")) == "attr_forge":
-		return TYPE_FORGE_GROUND
-	# Boss 关 → 王宫大厅金红大理石（第 30 关剧情：闯王宫击杀 boss）
+	# Boss 关 → sand02 沙地贴图
 	if str(stage_dict.get("boss_id", "")) != "":
-		return TYPE_PALACE
+		return TYPE_SAND
 	match _current_theme:
 		"demon":
-			return TYPE_DEMON_GROUND
+			return TYPE_LAVA  # 恶魔主题关：熔岩
 		"angel":
-			return TYPE_ANGEL_GROUND
-	# 无特殊 override → 按段位映射默认地面（草地→土路→乡村→石板→城镇→城堡→王宫）
-	return _get_segment_terrain(stage_index)
+			return TYPE_ICE   # 天使主题关：冰
+	# 其他全部 grass01（章节段位演进 / 打造关暂全压成 grass01）
+	# 段位→土路/乡村/石板/城镇/城堡/王宫的过程化绘制 + SEGMENT_TERRAIN_MAP 仍保留，
+	# 待后续把 clay/paving/snow 等贴图集映射到段位后，在 _get_segment_terrain 处重新接回。
+	return TYPE_GRASS
 
 
 func _get_segment_terrain(stage_index: int) -> String:
@@ -511,107 +598,12 @@ func _build_grid(stage_index: int, safe_zone: Dictionary) -> void:
 		for c in range(_cols):
 			row[c] = _pick_tile_type_for(stage_index, c, r)
 		_grid[r] = row
-	# 随机水簇生成已停用：水改为关卡编辑器布局放置（_apply_level_layout 走 set_tile）。
-	# 保留 _generate_water_clusters 函数体以备需要，但 _build_grid 不再调用。
-
-
-func _generate_water_clusters(_stage_index: int, safe_zone: Dictionary) -> void:
-	var cluster_count := _roll_water_cluster_count()
-	for n in range(cluster_count):
-		if randf() < WATER_PROB_RIVER:
-			_place_water_river(safe_zone)
-		else:
-			_place_water_pond(safe_zone)
-
-
-func _roll_water_cluster_count() -> int:
-	var roll := randf()
-	var acc := 0.0
-	for i in range(WATER_PROB_CLUSTERS.size()):
-		acc += float(WATER_PROB_CLUSTERS[i])
-		if roll < acc:
-			return i
-	return WATER_PROB_CLUSTERS.size() - 1
-
-
-func _place_water_river(safe_zone: Dictionary) -> void:
-	# 河流：条状，仅横/竖两种方向（不再有对角线，避免梯形锯齿）。
-	# 方向：0=水平、1=竖直
-	var dir_idx: int = randi() % 2
-	var dx := 0
-	var dy := 0
-	match dir_idx:
-		0: dx = 1; dy = 0
-		1: dx = 0; dy = 1
-	# 宽度：横/竖 2~3 格
-	var width: int = 2 + (1 if randf() < 0.45 else 0)
-	var length := WATER_TILES_PER_CLUSTER_BASE / width
-	if randf() < WATER_PROB_BIG_RIVER:
-		length = int(round(length * 1.6))
-	length = maxi(WATER_CLUSTER_MIN_LEN, length)
-	# 选起点：随机 60 次，找一个不在 safe_zone + pad 内的合法格
-	var start := _pick_safe_cell(safe_zone, 60)
-	if start.x < 0:
-		return
-	var col := start.x
-	var row := start.y
-	for step in range(length):
-		# 主线 + 宽度沿"垂直方向"扩张
-		for off in range(width):
-			var ocol := col + (-dy * off)
-			var orow := row + (dx * off)
-			if _cell_in_bounds(ocol, orow) and not _cell_in_safe(ocol, orow, safe_zone):
-				_grid[orow][ocol] = TYPE_WATER
-		col += dx
-		row += dy
-		if not _cell_in_bounds(col, row):
-			break
-		if _cell_in_safe(col, row, safe_zone):
-			break
-
-
-func _place_water_pond(safe_zone: Dictionary) -> void:
-	# 水池：方块，基础 6×6 ≈ 36 格，允许 ±2 扰动；低概率放大到 8×8
-	var base_w := 6 + randi_range(-2, 2)
-	var base_h := 6 + randi_range(-2, 2)
-	if randf() < WATER_PROB_BIG_POND:
-		base_w = 8 + randi_range(-1, 1)
-		base_h = 8 + randi_range(-1, 1)
-	base_w = maxi(2, base_w)
-	base_h = maxi(2, base_h)
-	var center := _pick_safe_cell(safe_zone, 60)
-	if center.x < 0:
-		return
-	var c0 := center.x - int(floor(base_w * 0.5))
-	var r0 := center.y - int(floor(base_h * 0.5))
-	for r in range(r0, r0 + base_h):
-		for c in range(c0, c0 + base_w):
-			if _cell_in_bounds(c, r) and not _cell_in_safe(c, r, safe_zone):
-				_grid[r][c] = TYPE_WATER
-
-
-func _pick_safe_cell(safe_zone: Dictionary, attempts: int) -> Vector2i:
-	for n in range(attempts):
-		var c := randi_range(1, _cols - 2)
-		var r := randi_range(1, _rows - 2)
-		if not _cell_in_safe(c, r, safe_zone):
-			return Vector2i(c, r)
-	return Vector2i(-1, -1)
+	# 水地块不再随机生成，统一由关卡编辑器布局放置（_apply_level_layout 走 set_tile）。
+	# safe_zone 参数保留以兼容 battle.gd 调用方，此处不再使用。
 
 
 func _cell_in_bounds(col: int, row: int) -> bool:
 	return col >= 0 and col < _cols and row >= 0 and row < _rows
-
-
-func _cell_in_safe(col: int, row: int, safe_zone: Dictionary) -> bool:
-	if safe_zone.is_empty():
-		return false
-	var cx := (col + 0.5) * float(TILE_SIZE)
-	var cy := (row + 0.5) * float(TILE_SIZE)
-	var dx := cx - float(safe_zone.get("x", 0.0))
-	var dy := cy - float(safe_zone.get("y", 0.0))
-	var rr := float(safe_zone.get("r", 0.0)) + WATER_SAFE_PAD
-	return dx * dx + dy * dy <= rr * rr
 
 
 func _rebake_texture() -> void:
@@ -665,14 +657,17 @@ func _paint_tile(img: Image, col: int, row: int, tile_type: String) -> void:
 		img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))
 		img.blit_rect(_stone_floor_img, Rect2i(0, 0, w, h), Vector2i(ox, oy))
 		return
-	# 草地走美术素材（grass01 256×256 → 缩到 40×40 整张贴满）：75% 用主贴图 _11，
-	# 25% 从变化池随机；col/row 种子决定选哪张，rebake 不闪烁。
-	if tile_type == TYPE_GRASS and _grass_main_img != null and not _grass_variation_imgs.is_empty():
+	# 4 套地面（grass/lava/ice/sand）走美术素材：主贴图 _11 以 TILE_MAIN_CHANCE 概率铺底，
+	# 余下从变化池随机；col/row 种子决定选哪张，rebake 不闪烁。
+	var sprite_set: Dictionary = _sprite_sets.get(tile_type, {})
+	if not sprite_set.is_empty():
+		var main_img: Image = sprite_set["main"]
+		var variations: Array = sprite_set["variations"]
 		var seed_v: int = (col * 73856093) ^ (row * 19349663) ^ hash(tile_type)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = seed_v
 		img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))  # 防素材边缘透明露黑
-		var src: Image = _grass_main_img if rng.randf() < GRASS_MAIN_CHANCE else _grass_variation_imgs[rng.randi() % _grass_variation_imgs.size()]
+		var src: Image = main_img if rng.randf() < TILE_MAIN_CHANCE else variations[rng.randi() % variations.size()]
 		img.blit_rect(src, Rect2i(0, 0, w, h), Vector2i(ox, oy))
 		return
 	img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))

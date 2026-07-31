@@ -4,7 +4,7 @@ class_name PathInput
 const WATER_KI_PER_TILE := 4.0  # 画线每穿越一个水格的额外气消耗（去重后）
 
 var drawing := false
-var line_invalid := false  # 本段画线是否触碰阻挡块/深坑 → 提交时丢弃
+var line_invalid := false  # 本段画线是否触碰阻挡块/锁定块/箭块 → 提交时丢弃（深坑不挡画线）
 var battle
 
 
@@ -54,9 +54,10 @@ func handle_move(screen_pos: Vector2) -> void:
 		return
 	if not player.consume_ki_by_distance(step):
 		drawing = false
-		# 画线已标红（触碰阻挡块/深坑/锁定块/箭块）→ 气力耗尽也不能发起攻击，丢弃轨迹
+		# 画线已标红（触碰阻挡石/锁定块/箭块）→ 气力耗尽也不能发起攻击，丢弃轨迹
 		# （修复：原先这里直接 exit_bullet_time(false) → start_attack，绕过 line_invalid，
 		#   导致红线画线在气力恰好耗尽时仍能顺着轨迹攻击）
+		# 注：深坑不在此列——画线从深坑上方斩过。
 		if line_invalid:
 			_discard_invalid_line()
 			return
@@ -74,7 +75,7 @@ func handle_move(screen_pos: Vector2) -> void:
 		player.ki = maxf(0.0, player.ki - float(water_count) * WATER_KI_PER_TILE)
 		if player.ki <= 0.01:
 			player.slash_end_ki_drained = true
-	# 阻挡块/深坑/锁定块/箭块：触碰即整线标红，提交时丢弃
+	# 阻挡石/锁定块/箭块：触碰即整线标红，提交时丢弃（深坑不挡画线，从上方斩过）
 	if _segment_hits_blocking(battle.terrain, last, pos):
 		line_invalid = true
 		player.set_preview_invalid(true)
@@ -83,7 +84,8 @@ func handle_move(screen_pos: Vector2) -> void:
 		battle.buff_orbs.check_path_segment(last, pos)
 
 
-# 段是否触碰"画线阻挡"格：地形 pit/blocking_stone + 放置元素锁定块/箭块（registry.has_line_blocking_at）。
+# 段是否触碰"画线阻挡"格：地形 blocking_stone + 放置元素锁定块/箭块（registry.has_line_blocking_at）。
+# 深坑不在内——深坑是地面上的洞，画线从上方斩过（pit_block 已 _configure_blocking move-only）。
 func _segment_hits_blocking(terrain, a: Vector2, b: Vector2) -> bool:
 	if terrain == null or not terrain.has_method("is_blocking_for_line"):
 		return false
@@ -130,7 +132,7 @@ func _count_water_tiles_on_segment(terrain, a: Vector2, b: Vector2) -> int:
 	return seen_water.size()
 
 
-# 画线已标红（触碰阻挡块/深坑/锁定块/箭块）→ 丢弃本次轨迹，不发起攻击。
+# 画线已标红（触碰阻挡石/锁定块/箭块）→ 丢弃本次轨迹，不发起攻击（深坑不挡画线）。
 # handle_end 正常抬手 与 handle_move 气力耗尽 两条路径共用，避免丢弃逻辑散落两处不同步。
 func _discard_invalid_line() -> void:
 	line_invalid = false
@@ -148,7 +150,7 @@ func handle_end() -> void:
 		line_invalid = false
 		return
 	drawing = false
-	# 画线触碰阻挡块/深坑 → 本次画线失败，丢弃不提交
+	# 画线触碰阻挡石/锁定块/箭块 → 本次画线失败，丢弃不提交（深坑不挡画线）
 	if line_invalid:
 		_discard_invalid_line()
 		return

@@ -23,6 +23,7 @@ EventBus="*res://scripts/autoload/event_bus.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
 LobbyState="*res://scripts/autoload/lobby_state.gd"
 LanguageManager="*res://scripts/autoload/language_manager.gd"
+Firebase="*uid://cvb26atjckwlq"
 
 [display]
 
@@ -40,7 +41,7 @@ movie_writer/fps=45
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg")
+enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/godot-firebase/plugin.cfg")
 
 [gui]
 
@@ -60,6 +61,7 @@ textures/canvas_textures/default_texture_filter=0
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
 2d/batching/uniform_set_cache_size=4098
 2d/snap/snap_2d_transforms_to_pixel=true
 2d/snap/snap_2d_vertices_to_pixel=true

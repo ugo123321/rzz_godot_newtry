@@ -18,6 +18,10 @@ const PORTAL_EFFECT_BG_TEX := preload("res://assets/ui/terrains/portal_effect_bg
 
 var _t := 0.0
 var _consumed := false
+# 出生后延迟武装：让门先渲染可见，再允许触发。避免玩家出生点与门重叠时第一帧就被瞬间吸入、
+# _draw 还没渲染就 visible=false 导致"没看到门就被吸进去"。仍按原来的"进入半径即触发"。
+const ACTIVATION_DELAY := 0.5
+var _armed := false
 var stored_position: Vector2 = Vector2.ZERO
 
 
@@ -33,9 +37,11 @@ func _process(delta: float) -> void:
 	if _consumed:
 		return
 	_t += delta
+	if not _armed and _t >= ACTIVATION_DELAY:
+		_armed = true
 	var battle := get_tree().get_first_node_in_group("battle")
 	if battle and battle.player and battle.state == GameState.PLAYING and not battle.get("_portal_active_pause"):
-		if global_position.distance_to(battle.player.global_position) <= TRIGGER_RADIUS:
+		if _armed and global_position.distance_to(battle.player.global_position) <= TRIGGER_RADIUS:
 			_consumed = true
 			stored_position = global_position
 			visible = false  # 销毁由 battle.play_exit 完成回调处理

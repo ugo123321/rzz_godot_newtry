@@ -15,6 +15,11 @@ var monsters: Array = []
 var spawn_clusters: Array = []
 var boss: Node = null
 
+# 可刷怪区域 = 当前关"最大非阻挡连通分量"的格子集合（col*10000+row -> true）。
+# 边缘阻挡圈会把"圈外薄边框"和"圈内大区域"切成两个分量，取最大 = 圈内 → 怪不再刷到圈外/出屏；
+# 深坑围玩家时玩家那块是最小分量被排除，怪刷在外围大区域。_init_clusters 时每关算一次。
+var _inside_cells: Dictionary = {}
+
 var _spawn_queue: Array = []
 var _spawn_timer := 0.0
 var _pending_boss_stage := -1
@@ -30,6 +35,7 @@ func reset() -> void:
 			m.queue_free()
 	monsters.clear()
 	spawn_clusters.clear()
+	_inside_cells.clear()
 	if is_instance_valid(boss):
 		boss.queue_free()
 	boss = null
@@ -279,6 +285,8 @@ func _infinite_wave_delay() -> float:
 
 func _init_clusters(battle: Node) -> void:
 	spawn_clusters.clear()
+	# 计算本关可刷怪区域（最大非阻挡连通分量），供 _pick_spawn_pos 校验。
+	_compute_spawn_region(battle)
 	var w := float(GameConfig.get_tuning("logical_width", 720))
 	var h := float(GameConfig.get_tuning("logical_height", 1280))
 	var safe: Vector2 = battle.player.global_position if battle.player else Vector2(w * 0.5, h * 0.62)
@@ -302,6 +310,76 @@ func _init_clusters(battle: Node) -> void:
 		spawn_clusters.append({"x": w * 0.72, "y": h * 0.45, "radius": 80.0, "weight": 1.0})
 
 
+# 计算本关可刷怪区域：把阻挡格（terrain 的深坑/阻挡石/石地板 + field_elements 的放置阻挡元素，
+# 越界也算墙）当墙，BFS 找所有非墙连通分量，取面积最大的那个写入 _inside_cells。
+# - 边缘阻挡圈：圈外薄边框是独立小分量，圈内大区域是最大分量 → 怪刷圈内，不再出屏/出圈。
+# - 深坑围玩家：玩家小块是独立小分量被排除，怪刷在外围大区域。
+# - 普通关：整图一个分量，行为不变。
+# 取"最大"而非"包含玩家"——深坑围玩家时玩家那块最小，正该排除；正常关玩家本就在最大块里，等价。
+func _compute_spawn_region(battle: Node) -> void:
+	_inside_cells.clear()
+	if battle.terrain == null or not battle.terrain.has_method("get_cols"):
+		return
+	var cols: int = battle.terrain.get_cols()
+	var rows: int = battle.terrain.get_rows()
+	if cols <= 0 or rows <= 0:
+		return
+	# visited 网格：已访问的非墙格标记，避免重复入队 + 跳过墙格。
+	var visited: Array = []
+	visited.resize(rows)
+	for r in range(rows):
+		var row_arr: Array = []
+		row_arr.resize(cols)
+		for c in range(cols):
+			row_arr[c] = false
+		visited[r] = row_arr
+	# 先把所有墙格标 visited，避免 BFS 里反复对同一墙格判 _is_spawn_wall_cell。
+	for r in range(rows):
+		for c in range(cols):
+			if _is_spawn_wall_cell(battle, c, r, cols, rows):
+				visited[r][c] = true
+	var best: Dictionary = {}
+	var dirs := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for r in range(rows):
+		for c in range(cols):
+			if visited[r][c]:
+				continue
+			# BFS 一个新连通分量
+			var comp: Dictionary = {}
+			var queue: Array = [Vector2i(c, r)]
+			visited[r][c] = true
+			while not queue.is_empty():
+				var cur: Vector2i = queue.pop_front()
+				var cc: int = int(cur.x)
+				var rr: int = int(cur.y)
+				comp[cc * 10000 + rr] = true
+				for d in dirs:
+					var nc: int = cc + int(d.x)
+					var nr: int = rr + int(d.y)
+					if nc < 0 or nc >= cols or nr < 0 or nr >= rows:
+						continue
+					if visited[nr][nc]:
+						continue
+					visited[nr][nc] = true
+					queue.append(Vector2i(nc, nr))
+			if comp.size() > best.size():
+				best = comp
+	_inside_cells = best
+
+
+# 某格是否为"刷怪墙"：越界 / terrain 避让格（深坑/阻挡石/石地板）/ field_elements 放置阻挡元素。
+func _is_spawn_wall_cell(battle: Node, col: int, row: int, cols: int, rows: int) -> bool:
+	if col < 0 or col >= cols or row < 0 or row >= rows:
+		return true
+	if battle.terrain and battle.terrain.has_method("is_monster_spawn_avoid_at"):
+		if battle.terrain.is_monster_spawn_avoid_at(col, row):
+			return true
+	var fe = battle.field_elements if "field_elements" in battle else null
+	if fe and fe.has_method("has_blocking_at") and fe.has_blocking_at(col, row):
+		return true
+	return false
+
+
 func _pick_spawn_pos(battle: Node) -> Vector2:
 	var w := float(GameConfig.get_tuning("logical_width", 720))
 	var h := float(GameConfig.get_tuning("logical_height", 1280))
@@ -317,15 +395,19 @@ func _pick_spawn_pos(battle: Node) -> Vector2:
 			pos = Vector2(MathUtils.rand_range(26.0, w - 26.0), MathUtils.rand_range(88.0, h - 120.0))
 		if MathUtils.dist(pos, safe) < 140.0:
 			continue
-		# 地形避让：不在水/深坑/阻挡石/石地板上刷怪；也不与放置元素（宝箱/传送门/箭块/锁定块）重叠
-		if battle.terrain and battle.terrain.has_method("is_spawn_avoid_at"):
+		# 地形避让：不在深坑/阻挡石/石地板上刷怪（水允许刷怪）；也不与放置元素（宝箱/传送门/箭块/锁定块）重叠
+		if battle.terrain and battle.terrain.has_method("is_monster_spawn_avoid_at"):
 			var ts: int = TerrainBackground.TILE_SIZE
 			var col := int(pos.x / ts)
 			var row := int(pos.y / ts)
-			if battle.terrain.is_spawn_avoid_at(col, row):
+			if battle.terrain.is_monster_spawn_avoid_at(col, row):
 				continue
 			var fe = battle.field_elements if "field_elements" in battle else null
 			if fe and fe.has_method("has_blocking_at") and fe.has_blocking_at(col, row):
+				continue
+			# 必须落在本关"最大非阻挡连通分量"内：边缘阻挡圈的圈外薄边框 / 深坑围住玩家的小块
+			# / cluster 偏移推出网格的越界格，都不在该分量内 → 拒，避免刷到圈外或出屏。
+			if not _inside_cells.has(col * 10000 + row):
 				continue
 		var ok := true
 		for m in get_active_monsters():
@@ -341,6 +423,14 @@ func _pick_spawn_pos(battle: Node) -> Vector2:
 					break
 		if ok:
 			return pos
+	# fallback：从可刷怪区域里随机取一格的中心，避免落在圈外/出屏。
+	if not _inside_cells.is_empty():
+		var cells := _inside_cells.keys()
+		var key: int = cells[randi() % cells.size()]
+		var col_fallback := key / 10000
+		var row_fallback := key % 10000
+		return Vector2(float(col_fallback) * float(TerrainBackground.TILE_SIZE) + float(TerrainBackground.TILE_SIZE) * 0.5,
+			float(row_fallback) * float(TerrainBackground.TILE_SIZE) + float(TerrainBackground.TILE_SIZE) * 0.5)
 	return Vector2(w * 0.72, h * 0.45)
 
 

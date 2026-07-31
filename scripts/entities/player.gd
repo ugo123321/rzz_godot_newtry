@@ -13,7 +13,7 @@ const AUTO_BULLET_RELEASE_RATIO := 0.42
 const PATH_LINE_WIDTH := 6.0
 const PATH_LINE_COLOR := Color(1.0, 0.85, 0.2, 0.9)
 const PATH_LINE_COLOR_ATTACK := Color(1.0, 0.85, 0.2, 0.35)
-const PATH_LINE_COLOR_BLOCKED := Color(1.0, 0.3, 0.3, 0.95)  # 画线触碰阻挡块/深坑时整线标红
+const PATH_LINE_COLOR_BLOCKED := Color(1.0, 0.3, 0.3, 0.95)  # 画线触碰阻挡石/锁定块/箭块时整线标红（深坑不挡画线）
 const PATH_HIT_PAD_RATIO := 0.68
 const DRAW_START_FX_SCALE := 1.3
 const TRIGGER_RING_VISUAL_SCALE := 0.6
@@ -1851,7 +1851,7 @@ func _apply_path_line_color() -> void:
 	path_line.default_color = PATH_LINE_COLOR_ATTACK if state == State.ATTACKING else PATH_LINE_COLOR
 
 
-# 画线触碰阻挡块/深坑时把整条预览线标红（path_input 检测到阻挡时调用）。
+# 画线触碰阻挡石/锁定块/箭块时把整条预览线标红（path_input 检测到阻挡时调用；深坑不挡画线）。
 # 整体切色，不逐段重绘，避免破坏 sr=24 拖尾渲染。每次画线开始时由 path_input 复位。
 var path_preview_invalid := false
 func set_preview_invalid(v: bool) -> void:

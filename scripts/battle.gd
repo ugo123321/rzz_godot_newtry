@@ -43,6 +43,9 @@ const WaterOverlayScript = preload("res://scripts/systems/water_overlay.gd")
 
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const MAIN_SCENE := "res://scenes/main.tscn"
+# wheel 关固定套用的关卡模板编号：模板里中间放固定传送门，玩家触发后弹转盘。
+# 该模板由关卡编辑器保存为 user://levels/999.json（策划自行放置 fixed_portal）。
+const WHEEL_STAGE_LAYOUT := "999"
 
 @export var stage_index := 0
 
@@ -92,6 +95,10 @@ var themed_reward_popup
 var _pending_themed_next_index := -1
 var _pending_themed_theme := ""
 var _pending_reward_stage_index := -1
+# 当前正在进行的 wheel 关 stage_index（-1 = 非 wheel 关）。
+# wheel 关不再直接弹转盘：改为载入 WHEEL_STAGE_LAYOUT 模板正常进入关卡，
+# 玩家走到模板里的固定传送门触发转盘，奖励结束（portal 退出）后据此跳下一关。
+var _wheel_stage_index := -1
 var tree_spawner
 var portal_spawner
 var build_house
@@ -1147,6 +1154,17 @@ func _on_lottery_enter_midpoint() -> void:
 
 
 func _resume_from_portal_reward() -> void:
+	# wheel 关：转盘关闭后跳下一关（play_exit 落地或兜底直切都走 _advance_from_wheel_stage）
+	if _wheel_stage_index >= 0:
+		if portal_traverse == null or _active_lottery_portal == null or not is_instance_valid(_active_lottery_portal):
+			if _active_lottery_portal and is_instance_valid(_active_lottery_portal):
+				_active_lottery_portal.queue_free()
+			_active_lottery_portal = null
+			_advance_from_wheel_stage()
+			return
+		var portal_pos: Vector2 = _active_lottery_portal.stored_position
+		portal_traverse.play_exit(self, portal_pos, Callable(self, "_on_lottery_exit_complete"))
+		return
 	# v3：转盘关闭后走 play_exit（玩家从门里跳出，落到门正下方原地），完成后才恢复 PLAYING。
 	if portal_traverse == null or _active_lottery_portal == null or not is_instance_valid(_active_lottery_portal):
 		# 兜底：动画器或 portal 缺失，直接恢复
@@ -1163,10 +1181,13 @@ func _resume_from_portal_reward() -> void:
 
 
 func _on_lottery_exit_complete() -> void:
-	# play_exit 完成：销毁门，恢复 PLAYING + portal_spawner
+	# play_exit 完成：销毁门。wheel 关 → 跳下一关；普通随机抽奖 portal → 恢复 PLAYING。
 	if _active_lottery_portal and is_instance_valid(_active_lottery_portal):
 		_active_lottery_portal.queue_free()
 	_active_lottery_portal = null
+	if _wheel_stage_index >= 0:
+		_advance_from_wheel_stage()
+		return
 	state = GameState.PLAYING
 	_portal_active_pause = false
 	if portal_spawner:
@@ -1286,8 +1307,8 @@ func _cell_center(col: int, row: int) -> Vector2:
 # 关卡模板载入：
 # - 编辑器测试模式：载入 __editor_test__（编辑器自动保存）。
 # - reward / attr_forge / boss 关：不套模板（特殊房间 / boss 竞技场保持干净）。
-# - 第一关 / 恶魔关 / 天使关：固定模板 0。
-# - 其余普通战斗关：40% 模板 0，60% 其他纯数字名模板随机（见 _roll_stage_template）。
+# - 第一关：固定模板 0。
+# - 其余普通战斗关（含恶魔/天使主题关）：40% 模板 0，60% 其他纯数字名模板随机（见 _roll_stage_template）。
 # 场景贴图（草地→石地→…→王宫）由 terrain_background 按 stage_index 烘焙，与此处模板无关；
 # 模板只在底图烘焙后追加 water/stone_floor 局部地块 + FieldElement 实体（树/坑/阻挡石/宝箱/传送门）。
 func _apply_stage_layout_if_any(stage_idx: int) -> void:
@@ -1298,19 +1319,23 @@ func _apply_stage_layout_if_any(stage_idx: int) -> void:
 		return
 	var stage_dict: Dictionary = GameConfig.get_stage(stage_idx)
 	var rt := str(stage_dict.get("room_type", ""))
-	if rt == "reward" or rt == "attr_forge":
+	if rt == "reward":
+		# wheel 关：固定套用 WHEEL_STAGE_LAYOUT 模板（中间放固定传送门，玩家触发后弹转盘）
+		print("[layout] stage=%d WHEEL_LAYOUT_%s" % [stage_idx, WHEEL_STAGE_LAYOUT])
+		_apply_level_layout(WHEEL_STAGE_LAYOUT)
+		return
+	if rt == "attr_forge":
 		print("[layout] stage=%d SKIP(special room %s)" % [stage_idx, rt])
 		return  # 特殊房间不套模板
 	if str(stage_dict.get("boss_id", "")) != "":
 		print("[layout] stage=%d SKIP(boss)" % stage_idx)
 		return  # boss 关不套模板
-	# 第一关 / 恶魔关 / 天使关：固定模板 0。
-	var theme := get_stage_theme(stage_idx)
-	if stage_idx == 0 or theme == "demon" or theme == "angel":
-		print("[layout] stage=%d FORCED_0 (theme=%s)" % [stage_idx, theme])
+	# 第一关：固定模板 0。
+	if stage_idx == 0:
+		print("[layout] stage=%d FORCED_0" % stage_idx)
 		_apply_level_layout("0")
 		return
-	# 其余普通战斗关：40% 模板 0，60% 其他模板随机。
+	# 其余普通战斗关（含恶魔/天使主题关）：40% 模板 0，60% 其他模板随机。
 	var picked := _roll_stage_template()
 	print("[layout] stage=%d ROLL -> %s" % [stage_idx, picked])
 	_apply_level_layout(picked)
@@ -1375,6 +1400,8 @@ func apply_debug_settings(target_level: int, target_stage: int) -> void:
 	_sync_background_layer()
 	_refresh_stage_ambience()
 	_apply_stage_meta(true)
+	_apply_stage_layout_if_any(stage_index)
+	_invalidate_nav()
 	state = GameState.PLAYING
 	intro_label.visible = false
 	hud.hide_message()
@@ -1419,29 +1446,21 @@ func _apply_stage_meta(_spawn_buff_orbs: bool) -> void:
 func get_stage_theme(idx: int) -> String:
 	if idx < 0 or idx >= GameConfig.stages.size():
 		return ""
+	if _themed_stage_overrides.has(idx):
+		return String(_themed_stage_overrides[idx])
 	var s := GameConfig.get_stage(idx)
 	var rt := str(s.get("room_type", ""))
 	if rt == "reward" or rt == "attr_forge":
-		return ""
-	# Boss 关优先：与主题关（每 4 关一次的 demon/angel）冲突时，boss 关胜出。
-	# 否则在练兵操场上还会画 demon/angel 的 sigil 装饰，视觉会乱。
+		return ""  # 特殊房不做主题
+	# Boss 关优先：与主题关冲突时 boss 关胜出，否则操场会画 demon/angel sigil 视觉会乱。
 	if str(s.get("boss_id", "")) != "":
 		return ""
-	if (idx + 1) % 4 != 0:
-		return ""
-	# 天使/恶魔卡门控：都未解锁 → 普通关；只解锁一方 → 强制该主题；都解锁 → 保持随机
-	var has_angel: bool = LobbyState.has_unlock("angel_stage") if LobbyState else false
-	var has_demon: bool = LobbyState.has_unlock("demon_stage") if LobbyState else false
-	if not has_angel and not has_demon:
-		return ""
-	if not _themed_stage_overrides.has(idx):
-		if has_angel and has_demon:
-			_themed_stage_overrides[idx] = "demon" if randi() % 2 == 0 else "angel"
-		elif has_angel:
-			_themed_stage_overrides[idx] = "angel"
-		else:
-			_themed_stage_overrides[idx] = "demon"
-	return String(_themed_stage_overrides[idx])
+	# 主题改由 stages.xlsx theme 列配置驱动（demon/angel/random/空），不再每 4 关随机 + 天赋卡门控。
+	var theme := str(s.get("theme", ""))
+	if theme == "random":
+		theme = "demon" if randi() % 2 == 0 else "angel"  # 本局内固定（缓存在 _themed_stage_overrides）
+	_themed_stage_overrides[idx] = theme  # 缓存，本关内一致
+	return theme
 
 
 func shake_camera(magnitude: float, duration: float) -> void:
@@ -1862,9 +1881,7 @@ func _try_enter_reward_room(next_stage_index: int) -> bool:
 	if stage.is_empty():
 		return false
 	var rt := str(stage.get("room_type", ""))
-	# 属性打造关门控：未抽到 forge_stage 卡 → 降级为普通关
-	if rt == "attr_forge" and LobbyState and not LobbyState.has_unlock("forge_stage"):
-		rt = ""
+	# 属性打造关：配置写了 room_type=attr_forge 即进打造房，不再需要天赋卡 forge_stage 解锁
 	if rt == "attr_forge":
 		stage_index = next_stage_index
 		# v3：不再直接进入打造小游戏，先走"小跳跃跳进门"动画
@@ -1872,41 +1889,24 @@ func _try_enter_reward_room(next_stage_index: int) -> bool:
 		return true
 	if rt != "reward":
 		return false
-	var room_choices: Array = stage.get("reward_rooms", [])
-	var room := "wheel"
-	if not room_choices.is_empty():
-		room = str(room_choices[randi() % room_choices.size()])
-	if room != "wheel":
-		room = "wheel"
-	_pending_reward_stage_index = next_stage_index
-	_enter_reward_room_wheel()
-	return true
+	# wheel 关：不再主动弹转盘页面。改为标记当前关为 wheel 关并返回 false，
+	# 让正常切关流程接管（spawner 怪数=0 + _apply_stage_layout_if_any 套 WHEEL_STAGE_LAYOUT 模板）。
+	# 玩家进入后走到模板中间的固定传送门 → on_portal_entered → 转盘 → _advance_from_wheel_stage 跳下一关。
+	_wheel_stage_index = next_stage_index
+	return false
 
 
-func _enter_reward_room_wheel() -> void:
-	state = GameState.REWARD_ROOM
-	_clear_stage_transition_presentation(true)
-	spawner.reset()
-	_apply_stage_meta(false)
-	if reward_wheel_popup:
-		reward_wheel_popup.show_for_stage(_pending_reward_stage_index)
-	hud.show_message(LanguageManager.tr_ui("UI_BATTLE_WHEEL_INTRO"), 1.8)
-
-
-func _on_reward_wheel_finished(reward_text: String) -> void:
-	if _pending_reward_stage_index == -2:
-		# Portal-driven reward inside the battle
-		if not reward_text.is_empty():
-			hud.show_message(LanguageManager.tr_ui("UI_BATTLE_REWARD_GOT_FMT") % reward_text, 1.6)
-		_pending_reward_stage_index = -1
-		_resume_from_portal_reward()
-		return
-	if _pending_reward_stage_index < 0:
-		return
-	if not reward_text.is_empty():
-		hud.show_message(LanguageManager.tr_ui("UI_BATTLE_REWARD_GOT_FMT") % reward_text, 1.6)
-	var next_index: int = _pending_reward_stage_index + 1
+# wheel 关奖励结束（portal 退出完成 / 兜底直切）后调用：跳入下一关。
+# 逻辑同旧的 _on_reward_wheel_finished 非.portal 推进分支：跳跃 + 滚轴过场落地后切关。
+func _advance_from_wheel_stage() -> void:
+	var idx: int = _wheel_stage_index
+	_wheel_stage_index = -1
 	_pending_reward_stage_index = -1
+	_portal_active_pause = false
+	if idx < 0:
+		state = GameState.PLAYING
+		return
+	var next_index: int = idx + 1
 	if next_index >= GameConfig.stages.size():
 		stage_index = next_index
 		_clear_stage_transition_presentation(true)
@@ -1915,7 +1915,7 @@ func _on_reward_wheel_finished(reward_text: String) -> void:
 			level_overlay.show_game_complete()
 		hud.hide_message()
 		return
-	# 离开奖励关 → 与普通关一样走"跳跃 + 滚轴"过场
+	# 离开 wheel 关 → 与普通关一样走"跳跃 + 滚轴"过场
 	if stage_transition:
 		stage_transition.play(self, next_index, _on_stage_transition_complete.bind(next_index))
 	else:
@@ -1934,6 +1934,24 @@ func _on_reward_wheel_finished(reward_text: String) -> void:
 			portal_spawner.begin()
 		state = GameState.PLAYING
 		EventBus.stage_started.emit(stage_index)
+
+
+func _on_reward_wheel_finished(reward_text: String) -> void:
+	# wheel 关奖励现在只走 portal-driven 路径（_pending_reward_stage_index == -2）：
+	# 玩家在 wheel 关触发固定传送门 → 转盘 → 这里 → _resume_from_portal_reward →
+	# play_exit → _on_lottery_exit_complete → _advance_from_wheel_stage 跳下一关。
+	if _pending_reward_stage_index == -2:
+		if not reward_text.is_empty():
+			hud.show_message(LanguageManager.tr_ui("UI_BATTLE_REWARD_GOT_FMT") % reward_text, 1.6)
+		_pending_reward_stage_index = -1
+		_resume_from_portal_reward()
+		return
+	if _wheel_stage_index >= 0:
+		# 兜底：portal 流程异常但仍在 wheel 关 → 直接推进
+		if not reward_text.is_empty():
+			hud.show_message(LanguageManager.tr_ui("UI_BATTLE_REWARD_GOT_FMT") % reward_text, 1.6)
+		_advance_from_wheel_stage()
+		return
 
 
 func _process(delta: float) -> void:
@@ -1956,7 +1974,8 @@ func _process(delta: float) -> void:
 			_update_playing(scaled_delta, delta)
 			if tree_spawner:
 				tree_spawner.update_trees(delta, self)
-			if portal_spawner and not _portal_active_pause:
+			# wheel 关不刷随机抽奖 portal——固定传送门由 WHEEL_STAGE_LAYOUT 模板提供
+			if portal_spawner and not _portal_active_pause and _wheel_stage_index < 0:
 				portal_spawner.update(delta, self)
 		GameState.BUILD_HOUSE:
 			if build_house:
@@ -2074,7 +2093,8 @@ func _update_playing(scaled_delta: float, real_delta: float) -> void:
 	if level_overlay and level_overlay.is_phase_fade_active():
 		return
 	var summon_fx_active: bool = summons != null and summons.has_active_fx()
-	if spawner.all_dead() and not spawner.has_pending_death_presentation() and not spawner.is_spawning() and not combat.is_resolving() and not combat.has_combat_presentation() and player.state == BattlePlayer.State.IDLE and not abilities.has_active_fx() and not summon_fx_active:
+	# wheel 关没有怪物（怪数=0），不能因 all_dead 自动通关——必须等玩家走到固定传送门触发转盘。
+	if _wheel_stage_index < 0 and spawner.all_dead() and not spawner.has_pending_death_presentation() and not spawner.is_spawning() and not combat.is_resolving() and not combat.has_combat_presentation() and player.state == BattlePlayer.State.IDLE and not abilities.has_active_fx() and not summon_fx_active:
 		pending_stage_clear = true
 		_try_finish_stage_clear()
 

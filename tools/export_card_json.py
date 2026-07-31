@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert config/excel/card.xlsx Sheet1 -> config/json/talents.json
 
-Talent card definitions consumed by LobbyState. Schema (v2, 20 cards):
+Talent card definitions consumed by LobbyState. Schema (v2, 17 cards):
 
     {
       "id": "lethal_strike",
@@ -48,9 +48,8 @@ CN_TO_ID = {
     # 紫 5
     "致命一击": "lethal_strike", "电光石火": "lightning_dash", "冥想": "meditation",
     "超级强化": "super_enhance", "远程打击": "long_range_strike",
-    # 橙 6
-    "先发制人": "unlock_first_reward", "天使关": "unlock_angel_stage",
-    "恶魔关": "unlock_demon_stage", "属性打造": "unlock_forge_stage",
+    # 橙 3（天使关/恶魔关/属性打造三张 stage 解锁卡已移除，改由 stages.xlsx theme/room_type 配置控制）
+    "先发制人": "unlock_first_reward",
     "神秘大奖": "unlock_mystery_portal", "精英化": "unlock_elite_enemy",
 }
 
@@ -60,8 +59,7 @@ CN_TO_EN_NAME = {
     "暴伤": "Crit Damage", "移速": "Move Speed",
     "致命一击": "Lethal Strike", "电光石火": "Lightning Dash", "冥想": "Meditation",
     "超级强化": "Super Enhance", "远程打击": "Long-Range Strike",
-    "先发制人": "First Strike", "天使关": "Angel Stage",
-    "恶魔关": "Demon Stage", "属性打造": "Attribute Forge",
+    "先发制人": "First Strike",
     "神秘大奖": "Mystery Grand Prize", "精英化": "Elite Mutation",
 }
 
@@ -159,34 +157,15 @@ ID_META = {
         "template_en": "ATK +{v0}, Range +{v1}",
         "display": [(5.0, False), (6.0, True)],  # UI 显示 +6%/lv
     },
-    # ---------- 橙 6（unlock） ----------
+    # ---------- 橙 3（unlock） ----------
+    # 天使关/恶魔关/属性打造三张 stage 解锁卡已移除：stage 开启改由
+    # stages.xlsx 的 theme / room_type 列配置控制，不再走天赋卡 unlock。
     "unlock_first_reward": {
         "effects_game": [],
         "template_cn": "进入游戏时触发一次奖励",
         "template_en": "Trigger one reward on game start",
         "display": [],
         "unlock_flag": "first_reward",
-    },
-    "unlock_angel_stage": {
-        "effects_game": [],
-        "template_cn": "解锁天使关",
-        "template_en": "Unlock Angel Stage",
-        "display": [],
-        "unlock_flag": "angel_stage",
-    },
-    "unlock_demon_stage": {
-        "effects_game": [],
-        "template_cn": "解锁恶魔关",
-        "template_en": "Unlock Demon Stage",
-        "display": [],
-        "unlock_flag": "demon_stage",
-    },
-    "unlock_forge_stage": {
-        "effects_game": [],
-        "template_cn": "解锁属性打造关",
-        "template_en": "Unlock Attribute Forge Stage",
-        "display": [],
-        "unlock_flag": "forge_stage",
     },
     "unlock_mystery_portal": {
         "effects_game": [],

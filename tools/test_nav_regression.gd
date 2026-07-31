@@ -27,6 +27,14 @@ class MockFE extends Node:
 				return true
 		return false
 
+# 点状障碍（模拟树）：不进 A* 网格（has_move_blocking_at 恒 false → A* 给直线路径），
+# 但 is_move_blocked_radius 在点半径内挡移动。用于复现"玩家在树正后方时怪原地抖动"。
+class MockFE_Tree extends Node:
+	var tree_pos := Vector2.ZERO
+	func has_move_blocking_at(_c, _r) -> bool: return false
+	func is_move_blocked_radius(world_pos, mover_radius) -> bool:
+		return world_pos.distance_to(tree_pos) < BLOCK_BODY + mover_radius
+
 func _steer(path, wp_ref, pos, player_pos) -> Vector2:
 	var wp: int = wp_ref[0]
 	while wp < path.size() and pos.distance_to(path[wp]) < REACH_PX:
@@ -49,6 +57,7 @@ func _sim(fe, r, start, player_pos) -> Dictionary:
 	var pos: Vector2 = start
 	var path := nav.find_path_world(pos, player_pos)
 	var wp_ref := [1 if path.size() > 1 else 0]
+	var slide_sign := [0]  # 持久滑步方向，镜像 monster.gd 的 _nav_slide_sign
 	var repath := NAV_REPATH_SEC
 	var stuck := 0.0
 	var last_pcell := nav.world_to_cell(player_pos)
@@ -72,15 +81,21 @@ func _sim(fe, r, start, player_pos) -> Dictionary:
 			if stuck > NAV_STUCK_SEC:
 				path = PackedVector2Array(); repath = 0.0
 			var perp := Vector2(-dir.y, dir.x)
-			var a: Vector2 = pos + perp * step
-			var b: Vector2 = pos - perp * step
-			var ba: bool = fe.is_move_blocked_radius(a, r)
-			var bb: bool = fe.is_move_blocked_radius(b, r)
-			if not ba and not bb: pos = a if a.distance_to(player_pos) <= b.distance_to(player_pos) else b
-			elif not ba: pos = a
-			elif not bb: pos = b
+			if slide_sign[0] == 0:
+				var a0 := pos + perp * step
+				var b0 := pos - perp * step
+				slide_sign[0] = 1 if a0.distance_to(player_pos) <= b0.distance_to(player_pos) else -1
+			var sl := perp if slide_sign[0] > 0 else -perp
+			var sp := pos + sl * step
+			if not fe.is_move_blocked_radius(sp, r):
+				pos = sp
+			else:
+				var rp := pos - sl * step
+				if not fe.is_move_blocked_radius(rp, r):
+					slide_sign[0] = -slide_sign[0]
+					pos = rp
 		else:
-			stuck = 0.0; pos = nxt
+			stuck = 0.0; slide_sign[0] = 0; pos = nxt
 		mind = minf(mind, pos.distance_to(player_pos))
 		if pos.distance_to(player_pos) < 30.0:
 			nav.queue_free(); return {"reached": true, "f": f, "mind": int(mind)}
@@ -107,4 +122,10 @@ func _initialize() -> void:
 	var fe3 := MockFE.new()
 	for rr in range(3, 17): fe3.add(15, rr)
 	_run("竖墙绕行", fe3, Vector2(8*TS+20, 10*TS+20), Vector2(22*TS+20, 10*TS+20))
+
+	# 场景4：树后对称——点状障碍不进 A*，玩家在树正南方。
+	# 旧逻辑（每帧选离玩家更近一侧）会左右翻转原地抖动；新逻辑（持久 slide sign）绕过抵达。
+	var fe4 := MockFE_Tree.new()
+	fe4.tree_pos = Vector2(15*TS+20, 10*TS+20)
+	_run("树后对称绕行", fe4, Vector2(15*TS+20, 8*TS+20), Vector2(15*TS+20, 12*TS+20))
 	quit()

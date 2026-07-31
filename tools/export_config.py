@@ -56,26 +56,28 @@ CHAPTER_ROWS = [
 ]
 
 STAGE_HEADERS = [
-    "stage_index", "chapter_id", "stage_in_chapter", "display_name",
-    "room_type", "reward_rooms",
+    "stage_index", "chapter_id", "stage_in_chapter", "display_name", "display_name_en",
+    "room_type", "reward_rooms", "theme", "hp_coeff",
     "normal", "elite", "shield", "berserker", "splitter", "archer", "fire_mage",
-    "shotgun", "cross_shooter", "bounce_slime", "boss_id",
+    "shotgun", "cross_shooter", "bounce_slime", "snake_shooter", "jumper",
+    "laser", "mini_centipede", "dasher", "teleporter",
+    "boss_id",
 ]
 STAGE_ROWS = [
-    [0, 1, 1, "第1关", "", "", 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
-    [1, 1, 2, "第2关", "", "", 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
-    [2, 1, 3, "第3关", "", "", 10, 0, 0, 0, 0, 6, 0, 0, 0, 0, ""],
-    [3, 1, 4, "第4关", "", "", 10, 0, 0, 0, 0, 8, 0, 0, 0, 0, ""],
-    [4, 2, 1, "第5关", "reward", "wheel", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
-    [5, 2, 2, "第6关", "", "", 5, 4, 0, 0, 0, 4, 0, 0, 0, 0, ""],
-    [6, 2, 3, "第7关", "", "", 5, 4, 0, 0, 0, 5, 0, 0, 0, 0, ""],
-    [7, 2, 4, "第8关", "", "", 4, 4, 0, 0, 0, 4, 3, 0, 0, 0, ""],
-    [8, 2, 5, "第9关", "", "", 4, 3, 3, 0, 0, 3, 3, 0, 0, 0, ""],
-    [9, 2, 6, "第10关", "", "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "lancer_knight"],
+    [0, 1, 1, "第1关·出击", "Stage 1·Sortie", "", "", "", 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, ""],
+    [1, 1, 2, "第2关·冲锋潮", "Stage 2·Charge", "", "", "", 1.05, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "laser_snail"],
+    [2, 1, 3, "第3关·长弓", "Stage 3·Longbow", "", "", "", 1.05, 15, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
+    [3, 1, 4, "第4关·铁盾试练", "Stage 4·Shield Trial", "", "", "demon", 1.05, 10, 5, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, ""],
+    [4, 1, 5, "第5关·分裂噩梦", "Stage 5·Splinter", "", "", "", 1.05, 14, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
+    [5, 1, 6, "第6关·霰弹阵", "Stage 6·Buckshot", "", "", "", 1.05, 15, 0, 0, 0, 0, 0, 0, 14, 0, 0, 4, 0, 0, 0, 0, 0, ""],
+    [6, 1, 7, "第7关·反弹陷阱", "Stage 7·Ricochet", "", "", "", 1.05, 16, 0, 0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0, 2, 1, ""],
+    [7, 1, 8, "第8关·十字锁", "Stage 8·Cross Lock", "", "", "angel", 1.05, 12, 4, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, ""],
+    [8, 1, 9, "第9关·火焰宗师", "Stage 9·Pyromaster", "", "", "", 1.05, 15, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 2, 0, 0, 1, ""],
+    [9, 1, 10, "第10关·打造", "Stage 10·Forge", "attr_forge", "", "", 1.05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ""],
 ]
 
 MONSTER_HEADERS = [
-    "kind_id", "spawn_order", "unlock_at_stage", "name_cn", "hp", "def", "attack", "attack_interval", "size", "speed",
+    "kind_id", "spawn_order", "name_cn", "hp", "def", "attack", "attack_interval", "size", "speed",
     "color_hex", "grade", "can_move", "attack_range", "arrow_speed", "ranged",
     "ki_drain_on_hit", "max_split_tier", "split_count", "exp_reward",
     "character_folder", "sprite_prefix", "projectile_folder",
@@ -83,16 +85,16 @@ MONSTER_HEADERS = [
     "bounce_count", "sprite_tint_hex",
 ]
 MONSTER_ROWS = [
-    ["NORMAL", 1, 1, "普通怪", 100, 4, 10, 1.15, 13, 19, "#526078", "B", 1, 0, 0, 0, 0, 0, 0, 6, "Skeleton", "Skeleton", "", "", "", 5, 50, 1, ""],
-    ["ARCHER", 2, 3, "射箭怪", 95, 3, 12, 1.35, 12, 17, "#6a8a5a", "B", 1, 215, 85, 1, 0, 0, 0, 7, "Archer", "Archer", "Arrow(projectile)", "", "", 5, 50, 1, ""],
-    ["ELITE", 3, 5, "高级怪", 135, 6, 14, 1.05, 14, 21, "#8a6aa8", "B+", 1, 0, 0, 0, 0, 0, 0, 10, "Elite Orc", "Elite Orc", "", "", "", 5, 50, 1, ""],
-    ["FIRE_MAGE", 4, 7, "火焰法师", 90, 2, 16, 2.4, 12, 15, "#501818", "B", 1, 250, 0, 1, 0, 0, 0, 8, "Wizard", "Wizard", "Magic(projectile)", "", "", 5, 50, 1, ""],
-    ["SHIELD", 5, 9, "盾牌怪", 150, 5, 12, 1.25, 15, 16, "#5f7a88", "B+", 1, 0, 0, 0, 0, 0, 0, 8, "Knight", "Knight", "", "", "", 5, 50, 1, ""],
-    ["CROSS_SHOOTER", 6, 11, "十字子弹怪", 80, 4, 12, 1.6, 12, 15, "#8a7898", "S/A/B/A", 1, -1, 75, 1, 0, 0, 0, 3, "Priest", "Priest", "Magic(projectile)", "cross", "enemy_cross_magic", 5, 50, 1, ""],
-    ["BERSERKER", 7, 13, "狂战士", 90, 2, 18, 0.85, 14, 26, "#b85a4a", "C/B", 1, 0, 0, 0, 10, 0, 0, 4, "Armored Axeman", "Armored Axeman", "", "", "", 5, 50, 1, ""],
-    ["SHOTGUN", 8, 15, "霰弹怪", 80, 4, 12, 1.5, 12, 16, "#6a7078", "S/A/B/A", 1, 215, 85, 1, 0, 0, 0, 3, "Skeleton Archer", "Skeleton Archer", "Arrow(projectile)", "spread", "enemy_shotgun_arrow", 5, 50, 1, ""],
-    ["SPLITTER", 9, 17, "分裂怪", 70, 2, 8, 1.2, 18, 14, "#7b9f5a", "A+/C/C", 1, 0, 0, 0, 0, 3, 2, 3, "Slime", "Slime", "", "", "", 5, 50, 1, ""],
-    ["BOUNCE_SLIME", 10, 19, "反弹子弹怪", 80, 4, 12, 1.55, 12, 14, "#b84040", "S/A/B/A", 1, -1, 70, 1, 0, 0, 0, 3, "Slime", "Slime", "", "bounce", "enemy_bounce_blob", 5, 50, 1, "#ff6868"],
+    ["NORMAL", 1, "普通怪", 100, 4, 10, 1.15, 13, 19, "#526078", "B", 1, 0, 0, 0, 0, 0, 0, 6, "Skeleton", "Skeleton", "", "", "", 5, 50, 1, ""],
+    ["ARCHER", 2, "射箭怪", 95, 3, 12, 1.35, 12, 17, "#6a8a5a", "B", 1, 215, 85, 1, 0, 0, 0, 7, "Archer", "Archer", "Arrow(projectile)", "", "", 5, 50, 1, ""],
+    ["ELITE", 3, "高级怪", 135, 6, 14, 1.05, 14, 21, "#8a6aa8", "B+", 1, 0, 0, 0, 0, 0, 0, 10, "Elite Orc", "Elite Orc", "", "", "", 5, 50, 1, ""],
+    ["FIRE_MAGE", 4, "火焰法师", 90, 2, 16, 2.4, 12, 15, "#501818", "B", 1, 250, 0, 1, 0, 0, 0, 8, "Wizard", "Wizard", "Magic(projectile)", "", "", 5, 50, 1, ""],
+    ["SHIELD", 5, "盾牌怪", 150, 5, 12, 1.25, 15, 16, "#5f7a88", "B+", 1, 0, 0, 0, 0, 0, 0, 8, "Knight", "Knight", "", "", "", 5, 50, 1, ""],
+    ["CROSS_SHOOTER", 6, "十字子弹怪", 80, 4, 12, 1.6, 12, 15, "#8a7898", "S/A/B/A", 1, -1, 75, 1, 0, 0, 0, 3, "Priest", "Priest", "Magic(projectile)", "cross", "enemy_cross_magic", 5, 50, 1, ""],
+    ["BERSERKER", 7, "狂战士", 90, 2, 18, 0.85, 14, 26, "#b85a4a", "C/B", 1, 0, 0, 0, 10, 0, 0, 4, "Armored Axeman", "Armored Axeman", "", "", "", 5, 50, 1, ""],
+    ["SHOTGUN", 8, "霰弹怪", 80, 4, 12, 1.5, 12, 16, "#6a7078", "S/A/B/A", 1, 215, 85, 1, 0, 0, 0, 3, "Skeleton Archer", "Skeleton Archer", "Arrow(projectile)", "spread", "enemy_shotgun_arrow", 5, 50, 1, ""],
+    ["SPLITTER", 9, "分裂怪", 70, 2, 8, 1.2, 18, 14, "#7b9f5a", "A+/C/C", 1, 0, 0, 0, 0, 3, 2, 3, "Slime", "Slime", "", "", "", 5, 50, 1, ""],
+    ["BOUNCE_SLIME", 10, "反弹子弹怪", 80, 4, 12, 1.55, 12, 14, "#b84040", "S/A/B/A", 1, -1, 70, 1, 0, 0, 0, 3, "Slime", "Slime", "", "bounce", "enemy_bounce_blob", 5, 50, 1, "#ff6868"],
 ]
 
 PLAYER_HEADERS = ["key", "value", "description"]
@@ -148,7 +150,6 @@ TUNING_ROWS = [
     ["stage_atk_growth", 1.12, "关卡攻击缩放幂次"],
     ["stage_monster_base", 8, "第1关怪物总数（stages表为权威）"],
     ["stage_monster_per_stage", 1, "每过一关怪物总数+1"],
-    ["stage_type_unlock_interval", 2, "每N关解锁下一种怪物"],
     ["stage_monster_scale", 1.3, "关卡怪物数量缩放(已弃用)"],
     ["stage_count_mul", 0.666667, "怪物数量乘数(已弃用)"],
     ["shield_count_mul", 0.333333, "盾牌怪数量乘数(已弃用)"],
@@ -249,9 +250,24 @@ def normalize_stage_row(item: dict) -> dict:
         item["reward_rooms"] = rooms
     room_type = str(item.get("room_type", "")).strip()
     if room_type == "":
-        item.erase("room_type")
+        item.pop("room_type", None)
     else:
         item["room_type"] = room_type
+    # theme：空串擦除（同 room_type），保留非空 demon/angel
+    theme = str(item.get("theme", "")).strip()
+    if theme == "":
+        item.pop("theme", None)
+    else:
+        item["theme"] = theme
+    # hp_coeff：空/缺失 → 1.0（第一关基础系数），保证 xlsx→json 方向干净
+    hp_coeff = item.get("hp_coeff", None)
+    try:
+        if hp_coeff is None or str(hp_coeff).strip() == "":
+            item["hp_coeff"] = 1.0
+        else:
+            item["hp_coeff"] = float(hp_coeff)
+    except (TypeError, ValueError):
+        item["hp_coeff"] = 1.0
     return item
 
 

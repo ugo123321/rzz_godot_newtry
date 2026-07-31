@@ -46,6 +46,9 @@ var _nav_wp_idx: int = 0
 var _nav_repath_timer: float = 0.0
 var _nav_stuck_timer: float = 0.0
 var _nav_last_player_cell: Vector2i = Vector2i(-1, -1)
+# 沿障碍滑步的持久方向（+1=perp_a / -1=perp_b）。撞墙时定一次方向，直行通畅才清 0，
+# 避免"每帧选离玩家更近一侧"在对称阻挡（玩家正对墙/树后方）时左右翻转→原地抖动。
+var _nav_slide_sign: int = 0
 
 # === v2 易伤/抗性字段 (默认 0，待 debuff/精英差异化时填充；v==1 路径完全忽略) ===
 # VULN 层：同层加和。final ×= (1 + vuln_physical + 对应元素的 vuln_*)
@@ -767,27 +770,32 @@ func update_ai(delta: float, player: BattlePlayer, battle: Node) -> void:
 				if _nav_stuck_timer > NAV_STUCK_SEC:
 					_nav_path.clear()
 					_nav_repath_timer = 0.0
-				# 双向 perp 都试：选可通且更靠近玩家的一边
+				# 沿障碍滑步：用持久 slide sign 决定左/右侧，避免"选离玩家更近一侧"在
+				# 对称阻挡（玩家正对墙/树后方）时左右翻转 → 原地抖动。sign 在直行通畅时清 0。
 				var perp_a := Vector2(-dir.y, dir.x)
-				var perp_b := -perp_a
-				var alt_a := global_position + perp_a * step_len
-				var alt_b := global_position + perp_b * step_len
-				var alt_a_blocked: bool = _is_pos_blocked(battle, alt_a)
-				var alt_b_blocked: bool = _is_pos_blocked(battle, alt_b)
-				if not alt_a_blocked and not alt_b_blocked:
-					global_position = alt_a if alt_a.distance_to(player.global_position) <= alt_b.distance_to(player.global_position) else alt_b
-				elif not alt_a_blocked:
-					global_position = alt_a
-				elif not alt_b_blocked:
-					global_position = alt_b
+				if _nav_slide_sign == 0:
+					var alt_a0 := global_position + perp_a * step_len
+					var alt_b0 := global_position - perp_a * step_len
+					_nav_slide_sign = 1 if alt_a0.distance_to(player.global_position) <= alt_b0.distance_to(player.global_position) else -1
+				var slide := perp_a if _nav_slide_sign > 0 else -perp_a
+				var slide_pos := global_position + slide * step_len
+				if not _is_pos_blocked(battle, slide_pos):
+					global_position = slide_pos
 				else:
-					# 两边 perp 都堵：被树/地块墙/放置块夹住，沿统一 escape 推力脱困。
-					# 用更大步长快速脱困，避免卡在死角龟速蹭（step_len 仅 1~2px）。
-					var escape_dir := _escape_dir(battle, hitbox_radius)
-					if escape_dir != Vector2.ZERO:
-						global_position += escape_dir * maxf(step_len, 4.0)
+					# 当前侧堵 → 试另一侧，并翻转 sign 持久化
+					var rev_pos := global_position - slide * step_len
+					if not _is_pos_blocked(battle, rev_pos):
+						_nav_slide_sign = -_nav_slide_sign
+						global_position = rev_pos
+					else:
+						# 两侧都堵：被树/地块墙/放置块夹住，沿统一 escape 推力脱困。
+						# 用更大步长快速脱困，避免卡在死角龟速蹭（step_len 仅 1~2px）。
+						var escape_dir := _escape_dir(battle, hitbox_radius)
+						if escape_dir != Vector2.ZERO:
+							global_position += escape_dir * maxf(step_len, 4.0)
 			else:
 				_nav_stuck_timer = 0.0
+				_nav_slide_sign = 0
 				global_position = next_pos
 			if not preserve_anim:
 				_play_anim(SpriteHelper.ANIM_WALK)

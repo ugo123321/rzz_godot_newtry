@@ -36,7 +36,7 @@
       "effects": [
         {
           "key": "max_hp",
-          "per_level": 0.5
+          "per_level": 2.0
         }
       ],
       "unlock_flag": "",
@@ -44,7 +44,7 @@
       "desc_template_en": "HP +{v0}",
       "display": [
         {
-          "per_level": 0.5,
+          "per_level": 2.0,
           "pct": false
         }
       ],
@@ -339,7 +339,7 @@
         },
         {
           "key": "max_hp",
-          "per_level": 0.5
+          "per_level": 5.0
         }
       ],
       "unlock_flag": "",
@@ -351,7 +351,7 @@
           "pct": false
         },
         {
-          "per_level": 0.5,
+          "per_level": 5.0,
           "pct": false
         }
       ],
@@ -404,51 +404,6 @@
       "desc_template_en": "Trigger one reward on game start",
       "display": [],
       "icon": "Item_Horn_01_Wood"
-    },
-    {
-      "id": "unlock_angel_stage",
-      "name_cn": "天使关",
-      "name_en": "Angel Stage",
-      "quality": 3,
-      "weight": 1,
-      "max_level": 1,
-      "pity_target": 15,
-      "effects": [],
-      "unlock_flag": "angel_stage",
-      "desc_template_cn": "解锁天使关",
-      "desc_template_en": "Unlock Angel Stage",
-      "display": [],
-      "icon": "Item_Artifact_01_Gold"
-    },
-    {
-      "id": "unlock_demon_stage",
-      "name_cn": "恶魔关",
-      "name_en": "Demon Stage",
-      "quality": 3,
-      "weight": 1,
-      "max_level": 1,
-      "pity_target": 20,
-      "effects": [],
-      "unlock_flag": "demon_stage",
-      "desc_template_cn": "解锁恶魔关",
-      "desc_template_en": "Unlock Demon Stage",
-      "display": [],
-      "icon": "Item_Artifact_01_Gold"
-    },
-    {
-      "id": "unlock_forge_stage",
-      "name_cn": "属性打造",
-      "name_en": "Attribute Forge",
-      "quality": 3,
-      "weight": 1,
-      "max_level": 1,
-      "pity_target": 30,
-      "effects": [],
-      "unlock_flag": "forge_stage",
-      "desc_template_cn": "解锁属性打造关",
-      "desc_template_en": "Unlock Attribute Forge Stage",
-      "display": [],
-      "icon": "Item_Artifact_01_Gold"
     },
     {
       "id": "unlock_mystery_portal",

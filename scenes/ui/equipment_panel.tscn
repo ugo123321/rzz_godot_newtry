@@ -25,10 +25,9 @@
 [ext_resource type="Texture2D" uid="uid://bjbhw6n7kmune" path="res://assets/ui/equipment/slot_bg_white.png" id="35_slotbg_white"]
 [ext_resource type="Texture2D" uid="uid://ddc14n5jrwpkl" path="res://assets/ui/equipment/sort_bg.png" id="36_sortbg"]
 [ext_resource type="Texture2D" uid="uid://xdgoda11ob1i" path="res://assets/ui/equipment/sort_icon_sord.png" id="37_sort_sord"]
-[ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="38_gold"]
 [ext_resource type="Texture2D" uid="uid://dtyk4lhuwo6f8" path="res://assets/ui/icons/system/icon_equipment.png" id="40_equip_title"]
-[ext_resource type="Texture2D" path="res://assets/ui/battle/money_bg.png" id="50_money_bg"]
-[ext_resource type="Texture2D" path="res://assets/ui/icons/currency/icon_enhance_gem.png" id="51_enhance_gem"]
+[ext_resource type="Texture2D" uid="uid://3no6q1s1w2lg" path="res://assets/ui/battle/money_bg.png" id="50_money_bg"]
+[ext_resource type="Texture2D" uid="uid://b628nr8wfx6ak" path="res://assets/ui/icons/currency/icon_enhance_gem.png" id="51_enhance_gem"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_hpsfa"]
 load_path = "res://.godot/imported/small_bg.png-e3d49fedff66e0cd06d87351020374cd.ctex"
@@ -121,16 +120,16 @@ theme_override_font_sizes/font_size = 30
 text = "装备"
 vertical_alignment = 1
 
-[node name="EnhanceGemBar" type="Control" parent="Frame"]
+[node name="EnhanceGemBar" type="Control" parent="Frame" unique_id=151416648]
 unique_name_in_owner = true
-layout_mode = 0
+anchors_preset = 0
 offset_left = 17.0
 offset_top = 15.0
 offset_right = 184.0
 offset_bottom = 58.0
 mouse_filter = 2
 
-[node name="Bg" type="TextureRect" parent="Frame/EnhanceGemBar"]
+[node name="Bg" type="TextureRect" parent="Frame/EnhanceGemBar" unique_id=1105349487]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -143,7 +142,7 @@ texture = ExtResource("50_money_bg")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="GemIcon" type="TextureRect" parent="Frame/EnhanceGemBar"]
+[node name="GemIcon" type="TextureRect" parent="Frame/EnhanceGemBar" unique_id=1762842121]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(35, 35)
 layout_mode = 0
@@ -156,7 +155,7 @@ texture = ExtResource("51_enhance_gem")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Value" type="Label" parent="Frame/EnhanceGemBar"]
+[node name="Value" type="Label" parent="Frame/EnhanceGemBar" unique_id=2124612234]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -168,7 +167,6 @@ offset_right = -8.0
 offset_bottom = -2.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 10
@@ -884,7 +882,6 @@ alignment = 1
 
 [node name="TextLabel" type="Label" parent="Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn/Content" unique_id=990000010]
 layout_mode = 2
-size_flags_vertical = 4
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
@@ -895,13 +892,12 @@ vertical_alignment = 1
 
 [node name="IconRect" type="TextureRect" parent="Frame/RootMargin/BaseRoot/SynthRow/DecomposeBtn/Content" unique_id=990000011]
 visible = false
-layout_mode = 2
-mouse_filter = 2
-size_flags_vertical = 4
 custom_minimum_size = Vector2(24, 24)
-expand_mode = 1
-stretch_mode = 0
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
 texture = ExtResource("51_enhance_gem")
+expand_mode = 1
 
 [node name="CancelBtn" type="TextureButton" parent="Frame/RootMargin/BaseRoot/SynthRow" unique_id=990000003]
 unique_name_in_owner = true

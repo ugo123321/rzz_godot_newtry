@@ -250,11 +250,6 @@
     "description": "每过一关怪物总数+1"
   },
   {
-    "key": "stage_type_unlock_interval",
-    "value": 2,
-    "description": "每N关解锁下一种怪物"
-  },
-  {
     "key": "stage_atk_growth",
     "value": 1.12,
     "description": "关卡攻击缩放幂次"

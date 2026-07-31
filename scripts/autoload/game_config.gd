@@ -17,6 +17,10 @@ var tuning: Dictionary = {}
 var asset_mapping: Array = []
 var bosses: Dictionary = {}
 var buff_orbs: Dictionary = {}
+# 每关 HP 系数累积乘积缓存：_hp_scale_prefix[i] = ∏(stages[0..i].hp_coeff)。
+# 第 N 关怪物 HP = base_hp × _hp_scale_prefix[N]，取代旧 pow(stage_hp_growth, N) 指数曲线。
+# 由 stages.xlsx 每关 hp_coeff 列配置驱动（缺省 1.0）。
+var _hp_scale_prefix: Array = []
 # 技能石系统：config/json/skill_stones.json（rules + affix_display + stones 三段）
 var skill_stones_config: Dictionary = {}
 var skill_stones_by_id: Dictionary = {}
@@ -40,6 +44,7 @@ func _apply_frame_settings() -> void:
 func reload() -> void:
 	chapters = _load_array("chapters")
 	stages = _load_array("stages")
+	_rebuild_hp_scales()
 	monsters = {}
 	for row in _load_array("monsters"):
 		monsters[str(row.get("kind_id", ""))] = row
@@ -167,14 +172,38 @@ func get_chapter_for_stage(stage_index: int) -> Dictionary:
 
 
 func stage_stat_scale(stage_index: int) -> Dictionary:
-	var hp_growth := float(get_tuning("stage_hp_growth", 1.2))
 	var def_growth := float(get_tuning("stage_def_growth", 1.1))
 	var atk_growth := float(get_tuning("stage_atk_growth", 1.12))
 	return {
-		"hp": pow(hp_growth, stage_index),
+		"hp": _hp_scale_for(stage_index),
 		"def": pow(def_growth, stage_index),
 		"atk": pow(atk_growth, stage_index),
 	}
+
+
+# 由 stages 每关 hp_coeff 累积乘积构建：第 i 关系数 = 第 i-1 关系数 × stages[i].hp_coeff。
+# stages[0].hp_coeff 应为 1.0（第一关 = 怪物基础 HP）。缺省/非法值回落 1.0。
+func _rebuild_hp_scales() -> void:
+	_hp_scale_prefix.clear()
+	var acc := 1.0
+	for i in range(stages.size()):
+		var v = stages[i].get("hp_coeff", 1.0)
+		var c := 1.0
+		if v is float or v is int:
+			c = float(v)
+		elif v is String and v.is_valid_float():
+			c = float(v)
+		if c <= 0.0:
+			c = 1.0
+		acc *= c
+		_hp_scale_prefix.append(acc)
+
+
+# 第 stage_index 关的 HP 系数。缓存为空或越界时回落到旧指数曲线（兜底）。
+func _hp_scale_for(stage_index: int) -> float:
+	if _hp_scale_prefix.is_empty() or stage_index < 0 or stage_index >= _hp_scale_prefix.size():
+		return pow(float(get_tuning("stage_hp_growth", 1.2)), stage_index)
+	return float(_hp_scale_prefix[stage_index])
 
 
 func scaled_monster_stats(kind_id: String, stage_index: int) -> Dictionary:
