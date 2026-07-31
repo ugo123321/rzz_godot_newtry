@@ -12,7 +12,8 @@ const TEX := preload("res://assets/ui/terrains/hole_block.png")
 func setup_block(col: int, row: int) -> void:
 	setup(col, row, "pit", "up")
 	# 只挡 move；line/bullet 不挡（深坑是地面上的洞，画线从上方斩过、子弹从上方飞过）
-	_configure_blocking(true, false, false)
+	# 注意 _configure_blocking 参数顺序是 (line, move, bullet)，move 在第二位。
+	_configure_blocking(false, true, false)
 	queue_redraw()
 
 
