@@ -110,15 +110,6 @@ func _damage_player(e: Dictionary, player: BattlePlayer) -> void:
 	var dmg := player.take_damage(int(e.damage))
 	if dmg <= 0 or battle == null:
 		return
-	if battle.combat:
-		var num_color := Color("#ff7040") if str(e.type) != "smash" else Color("#ffd060")
-		battle.combat.spawn_damage_number(
-			player.global_position + Vector2(0, -player.get_effective_radius() - 8),
-			dmg,
-			false,
-			false,
-			num_color
-		)
 	if battle.particles:
 		battle.particles.hit_spark(player.global_position, false)
 		if str(e.type) == "smash":

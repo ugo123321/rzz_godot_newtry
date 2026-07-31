@@ -193,14 +193,9 @@ func _try_contact_damage(player: BattlePlayer) -> void:
 	if global_position.distance_to(player.global_position) > touch_r:
 		return
 	contact_timer = contact_interval
-	var dealt := player.take_damage(contact_damage)
+	player.take_damage(contact_damage)
 	# 播攻击动画(咬一口)——同时验证 attack 图集缩放与其他图集一致
 	_play_anim(SpriteHelper.ANIM_ATTACK, true)
-	if dealt > 0 and boss_ref and boss_ref.battle and boss_ref.battle.combat:
-		boss_ref.battle.combat.spawn_damage_number(
-			player.global_position + Vector2(0.0, -player.get_effective_radius() - 8.0),
-			dealt, false, false, Color("#7ac050")
-		)
 
 
 func _apply_sprite() -> void:

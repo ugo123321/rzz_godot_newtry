@@ -5,6 +5,8 @@ var stage_index: int = 0
 
 # 玩家显示名（主界面信息卡）。no-savedata，会话内不变；后续接入存档/改名时改这里。
 var player_name: String = "player001"
+# 4 位玩家编号（字母+数字，去掉易混字符）。空串表示尚未生成；由 CloudManager 首次生成后写入存档。
+var player_code: String = ""
 # 会话内最高到达关卡（1-based 计数；no-savedata，每次启动重置为 1）。
 # battle stage_cleared 时推进；主界面进度条据此显示「当前/总数」。
 var highest_stage_reached: int = 1
@@ -402,6 +404,102 @@ func _ensure_slot_state() -> void:
 	for slot in SLOT_ORDER:
 		if not equipped_by_slot.has(slot):
 			equipped_by_slot[slot] = -1
+
+
+# ─── 存档序列化（本地 user://save.json + Firestore 云同步）───────────────
+# 仅打包持久化字段；瞬态字段（stage_index 当前选中关、chapter_tower_blocks 章节内积木、
+# _first_reward_given_this_run per-run、player.gd 的 keys/silver run 内）不存。
+const SAVE_VERSION := 1
+
+func to_save_dict() -> Dictionary:
+	return {
+		"save_version": SAVE_VERSION,
+		"player_name": player_name,
+		"player_code": player_code,
+		"gold": gold,
+		"enhance_gem": enhance_gem,
+		"wood": wood,
+		"highest_stage_reached": highest_stage_reached,
+		"equipment_inventory": equipment_inventory.duplicate(true),
+		"equipped_by_slot": equipped_by_slot.duplicate(true),
+		"_next_item_uid": _next_item_uid,
+		"skill_stone_inventory": skill_stone_inventory.duplicate(true),
+		"skill_stone_equipped": skill_stone_equipped.duplicate(),
+		"_next_skill_stone_uid": _next_skill_stone_uid,
+		"talents_owned": talents_owned.duplicate(true),
+		"talent_pity_counters": talent_pity_counters.duplicate(true),
+		"_scout_last_settle_unix": _scout_last_settle_unix,
+	}
+
+# 用存档字典回填状态；缺失字段保持现值（容错老存档/部分字段缺失）。
+# 调用方负责之后调 _emit_all_state() 刷新 UI。
+func apply_save_dict(d: Dictionary) -> void:
+	if d.is_empty():
+		return
+	if d.has("player_name") and str(d.player_name) != "":
+		player_name = str(d.player_name)
+	if d.has("player_code"):
+		player_code = str(d.player_code)
+	if d.has("gold"):
+		gold = int(d.gold)
+	if d.has("enhance_gem"):
+		enhance_gem = int(d.enhance_gem)
+	if d.has("wood"):
+		wood = int(d.wood)
+	if d.has("highest_stage_reached"):
+		highest_stage_reached = int(d.highest_stage_reached)
+	if d.has("equipment_inventory"):
+		var cleaned_inv: Array[Dictionary] = []
+		for item in d.equipment_inventory:
+			if item is Dictionary:
+				cleaned_inv.append(item)
+		equipment_inventory = cleaned_inv
+	if d.has("equipped_by_slot"):
+		equipped_by_slot = (d.equipped_by_slot as Dictionary).duplicate(true)
+	if d.has("_next_item_uid"):
+		_next_item_uid = int(d._next_item_uid)
+	if d.has("skill_stone_inventory"):
+		var cleaned_ss: Array[Dictionary] = []
+		for st in d.skill_stone_inventory:
+			if st is Dictionary:
+				cleaned_ss.append(st)
+		skill_stone_inventory = cleaned_ss
+	if d.has("skill_stone_equipped"):
+		var sse: Array[int] = []
+		for v in d.skill_stone_equipped:
+			sse.append(int(v))
+		skill_stone_equipped = sse
+	if d.has("_next_skill_stone_uid"):
+		_next_skill_stone_uid = int(d._next_skill_stone_uid)
+	if d.has("talents_owned"):
+		talents_owned = (d.talents_owned as Dictionary).duplicate(true)
+	if d.has("talent_pity_counters"):
+		talent_pity_counters = (d.talent_pity_counters as Dictionary).duplicate(true)
+	if d.has("_scout_last_settle_unix"):
+		_scout_last_settle_unix = int(d._scout_last_settle_unix)
+	_ensure_slot_state()
+
+
+# 删档后重置为新玩家：所有持久化字段回默认值。调用方负责之后重新触发登录/云建档。
+func _reset_to_new_player() -> void:
+	player_name = "player001"
+	player_code = ""
+	gold = 5000
+	enhance_gem = 5000
+	wood = 0
+	highest_stage_reached = 1
+	equipment_inventory.clear()
+	equipped_by_slot.clear()
+	_ensure_slot_state()
+	_next_item_uid = 1
+	skill_stone_inventory.clear()
+	skill_stone_equipped = [-1, -1, -1]
+	_next_skill_stone_uid = 1
+	talents_owned.clear()
+	talent_pity_counters.clear()
+	_first_reward_given_this_run = false
+	_scout_last_settle_unix = int(Time.get_unix_time_from_system())
+	_emit_all_state()
 
 
 func add_gold(amount: int) -> void:

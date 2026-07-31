@@ -906,10 +906,28 @@ func _on_settings_pressed() -> void:
 	popup.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(popup)
 	popup.level_editor_requested.connect(_on_level_editor_pressed)
+	popup.delete_save_requested.connect(_on_delete_save_requested)
 
 
 func _on_level_editor_pressed() -> void:
 	get_tree().change_scene_to_file(LEVEL_EDITOR_SCENE)
+
+
+# 设置弹窗「删除存档」→ 二次确认 → 删云端+本地+账号，重置为新玩家
+func _on_delete_save_requested() -> void:
+	var confirm := ConfirmationDialog.new()
+	confirm.title = LanguageManager.tr_ui("UI_DELETE_SAVE_TITLE")
+	confirm.dialog_text = LanguageManager.tr_ui("UI_DELETE_SAVE_CONFIRM")
+	confirm.ok_button_text = LanguageManager.tr_ui("UI_DELETE_SAVE_OK")
+	confirm.cancel_button_text = LanguageManager.tr_ui("UI_DELETE_SAVE_CANCEL")
+	confirm.get_ok_button().modulate = Color(1.0, 0.6, 0.6)
+	add_child(confirm)
+	confirm.popup_centered()
+	confirm.confirmed.connect(func():
+		confirm.queue_free()
+		CloudManager.delete_account_and_restart()
+	)
+	confirm.canceled.connect(confirm.queue_free)
 
 
 func _setup_scout_entry() -> void:
@@ -977,6 +995,9 @@ func _connect_top_bar_signals() -> void:
 	# 装备变化 → 战力刷新（玩家信息卡）
 	if not EventBus.equipment_changed.is_connected(_refresh_player_info):
 		EventBus.equipment_changed.connect(_refresh_player_info)
+	# 云存档读回 → 刷新玩家名/战力（异步晚于 ready）
+	if not EventBus.player_profile_loaded.is_connected(_refresh_player_info):
+		EventBus.player_profile_loaded.connect(_refresh_player_info)
 
 
 func _on_gold_changed(total_gold: int) -> void:

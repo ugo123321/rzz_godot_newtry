@@ -20,6 +20,10 @@ __pycache__/
 
 # Credentials
 .godot/export_credentials.cfg
+# Firebase Web App config (contains apiKey — do not commit)
+addons/godot-firebase/.env
+# Local player save
+save.json
 
 # Cursor migration backups (local only; paths can exceed Windows MAX_PATH)
 tools/cursor-migration-backup-*/

@@ -508,7 +508,7 @@ func try_abyss_explosion(player: BattlePlayer, path: Array) -> void:
 		}, "trail_loop_explode")
 		explosion2["damage_applied"] = false
 		abyss_explosions.append(explosion2)
-		_skill_burst(ex.center, 8.0, 0.18, Color("#ff8030"), 20)
+		_skill_burst(ex.center, 3.0, 0.08, Color("#ff8030"), 20)
 
 
 func _update_auto_bullets(delta: float, player: BattlePlayer, monsters: Array) -> void:
@@ -731,7 +731,7 @@ func spawn_v6_fireballs(player: BattlePlayer, pos: Vector2, seg_ang: float, leve
 		"visual_scale": 1.9,         # 大火球（配合 _draw_pixel_fireball scale 参数）
 		"pierce": true,              # 贯穿：_try_projectile_collision 命中后不消失
 	}, "great_fireball"))
-	_skill_burst(spawn_pos, 6.5, 0.16, Color("#ff7020"), 18)
+	_skill_burst(spawn_pos, 3.0, 0.08, Color("#ff7020"), 18)
 
 
 # combo_water_tornado：line — N 个龙卷螺旋
@@ -754,7 +754,7 @@ func spawn_v6_water_tornado(player: BattlePlayer, pos: Vector2, seg_ang: float, 
 			"dmg_mul": 1.0,
 			"radius": 100.0 * FX_SCALE * GameConfig.get_world_scale(),
 		}, "water_tornado"))
-	_skill_burst(pos, 5.5, 0.14, Color("#58d8ff"), 14)
+	_skill_burst(pos, 3.0, 0.08, Color("#58d8ff"), 14)
 
 
 # combo_blade_storm：circle — 转刀阵
@@ -777,7 +777,7 @@ func spawn_v6_blade_storm(player: BattlePlayer, pos: Vector2, level: int, weapon
 			"damage": dmg,
 			"dmg_mul": 1.0,
 		}, "blade_whirl"))
-	_skill_burst(pos, 6.0, 0.15, Color("#ffe060"), 16)
+	_skill_burst(pos, 3.0, 0.08, Color("#ffe060"), 16)
 
 
 # sr=39 sword_rage 旋风弹道：从剑当前位置朝命中怪方向直线飞行，途中持续 AOE 命中。
@@ -799,7 +799,7 @@ func spawn_v6_sword_whirlwind(player: BattlePlayer, spawn_pos: Vector2, dir: Vec
 		"damage": dmg,
 		"dmg_mul": 1.0,
 	}, "sword_rage"))
-	_skill_burst(spawn_pos, 4.0, 0.10, Color("#e0d0a0"), 10)
+	_skill_burst(spawn_pos, 3.0, 0.08, Color("#e0d0a0"), 10)
 
 
 # sr=13 bullet_fire_support 手榴弹弹道：从玩家投出抛物线落到命中点，落地引爆 bomb_explosion。
@@ -927,7 +927,7 @@ func spawn_v6_thunder(player: BattlePlayer, pos: Vector2, level: int, weapon_mul
 				ElementEffectManager.try_apply(m, info, player)
 			if bool(result.get("started_dying", false)):
 				EventBus.monster_killed.emit(m)
-	_skill_burst(pos, 7.5, 0.17, Color("#a8e8ff"), 18)
+	_skill_burst(pos, 3.0, 0.08, Color("#a8e8ff"), 18)
 
 
 # ============= Phase 6 v6 bullet proc helpers (sr=13 / sr=18) =============
@@ -967,7 +967,8 @@ func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, ra
 			"fall_dur": 0.18,
 			"radius_px": radius_px,
 		}, "angel_holy_bullet"))
-		battle.shake_camera(7.0 * FX_SCALE, 0.15)
+		# 屏震对齐激光炮（sr=53），避免天降光柱震感过重
+		battle.shake_camera(4.0 * FX_SCALE, 0.08)
 	else:
 		bomb_explosions.append(_with_upgrade_fx_layer({
 			"pos": pos,
@@ -975,14 +976,15 @@ func spawn_v6_bullet_aoe(player: BattlePlayer, pos: Vector2, atk_mult: float, ra
 			"max_life": 0.4,
 			"radius_px": radius_px,
 		}, "bullet_fire_support"))
-		# 手榴弹落地（light_shake=true）：屏震降到最轻微档；其余 bomb 来源（orb_burst 等）保持原强度
+		# 手榴弹落地（light_shake=true）：屏震降到最轻微档；其余 bomb 来源封顶到激光炮档
 		if light_shake:
 			battle.shake_camera(1.0 * FX_SCALE, 0.05)
 		else:
-			battle.shake_camera(8.0 * FX_SCALE, 0.18)
+			battle.shake_camera(4.0 * FX_SCALE, 0.08)
 	# _skill_burst 的 shake：light_shake 时归零（只保留粒子），避免叠回大震
-	var burst_shake := 0.0 if light_shake else 4.0
-	_skill_burst(pos, burst_shake, 0.1, Color("#ff8040") if style != "holy" else Color("#a8c8ff"), 10)
+	# 震幅封顶到激光炮 burst（3.0 / 0.08）
+	var burst_shake := 0.0 if light_shake else 3.0
+	_skill_burst(pos, burst_shake, 0.08, Color("#ff8040") if style != "holy" else Color("#a8c8ff"), 10)
 
 
 # 视觉实体生命周期：bomb_explosions / holy_pillars 仅做计时淡出，不再造成伤害（伤害已在 spawn 时结算）
@@ -1225,7 +1227,7 @@ func spawn_v6_orb_elem_aoe(player: BattlePlayer, pos: Vector2, element: String, 
 				ElementEffectManager.try_apply(m, info, player)
 			if bool(result.get("started_dying", false)):
 				EventBus.monster_killed.emit(m)
-	_skill_burst(pos, 5.0, 0.12, _orb_elem_color(element), 14)
+	_skill_burst(pos, 3.0, 0.08, _orb_elem_color(element), 14)
 
 
 func _orb_elem_color(element: String) -> Color:
@@ -1263,7 +1265,7 @@ func spawn_v6_slash_wave(player: BattlePlayer, end_pos: Vector2, radius: float, 
 				battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), false, false, Color("#ffffff"))
 			if bool(result.get("started_dying", false)):
 				EventBus.monster_killed.emit(m)
-	_skill_burst(end_pos, 7.0, 0.18, Color("#e8e8ff"), 18)
+	_skill_burst(end_pos, 3.0, 0.08, Color("#e8e8ff"), 18)
 	if battle:
 		battle.shake_camera(2.2, 0.08)
 
@@ -2581,7 +2583,7 @@ func _update_pending_bombs(delta: float, player: BattlePlayer, monsters: Array) 
 				"max_life": 0.32,
 			}, "trail_bomber"))
 			if battle:
-				battle.shake_camera(14.0 * FX_SCALE, 0.24)
+				battle.shake_camera(4.0 * FX_SCALE, 0.08)
 			pending_bombs.remove_at(i)
 		else:
 			pending_bombs[i] = b

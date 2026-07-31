@@ -7,6 +7,10 @@ const PIXEL := 2
 # 石地板美术素材（40×40，与 TILE_SIZE 对齐）：_paint_tile 直接 blit，不再过程化绘制。
 const STONE_FLOOR_TEX := preload("res://assets/ui/terrains/stone_floor.png")
 
+# 水地块美术素材（256×256 RGB，无 alpha）：_ready 里缩到 40×40 LANCZOS，_paint_tile 直接 blit，
+# 不再过程化绘制（无 speckle/ripple/chamfer）。LINEAR 采样 → 无像素滤镜。
+const WATER_TEX := preload("res://assets/ui/terrains/base_tile/water.png")
+
 # 地块美术素材（256×256，每套 11 张：_11 为主贴图，_01.._10 为变化池）。
 # 4 套地面共用同一套拼贴逻辑：主贴图 TILE_MAIN_CHANCE 概率铺底，余下从变化池随机选一张。
 # grass01 = 普通关 / 章节段位演进 / 打造关（暂全压成 grass01）
@@ -200,13 +204,8 @@ const TILE_DATA := {
 		"deco_palette": [],
 	},
 	"water": {
+		# 水地块走 water.png 贴图：仅 base 用于防边缘透明露黑的底色铺底。
 		"base": Color("#82b5d4"),
-		"shade": Color("#6fa3c4"),
-		"highlight": Color("#a3cde6"),
-		"speckle_chance": 0.05,
-		"deco_chance": 0.025,
-		"deco_kind": "ripple",
-		"deco_palette": [Color("#c5e0ef"), Color("#ffffff")],
 	},
 	"empty": {
 		"base": Color("#1c1c20"),
@@ -365,6 +364,7 @@ var _rows := 0
 var _grid: Array = []
 var _current_theme := ""
 var _stone_floor_img: Image = null
+var _water_img: Image = null
 # 4 套地面贴图集：{tile_type => {"main": Image, "variations": [Image, ...]}}，_ready 时加载并缩到 40×40。
 var _sprite_sets: Dictionary = {}
 
@@ -373,6 +373,10 @@ func _ready() -> void:
 	# 去掉像素滤镜：地形贴图走 LINEAR 平滑采样，不再 NEAREST 像素化。
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_stone_floor_img = STONE_FLOOR_TEX.get_image()
+	# water.png 256×256 RGB（无 alpha）：转 RGBA8 后缩到 40×40 LANCZOS，blit 与其它地面贴图一致走 LINEAR。
+	_water_img = WATER_TEX.get_image()
+	_ensure_rgba8(_water_img)
+	_water_img.resize(TILE_SIZE, TILE_SIZE, Image.INTERPOLATE_LANCZOS)
 	# 4 套地面 PNG 都是 256×256：导入成 FORMAT_RGB8（无 alpha），而 _rebake_texture 目标 img 是 RGBA8；
 	# blit_rect 跨格式会静默失败 → _load_tileset 内先 convert 成 RGBA8，再把整张缩到 40×40（LANCZOS 平滑过渡）。
 	_sprite_sets[TYPE_GRASS] = _load_tileset(GRASS_MAIN_TEX, GRASS_VARIATION_TEXES)
@@ -524,17 +528,8 @@ func is_monster_spawn_avoid_at(col: int, row: int) -> bool:
 	return is_monster_spawn_avoid_tile(get_tile(col, row))
 
 
-func iter_water_cells() -> Array:
-	var out: Array = []
-	for r in range(_rows):
-		for c in range(_cols):
-			if String(_grid[r][c]) == TYPE_WATER:
-				out.append(Vector2i(c, r))
-	return out
-
-
 func make_water_only_texture() -> ImageTexture:
-	# 返回一张和地形同尺寸的图：水格保留原烘焙像素（颜色 + 涟漪 + 高光），非水格透明。
+	# 返回一张和地形同尺寸的图：水格保留原烘焙像素（water.png 贴图），非水格透明。
 	# WaterOverlay 直接 draw_texture 它，等于在画线暗罩之上把"原本的水"再拍一遍 → 解决"条纹感"和"压盖"问题。
 	if _texture == null:
 		return null
@@ -657,6 +652,11 @@ func _paint_tile(img: Image, col: int, row: int, tile_type: String) -> void:
 		img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))
 		img.blit_rect(_stone_floor_img, Rect2i(0, 0, w, h), Vector2i(ox, oy))
 		return
+	# 水地块走美术素材 water.png：先铺底色防边缘透明露黑，再 blit（无过程化绘制 / 无倒角）。
+	if tile_type == TYPE_WATER and _water_img != null:
+		img.fill_rect(Rect2i(ox, oy, w, h), Color(data.base))
+		img.blit_rect(_water_img, Rect2i(0, 0, w, h), Vector2i(ox, oy))
+		return
 	# 4 套地面（grass/lava/ice/sand）走美术素材：主贴图 _11 以 TILE_MAIN_CHANCE 概率铺底，
 	# 余下从变化池随机；col/row 种子决定选哪张，rebake 不闪烁。
 	var sprite_set: Dictionary = _sprite_sets.get(tile_type, {})
@@ -688,45 +688,6 @@ func _paint_tile(img: Image, col: int, row: int, tile_type: String) -> void:
 		var dx := rng.randi_range(1, max_bx)
 		var dy := rng.randi_range(1, max_by)
 		_paint_decoration(img, ox + dx * PIXEL, oy + dy * PIXEL, data, rng)
-	# 水格在与陆地相邻的"外角"做一个阶梯倒角，让河岸看起来圆滑而非纯方块
-	if tile_type == TYPE_WATER:
-		_chamfer_water_corner(img, col, row, ox, oy, w, h)
-
-
-func _chamfer_water_corner(img: Image, col: int, row: int, ox: int, oy: int, w: int, h: int) -> void:
-	# 4 邻判定：上、下、左、右 哪些是非水（含越界）
-	var n_up := _cell_is_non_water(col, row - 1)
-	var n_down := _cell_is_non_water(col, row + 1)
-	var n_left := _cell_is_non_water(col - 1, row)
-	var n_right := _cell_is_non_water(col + 1, row)
-	# 仅在"两个相邻邻居都非水"的角上倒角（即外凸角，朝向陆地）
-	var shore: Color = TILE_DATA[TYPE_GRASS]["base"]
-	var chamfer := 6  # 6 像素（≈ 3 个 PIXEL 块），相对 40px 瓦片视觉适中
-	if n_up and n_right:
-		_paint_corner_stairs(img, ox + w - chamfer, oy, chamfer, shore, true, false)
-	if n_up and n_left:
-		_paint_corner_stairs(img, ox, oy, chamfer, shore, false, false)
-	if n_down and n_right:
-		_paint_corner_stairs(img, ox + w - chamfer, oy + h - chamfer, chamfer, shore, true, true)
-	if n_down and n_left:
-		_paint_corner_stairs(img, ox, oy + h - chamfer, chamfer, shore, false, true)
-
-
-func _cell_is_non_water(col: int, row: int) -> bool:
-	# 越界算非水（让外边缘也能倒角）
-	if not _cell_in_bounds(col, row):
-		return true
-	return String(_grid[row][col]) != TYPE_WATER
-
-
-func _paint_corner_stairs(img: Image, x: int, y: int, size: int, color: Color, right_side: bool, bottom_side: bool) -> void:
-	# 在 [x..x+size, y..y+size] 区域内画一个三角形阶梯，把角"咬掉"成 shore 色
-	# right_side / bottom_side 控制阶梯朝向哪个外角收紧
-	for i in range(size):
-		var run := size - i  # 本行的像素数（越靠内/角点越短）
-		var px_x := (x + (size - run)) if right_side else x
-		var px_y := (y + size - 1 - i) if bottom_side else (y + i)
-		img.fill_rect(Rect2i(px_x, px_y, run, 1), color)
 
 
 func _paint_decoration(img: Image, x: int, y: int, data: Dictionary, rng: RandomNumberGenerator) -> void:

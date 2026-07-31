@@ -25,3 +25,5 @@ signal language_changed(lang: String)
 signal talent_changed(id: String, old_level: int, new_level: int)
 signal scout_claimed(gold: int)
 signal skill_stones_changed
+# 云存档读回 / 玩家档案就绪 → 通知 UI 刷新名字、战力、货币等
+signal player_profile_loaded

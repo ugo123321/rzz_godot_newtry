@@ -458,12 +458,7 @@ func _apply_laser_damage(L: Dictionary, player: BattlePlayer) -> void:
 		return
 	L.hit = true
 	var dmg: int = int(cfg.get("laser_damage", 18))
-	var dealt := player.take_damage(dmg)
-	if dealt > 0 and battle and battle.combat:
-		battle.combat.spawn_damage_number(
-			player.global_position + Vector2(0.0, -player.get_effective_radius() - 8.0),
-			dealt, false, false, Color("#ff4040")
-		)
+	player.take_damage(dmg)
 	if battle and battle.particles:
 		battle.particles.hit_spark(player.global_position, false)
 
@@ -486,12 +481,7 @@ func _try_contact_damage(player: BattlePlayer) -> void:
 	if global_position.distance_to(player.global_position) > touch_r:
 		return
 	contact_timer = float(cfg.get("contact_interval", 1.0))
-	var dealt := player.take_damage(int(cfg.get("contact_damage", 16)))
-	if dealt > 0 and battle and battle.combat:
-		battle.combat.spawn_damage_number(
-			player.global_position + Vector2(0.0, -player.get_effective_radius() - 8.0),
-			dealt, false, false, Color("#5ae8a0")
-		)
+	player.take_damage(int(cfg.get("contact_damage", 16)))
 
 
 func _clamp_to_play_area() -> void:

@@ -20,3 +20,11 @@
 [后续所有游戏] -> 发送 device_id + Token -> [服务器] 验证两者是否匹配
 
 在负责登录的脚本最上方定义一个测试开关。想在引擎里测试时，true 连服务器，false 纯单机测试
+ 1. 现在 / 测试期：继续用 Web MP。它能让你验证数据链路通了、看到实时事件和 DAU
+  数字，跑通整套云端存档 + 埋点流程。不用碰 Android 原生，省事。
+  2. 真要买量前（生产）：切到 原生 Firebase Analytics SDK（路线 B）——
+    - 改 Android gradle：android/build/build.gradle 加 id 'com.google.gms.google-services' +
+  implementation 'com.google.firebase:firebase-analytics'
+    - 这时你放在 android/build/google-services.json 那个文件才真正派上用场（原生 SDK 读它）
+    - 事件自动进 Android 流 + 广告归因打通 + Play install referrer
+    - GDScript 的 Web MP 那段删掉或保留作 PC 调试

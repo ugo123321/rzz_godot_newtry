@@ -512,12 +512,7 @@ func _try_contact_damage(player: BattlePlayer) -> void:
 	if global_position.distance_to(player.global_position) > touch_r:
 		return
 	contact_timer = float(cfg.get("contact_interval", 1.0))
-	var dealt := player.take_damage(int(cfg.get("contact_damage", 16)))
-	if dealt > 0 and battle and battle.combat:
-		battle.combat.spawn_damage_number(
-			player.global_position + Vector2(0.0, -player.get_effective_radius() - 8.0),
-			dealt, false, false, Color("#e05840")
-		)
+	player.take_damage(int(cfg.get("contact_damage", 16)))
 
 
 func _play_anim(anim_name: String, force: bool = false) -> void:

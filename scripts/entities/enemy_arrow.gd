@@ -553,14 +553,6 @@ func _try_hit_player() -> bool:
 	_alive = false
 	var dealt := _player.take_damage(damage)
 	if dealt > 0:
-		if _battle.combat:
-			_battle.combat.spawn_damage_number(
-				_player.global_position + Vector2(0.0, -_player.get_effective_radius() - 8.0),
-				dealt,
-				false,
-				false,
-				Color("#e05840")
-			)
 		if _battle.particles:
 			_battle.particles.hit_spark(_player.global_position, false)
 	queue_free()

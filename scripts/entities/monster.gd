@@ -1141,12 +1141,7 @@ func _apply_laser_damage(player: BattlePlayer, battle: Node) -> void:
 		return
 	_laser_hit = true
 	var dmg: int = int(round(attack * LASER_DAMAGE_MUL))
-	var dealt := player.take_damage(dmg)
-	if dealt > 0 and battle and battle.combat:
-		battle.combat.spawn_damage_number(
-			player.global_position + Vector2(0.0, -player.get_effective_radius() - 8.0),
-			dealt, false, false, Color("#ff4040")
-		)
+	player.take_damage(dmg)
 	if battle and battle.particles:
 		battle.particles.hit_spark(player.global_position, false)
 

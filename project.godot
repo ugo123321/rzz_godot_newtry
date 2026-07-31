@@ -24,6 +24,7 @@ AudioManager="*res://scripts/autoload/audio_manager.gd"
 LobbyState="*res://scripts/autoload/lobby_state.gd"
 LanguageManager="*res://scripts/autoload/language_manager.gd"
 Firebase="*uid://cvb26atjckwlq"
+CloudManager="*res://scripts/autoload/cloud_manager.gd"
 
 [display]
 
