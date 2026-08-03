@@ -77,6 +77,9 @@ const DEFAULT_TAB := Tab.STAGE
 @onready var _top_gold_label: Label = $TopHud/GoldBar/Value
 @onready var _top_gold_bg: TextureRect = $TopHud/GoldBar/Bg
 @onready var _top_gold_icon: TextureRect = $TopHud/GoldBar/Icon
+@onready var _top_energy_label: Label = get_node_or_null("TopHud/EnergyBar/Value") as Label
+@onready var _top_energy_bg: TextureRect = get_node_or_null("TopHud/EnergyBar/Bg") as TextureRect
+@onready var _top_energy_icon: TextureRect = get_node_or_null("TopHud/EnergyBar/Icon") as TextureRect
 @onready var _options_button: TextureButton = $TopHud/OptionsButton
 @onready var _mission_button: TextureButton = $TopHud/MissionButton
 @onready var _player_name_label: Label = $TopHud/PlayerInfoCard/NameLabel
@@ -87,6 +90,10 @@ const DEFAULT_TAB := Tab.STAGE
 @onready var _next_chapter_label: Label = $StageProgressHud/ProgressBar/DecoBarRight/NextChapterNum
 # 用于飞入动效的容器载体（整组飞入，子节点跟随）
 @onready var _gold_bar: Control = $TopHud/GoldBar
+@onready var _energy_bar: Control = get_node_or_null("TopHud/EnergyBar") as Control
+@onready var _start_cost_label: Label = get_node_or_null("%CostLabel") as Label
+@onready var _start_energy_icon: TextureRect = get_node_or_null("%EnergyIcon") as TextureRect
+@onready var _center_hint: Label = get_node_or_null("%CenterHint") as Label
 @onready var _player_info_card: Control = $TopHud/PlayerInfoCard
 @onready var _deco_line: TextureRect = $StageProgressHud/DecoLine
 @onready var _progress_bar_group: Control = $StageProgressHud/ProgressBar
@@ -205,9 +212,9 @@ func _apply_static_texts() -> void:
 			continue  # Stage tab 保留英文 "Battle"
 		if _tab_labels[i] != null:
 			_tab_labels[i].text = LanguageManager.tr_ui(key)
-	# StartButton 内的 Label（"开始"）
+	# StartButton 内的标题 Label（"开始"）
 	if _start_button != null:
-		var label := _start_button.get_node_or_null("Label") as Label
+		var label := _start_button.get_node_or_null("VBox/TitleLabel") as Label
 		if label != null:
 			label.text = LanguageManager.tr_ui("UI_MAIN_START")
 	# 占位面板（抽奖/副本/成就 — "敬请期待"）
@@ -577,10 +584,39 @@ func _first_stage_index_for_chapter(chapter_id: int) -> int:
 func _on_start_pressed() -> void:
 	_start_button_pressed = false
 	_update_start_button_scale()
+	# 体力门控：进入新 run 消耗 ENERGY_COST_PER_RUN 点；不足则屏幕中间飘字提示，不切场景。
+	var cost := LobbyState.ENERGY_COST_PER_RUN if LobbyState != null else 5
+	if LobbyState == null or not LobbyState.can_spend_energy(cost):
+		_show_center_hint(LanguageManager.tr_ui("UI_MAIN_NO_ENERGY"))
+		return
+	LobbyState.spend_energy(cost)   # emit energy_changed → CloudManager mark_dirty → 防抖 flush
 	var chapter_id := _get_selected_chapter_id()
 	var stage_idx := _first_stage_index_for_chapter(chapter_id)
 	LobbyState.request_battle_launch(stage_idx)
 	get_tree().change_scene_to_file(LOADING_SCENE)
+
+
+# 屏幕中间飘出提示文字（缩放回弹 + 淡出，约 1.6s），不阻塞、自动隐藏。
+var _center_hint_tween: Tween
+func _show_center_hint(text: String) -> void:
+	if _center_hint == null:
+		return
+	if _center_hint_tween != null and _center_hint_tween.is_valid():
+		_center_hint_tween.kill()
+	_center_hint.text = text
+	_center_hint.visible = true
+	_center_hint.pivot_offset = _center_hint.size * 0.5
+	_center_hint.modulate.a = 0.0
+	_center_hint.scale = Vector2(0.8, 0.8)
+	var tw := create_tween()
+	_center_hint_tween = tw
+	tw.set_parallel(true)
+	tw.tween_property(_center_hint, "modulate:a", 1.0, 0.18)
+	tw.tween_property(_center_hint, "scale", Vector2(1.15, 1.15), 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_property(_center_hint, "scale", Vector2(1.0, 1.0), 0.12)
+	tw.chain().tween_interval(0.8)
+	tw.chain().tween_property(_center_hint, "modulate:a", 0.0, 0.4)
+	tw.chain().tween_callback(Callable(_center_hint, "set_visible").bind(false))
 
 
 func _setup_start_button() -> void:
@@ -649,6 +685,8 @@ func _play_stage_intro() -> void:
 	# 货币槽：和其他元素一样每次都飞入
 	if _gold_bar != null:
 		items.append({"mover": _gold_bar, "fadee": _gold_bar, "from_bottom": false})
+	if _energy_bar != null:
+		items.append({"mover": _energy_bar, "fadee": _energy_bar, "from_bottom": false})
 	if _chapter_prev != null:
 		items.append({"mover": _chapter_prev, "fadee": _chapter_prev, "from_bottom": true})
 	if _chapter_next != null:
@@ -822,7 +860,40 @@ func _cache_stage_visual_state() -> void:
 func _setup_top_bar() -> void:
 	if _top_gold_label != null:
 		_top_gold_label.text = str(LobbyState.gold)
+	_refresh_energy_display()
+	_start_energy_tick_timer()
 	_refresh_player_info()
+
+
+# 体力随墙钟推导，每秒本地重算显示值（仅改 Label，不碰 LobbyState、不触发云写）。
+func _start_energy_tick_timer() -> void:
+	var t := Timer.new()
+	t.name = "EnergyTickTimer"
+	t.wait_time = 1.0
+	t.autostart = true
+	t.timeout.connect(_refresh_energy_display)
+	add_child(t)
+
+
+# 刷新 EnergyBar 数值 + StartButton 消耗/当前 显示；不足时消耗值变红。
+func _refresh_energy_display() -> void:
+	var cur := LobbyState.get_energy_display() if LobbyState != null else 0
+	var mx := LobbyState.ENERGY_MAX if LobbyState != null else 20
+	if _top_energy_label != null:
+		_top_energy_label.text = "%d/%d" % [cur, mx]
+	if _start_cost_label != null:
+		var cost := LobbyState.ENERGY_COST_PER_RUN if LobbyState != null else 5
+		_start_cost_label.text = "%d/%d" % [cost, cur]
+		var afford := cur >= cost
+		_start_cost_label.add_theme_color_override(
+			"font_color",
+			Color("#ff7070") if not afford else Color(1, 1, 1, 1))
+
+
+func _on_energy_changed(total_energy: int, max_energy: int) -> void:
+	if _top_energy_label != null:
+		_top_energy_label.text = "%d/%d" % [total_energy, max_energy]
+	_refresh_energy_display()
 
 
 # 主界面右上角按钮：OptionsButton(btn_menu) 弹设置弹窗（含关卡编辑器入口）；
@@ -992,6 +1063,9 @@ func _connect_top_bar_signals() -> void:
 		return
 	if not EventBus.gold_changed.is_connected(_on_gold_changed):
 		EventBus.gold_changed.connect(_on_gold_changed)
+	# 体力变化（spend / 云读回 / 回前台 emit）→ 刷新 EnergyBar 与开始按钮消耗显示
+	if not EventBus.energy_changed.is_connected(_on_energy_changed):
+		EventBus.energy_changed.connect(_on_energy_changed)
 	# 装备变化 → 战力刷新（玩家信息卡）
 	if not EventBus.equipment_changed.is_connected(_refresh_player_info):
 		EventBus.equipment_changed.connect(_refresh_player_info)
@@ -1010,6 +1084,13 @@ func _apply_top_bar_textures() -> void:
 		_top_gold_bg.texture = top_money_bg_texture
 	if _top_gold_icon != null and top_gold_icon_texture != null:
 		_top_gold_icon.texture = top_gold_icon_texture
+	if _top_energy_bg != null and top_money_bg_texture != null:
+		_top_energy_bg.texture = top_money_bg_texture
+	if _top_energy_icon != null:
+		if _top_energy_icon.texture == null:
+			_top_energy_icon.texture = _load_tex("res://assets/ui/icons/system/icon_energy.png")
+	if _start_energy_icon != null and _start_energy_icon.texture == null:
+		_start_energy_icon.texture = _load_tex("res://assets/ui/icons/system/icon_energy.png")
 
 
 func _build_start_adventure_button_texture(pressed: bool) -> Texture2D:

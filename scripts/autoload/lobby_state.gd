@@ -89,12 +89,24 @@ const SCOUT_PER_CHAPTER_BONUS := 80          # 每提升 1 章 +80/小时
 const SCOUT_MAX_ACCUMULATE_SECONDS := 86400  # 24 小时上限
 var _scout_last_settle_unix: int = 0         # 上次结算/领取时的 unix 秒；启动时初始化
 
+# ─── 体力（energy）系统 ──────────────────────────────────────────────
+# 体力随墙钟时间自动恢复（含离线），用 _scout 同款「时间戳差值推导」模式：
+# 显示值 = min(MAX, energy + floor((now - _energy_last_settle_unix) / REGEN_SECONDS))。
+# 仅在 spend 时 settle + mark_dirty → CloudManager flush；UI 每秒重算显示值不写云。
+const ENERGY_MAX := 20
+const ENERGY_REGEN_SECONDS_PER_POINT := 720   # 12 分钟 / 点
+const ENERGY_COST_PER_RUN := 5                # 按"开始"进入新 run 消耗
+var energy: int = ENERGY_MAX
+var _energy_last_settle_unix: int = 0         # 上次体力结算的 unix 秒；新玩家=满
+
 
 func _ready() -> void:
 	_load_equipment_defs()
 	_load_talent_defs()
 	_ensure_slot_state()
 	_scout_last_settle_unix = int(Time.get_unix_time_from_system())
+	if _energy_last_settle_unix == 0:
+		_energy_last_settle_unix = int(Time.get_unix_time_from_system())
 	call_deferred("_emit_all_state")
 	# 关卡通关 → 推进最高到达关卡（主界面进度条数据源）。
 	if EventBus != null and not EventBus.stage_cleared.is_connected(_on_stage_cleared):
@@ -395,6 +407,7 @@ func consume_battle_launch() -> bool:
 func _emit_all_state() -> void:
 	if EventBus:
 		EventBus.gold_changed.emit(gold)
+		EventBus.energy_changed.emit(get_energy_display(), ENERGY_MAX)
 		EventBus.enhance_gem_changed.emit(enhance_gem)
 		EventBus.wood_changed.emit(wood)
 		EventBus.equipment_changed.emit()
@@ -429,6 +442,8 @@ func to_save_dict() -> Dictionary:
 		"talents_owned": talents_owned.duplicate(true),
 		"talent_pity_counters": talent_pity_counters.duplicate(true),
 		"_scout_last_settle_unix": _scout_last_settle_unix,
+		"energy": energy,
+		"_energy_last_settle_unix": _energy_last_settle_unix,
 	}
 
 # 用存档字典回填状态；缺失字段保持现值（容错老存档/部分字段缺失）。
@@ -477,6 +492,10 @@ func apply_save_dict(d: Dictionary) -> void:
 		talent_pity_counters = (d.talent_pity_counters as Dictionary).duplicate(true)
 	if d.has("_scout_last_settle_unix"):
 		_scout_last_settle_unix = int(d._scout_last_settle_unix)
+	if d.has("energy"):
+		energy = clampi(int(d.energy), 0, ENERGY_MAX)
+	if d.has("_energy_last_settle_unix"):
+		_energy_last_settle_unix = int(d._energy_last_settle_unix)
 	_ensure_slot_state()
 
 
@@ -499,6 +518,8 @@ func _reset_to_new_player() -> void:
 	talent_pity_counters.clear()
 	_first_reward_given_this_run = false
 	_scout_last_settle_unix = int(Time.get_unix_time_from_system())
+	energy = ENERGY_MAX
+	_energy_last_settle_unix = int(Time.get_unix_time_from_system())
 	_emit_all_state()
 
 
@@ -582,6 +603,42 @@ func claim_scout_reward() -> int:
 	if EventBus:
 		EventBus.scout_claimed.emit(reward)
 	return reward
+
+
+# ─── 体力（energy） ─────────────────────────────────────────────────
+# 当前显示值（含随时间自然恢复的部分）。UI 每秒读这个刷新，不写盘。
+func get_energy_display() -> int:
+	var now := int(Time.get_unix_time_from_system())
+	var delta := now - _energy_last_settle_unix
+	if delta < 0:
+		delta = 0
+	var regen := int(delta / ENERGY_REGEN_SECONDS_PER_POINT)
+	return mini(ENERGY_MAX, energy + regen)
+
+
+# 把累计的自然恢复「结算」进 energy 字段并重置时间戳。
+# 仅在 spend 前内部调用——不 emit、不 mark_dirty，避免 UI tick 触发云写。
+func settle_energy() -> void:
+	energy = get_energy_display()
+	_energy_last_settle_unix = int(Time.get_unix_time_from_system())
+
+
+func can_spend_energy(amount: int) -> bool:
+	return get_energy_display() >= amount
+
+
+# 按"开始"进入新 run 扣体力；不足返回 false。emit energy_changed → CloudManager dirty → flush。
+func spend_energy(amount: int) -> bool:
+	if amount <= 0:
+		return true
+	if get_energy_display() < amount:
+		return false
+	settle_energy()
+	energy -= amount
+	_energy_last_settle_unix = int(Time.get_unix_time_from_system())
+	if EventBus:
+		EventBus.energy_changed.emit(energy, ENERGY_MAX)
+	return true
 
 
 func add_wood(amount: int) -> void:

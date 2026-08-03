@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://3no6q1s1w2lg" path="res://assets/ui/battle/money_bg.png" id="8_money_bg"]
 [ext_resource type="Texture2D" uid="uid://c0v3w5mh5d6kg" path="res://assets/ui/icons/currency/icon_cur_gold.png" id="9_gold_icon"]
 [ext_resource type="Texture2D" uid="uid://ddi8qdpland64" path="res://assets/ui/bottom/normal_button.png" id="10_tab_normal"]
+[ext_resource type="Texture2D" uid="uid://criwnel8yb4go" path="res://assets/ui/icons/system/icon_energy.png" id="11_energy_icon"]
 [ext_resource type="Texture2D" uid="uid://bq8prrawx0dx0" path="res://assets/ui/icons/nav/icon_nav_gacha.png" id="12_tab_shop"]
 [ext_resource type="Texture2D" uid="uid://cjomdx3kvmxbb" path="res://assets/ui/icons/nav/icon_nav_equipment.png" id="13_tab_equip"]
 [ext_resource type="Texture2D" uid="uid://dd3k2u4204yhl" path="res://assets/ui/icons/nav/icon_nav_battle.png" id="14_tab_battle"]
@@ -234,16 +235,53 @@ texture_hover = ExtResource("7_start")
 ignore_texture_size = true
 stretch_mode = 0
 
-[node name="Label" type="Label" parent="Content/StagePanel/StageViewport/StartButtonWrap/StartButton" unique_id=1828782664]
+[node name="VBox" type="VBoxContainer" parent="Content/StagePanel/StageViewport/StartButtonWrap/StartButton" unique_id=1828782664]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 6.0
+offset_right = -8.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Content/StagePanel/StageViewport/StartButtonWrap/StartButton/VBox" unique_id=1828782665]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 40
 text = "开始"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EnergyRow" type="HBoxContainer" parent="Content/StagePanel/StageViewport/StartButtonWrap/StartButton/VBox" unique_id=1828782666]
+layout_mode = 2
+size_flags_horizontal = 4
+alignment = 1
+
+[node name="EnergyIcon" type="TextureRect" parent="Content/StagePanel/StageViewport/StartButtonWrap/StartButton/VBox/EnergyRow" unique_id=1828782667]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("11_energy_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="Content/StagePanel/StageViewport/StartButtonWrap/StartButton/VBox/EnergyRow" unique_id=1828782668]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 18
+text = "5/20"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -708,6 +746,60 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="EnergyBar" type="Control" parent="TopHud" unique_id=1145140001]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(167, 43)
+layout_mode = 1
+anchors_preset = 0
+offset_left = 192.0
+offset_top = 15.0
+offset_right = 359.0
+offset_bottom = 58.0
+mouse_filter = 2
+
+[node name="Bg" type="TextureRect" parent="TopHud/EnergyBar" unique_id=1145140002]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("8_money_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Icon" type="TextureRect" parent="TopHud/EnergyBar" unique_id=1145140003]
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 1
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+texture = ExtResource("11_energy_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Value" type="Label" parent="TopHud/EnergyBar" unique_id=1145140004]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 44.0
+offset_top = 2.0
+offset_right = -8.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 26
+text = "20/20"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="PlayerInfoCard" type="Control" parent="TopHud" unique_id=733048350]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(337, 83)
@@ -971,3 +1063,26 @@ vertical_alignment = 1
 [node name="ScoutRewardPopup" parent="." unique_id=490801249 instance=ExtResource("19_scout_popup")]
 visible = false
 layout_mode = 1
+
+[node name="CenterHint" type="Label" parent="." unique_id=490801250]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -40.0
+offset_right = 240.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.85, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 44
+text = "体力不足"
+horizontal_alignment = 1
+vertical_alignment = 1

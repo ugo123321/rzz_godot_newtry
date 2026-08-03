@@ -321,6 +321,7 @@ func _connect_dirty_signals() -> void:
 		return
 	for sig in [
 		EventBus.gold_changed,
+		EventBus.energy_changed,
 		EventBus.enhance_gem_changed,
 		EventBus.wood_changed,
 		EventBus.equipment_changed,
@@ -371,6 +372,10 @@ func _notification(what: int) -> void:
 		if _dirty:
 			_dirty = false
 			_flush_save()
+	# App 从后台回前台：体力随墙钟推导，立即 emit 让主菜单 UI 刷新显示（不写云）。
+	if what == MainLoop.NOTIFICATION_APPLICATION_FOCUS_IN:
+		if LobbyState != null and EventBus != null:
+			EventBus.energy_changed.emit(LobbyState.get_energy_display(), LobbyState.ENERGY_MAX)
 
 
 # ─── 删档重启 ──────────────────────────────────────────────────────────

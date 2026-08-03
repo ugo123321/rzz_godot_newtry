@@ -154,6 +154,7 @@
 	"UI_LOADING_TIP_04": "Low-HP passives activate below thresholds. Comeback plays exist.",
 	"UI_LOADING_TIP_05": "Stand near trees to regen ki — actives are your real burst.",
 	"UI_MAIN_START": "Start",
+	"UI_MAIN_NO_ENERGY": "Not enough energy",
 	"UI_MAIN_DRAW": "Draw",
 	"UI_MAIN_EQUIPMENT": "Equipment",
 	"UI_MAIN_DUNGEONS": "Dungeons",

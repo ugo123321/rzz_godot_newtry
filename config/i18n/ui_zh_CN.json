@@ -154,6 +154,7 @@
 	"UI_LOADING_TIP_04": "低血量时特定被动会激活，试试翻身局。",
 	"UI_LOADING_TIP_05": "站在树旁攒气力，主动技能才是硬输出。",
 	"UI_MAIN_START": "开始",
+	"UI_MAIN_NO_ENERGY": "体力不足",
 	"UI_MAIN_DRAW": "抽奖",
 	"UI_MAIN_EQUIPMENT": "装备",
 	"UI_MAIN_DUNGEONS": "副本",
