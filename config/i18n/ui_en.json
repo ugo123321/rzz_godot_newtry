@@ -155,6 +155,7 @@
 	"UI_LOADING_TIP_05": "Stand near trees to regen ki — actives are your real burst.",
 	"UI_MAIN_START": "Start",
 	"UI_MAIN_NO_ENERGY": "Not enough energy",
+	"UI_ENERGY_INFO_TEXT": "Restores 1 energy every 12 minutes, even while offline.",
 	"UI_MAIN_DRAW": "Draw",
 	"UI_MAIN_EQUIPMENT": "Equipment",
 	"UI_MAIN_DUNGEONS": "Dungeons",

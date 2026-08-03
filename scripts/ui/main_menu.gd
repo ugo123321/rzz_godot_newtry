@@ -5,6 +5,7 @@ const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const UiStyle := preload("res://scripts/utils/ui_style_helper.gd")
 const ScoutRewardPopupT = preload("res://scripts/ui/scout_reward_popup.gd")
 const SettingsPopupScript = preload("res://scripts/ui/settings_popup.gd")
+const EnergyInfoPopupT = preload("res://scenes/ui/energy_info_popup.tscn")
 const LOADING_SCENE := "res://scenes/ui/loading_screen.tscn"
 const LEVEL_EDITOR_SCENE := "res://scenes/level_editor.tscn"
 
@@ -860,9 +861,24 @@ func _cache_stage_visual_state() -> void:
 func _setup_top_bar() -> void:
 	if _top_gold_label != null:
 		_top_gold_label.text = str(LobbyState.gold)
+	# 点击 EnergyBar → 弹体力说明弹窗
+	if _energy_bar != null and not _energy_bar.gui_input.is_connected(_on_energy_bar_gui_input):
+		_energy_bar.gui_input.connect(_on_energy_bar_gui_input)
 	_refresh_energy_display()
 	_start_energy_tick_timer()
 	_refresh_player_info()
+
+
+# 点 EnergyBar：左键弹体力说明 popup（置灰 + 点击空白关闭，参考天赋抽卡范式）。
+func _on_energy_bar_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var popup := EnergyInfoPopupT.instantiate()
+		var host: Node = get_tree().current_scene
+		if host != null:
+			host.add_child(popup)
+		else:
+			add_child(popup)
+		(popup as Control).show_info()
 
 
 # 体力随墙钟推导，每秒本地重算显示值（仅改 Label，不碰 LobbyState、不触发云写）。

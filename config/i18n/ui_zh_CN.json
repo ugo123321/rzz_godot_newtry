@@ -155,6 +155,7 @@
 	"UI_LOADING_TIP_05": "站在树旁攒气力，主动技能才是硬输出。",
 	"UI_MAIN_START": "开始",
 	"UI_MAIN_NO_ENERGY": "体力不足",
+	"UI_ENERGY_INFO_TEXT": "每12分钟恢复1体力，离线依然生效。",
 	"UI_MAIN_DRAW": "抽奖",
 	"UI_MAIN_EQUIPMENT": "装备",
 	"UI_MAIN_DUNGEONS": "副本",
