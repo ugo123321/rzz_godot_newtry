@@ -72,9 +72,7 @@ python D:\workspace\godot1\renzhezhan\tools\export_config.py --init-excel
 | stages.xlsx | stages.json | 8 关怪物数量、boss_id、splitter 等 |
 | monsters.xlsx | monsters.json | 7 种怪 + SPLITTER |
 | player.xlsx | player.json | 主角数值、sprite_scale |
-| rewards_v6.xlsx | rewards_v6.json | v6 卡池（约 96 张卡，唯一 live 升级源） |
-| rewards_v6_compact.xlsx | — | 程序员评审用紧凑表（`tools/build_rewards_v6_compact.py`） |
-| rewards_v6_detailed.xlsx | — | 策划评审用详表（`tools/build_rewards_v6_detailed.py`） |
+| rewards_v6_compact.xlsx | rewards_v6.json | v6 卡池（唯一 live 配置源；日常改 compact → 跑 `export_rewards_v6_compact_json.py` 出 json） |
 | upgrade_fx.xlsx | upgrade_fx.json | 升级弹窗稀有度特效（按 rarity 索引，与卡 ID 解耦） |
 | game_tuning.xlsx | game_tuning.json | 屏宽、zoom、火柱参数 … |
 

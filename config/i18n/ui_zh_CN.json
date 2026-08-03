@@ -255,6 +255,7 @@
 	"UI_SETTINGS_LEVEL_EDITOR": "关卡编辑器",
 	"UI_SETTINGS_BACK": "返回",
 	"UI_SETTINGS_DELETE_SAVE": "删除存档",
+	"UI_SETTINGS_RESTORE_ENERGY": "回复体力",
 	"UI_CLOUD_GATE_CONNECTING": "连接服务器中…",
 	"UI_CLOUD_GATE_FAILED": "无法连接服务器，请检查网络后重试。",
 	"UI_CLOUD_GATE_RETRY": "重试",

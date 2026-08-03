@@ -231,3 +231,44 @@ compact.xlsx 末尾的 `desc_cn_game` 列（AI 列，索引 `r[34]`，中文 hea
 
 主题关专属弹窗（`get_themed_pool` 按 group 抽）**不看** `pool_weight`，所以主题卡 `pool_weight=0` 不影响主题关本身正常出。
 
+## 十四、普攻形态用 `is_basic_attack` flag，**不要**靠 `kind` 枚举门控
+
+「是不是玩家普攻的一次命中」是一个独立语义标记 `is_basic_attack`，与 `kind`（底层渲染/伤害分类：`auto`/`laser`/`combo`…）**正交**。`scripts/core/ability_manager.gd` 的普攻 proc 管线按此 flag 门控，**不是** `kind == "auto"`。
+
+**背景**：历史上 `_apply_projectile_hit` 把 `kind == "auto"` 同时当「普攻」和「飞行投射物」两个语义用。激光炮(sr=53)用 `kind == "laser"` → on_bullet_proc(sr=13/18) 永不触发，装了激光炮能量光束/火力支援就失效。每加一种新普攻形态去门控处 `or` 一个新 kind 是错方向。
+
+### 各形态当前如何被打标记
+
+| 形态 | kind | is_basic_attack | 备注 |
+|---|---|---|---|
+| 普通子弹 / 元气弹 / 血飞刀 | `auto` | ✅ | `_spawn_bullet_from_angle` |
+| split 子弹(sr=14) | `auto` | ✅ | `spawn_split_bullet`，保留历史 sr=13/18 proc |
+| bounce 子弹(sr=15) | `auto` | ✅ | `spawn_bounce_bullet`，同上 |
+| combo 衍生子弹(sr=22) | `auto` | ✅ | `spawn_combo_shuriken`，保留历史行为 |
+| 激光炮(sr=53) | `laser` | ✅ | `spawn_v6_player_laser`，**修复点** |
+| 近身战(sr=54) | —（无投射物） | — | `_fire_melee_swipe` 内直接调 `on_bullet_proc` |
+| 硫磺火(sr=47) | `laser` | ❌ | 非普攻，不吃 on_bullet_proc |
+| 怪物激光 / 其他 laser | `laser` | ❌ | 非玩家普攻 |
+
+### 门控分工
+
+| 行 | 函数 | 门控 | 说明 |
+|---|---|---|---|
+| ~1479 | `transform_bullet_damage` (sr=11 距离加成) | `kind=="auto" or kind=="laser"` | 激光已含；近战不走此分支（无飞行距离） |
+| ~1502 | `on_bullet_hit` (sr=14/15 split/bounce) | `kind=="auto"` | **飞行生命周期加成，仅 auto 吃**；激光/近战不吃 |
+| ~1506 | `on_bullet_proc` (sr=13/18) | `is_basic_attack` | **核心**：所有普攻形态命中都触发 |
+| ~1508 | `spawn_slash_hit_fx` | `is_basic_attack` | 所有普攻形态命中都走受击爆光 |
+
+### 新增「替换普攻形态」的卡的硬规则
+
+1. spawn 投射物时打 `"is_basic_attack": true`，自动吃 sr=11 / sr=13/18 / 受击特效。**不要**改门控、**不要**加新 kind。
+2. split(sr=14)/bounce(sr=15)/mirror(sr=16) 是「飞行投射物生命周期」加成，门控保留 `kind=="auto"`——激光炮/近身战**不吃**。要让新形态吃这类加成，照激光炮在 `_spawn_auto_bullet_volley:347-355` 的 per-form 模式单独接（spawn 多条激光那样），不要放宽主管线门控。
+3. **近身战类（无投射物）**：在命中循环里直接调 `SpecialRuleDispatcher.on_bullet_proc(player, self, hit_pos, dir_ang)`；**不**调 `on_bullet_hit`（split/bounce）、**不**走 `transform_bullet_damage`（sr=11 按飞行距离缩放，近战无飞行距离）。
+4. **近身战攻击距离锁死**：`melee_range_px` 固定值，**不走** `get_effective_auto_bullet_range()`；玩家攻击距离 affix（`bullet_range_pct_total` / `talent_bullet_range_add`）也**不得**影响近战范围。这层隔离别破坏。
+
+### 关键参考
+
+- `scripts/core/ability_manager.gd:1455 _apply_projectile_hit` — 4 处门控所在
+- `scripts/core/special_rule_dispatcher.gd:632 on_bullet_hit` / `:746 on_bullet_proc` / `:677 transform_bullet_damage` — proc 实现
+- `scripts/core/ability_manager.gd:2511 _fire_melee_swipe` — 近战命中接 proc 的样板
+

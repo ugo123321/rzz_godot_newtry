@@ -77,6 +77,9 @@ static func _execute_chain(origin_monster, info, player) -> void:
 		if next_target == null:
 			break
 		visited[next_target.get_instance_id()] = true
+		# 画雷链电弧（current → next_target）— 否则雷元素只有伤害数字，视觉上看不出链
+		if battle != null and battle.particles != null and battle.particles.has_method("lightning_effect"):
+			battle.particles.lightning_effect(current.global_position, next_target.global_position)
 		_apply_chain_hit(next_target, info, player)
 		current = next_target
 	# 链尾麻痹（最后一个 current 即链尾；若链长为 0 则 origin 麻痹）

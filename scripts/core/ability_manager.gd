@@ -556,6 +556,11 @@ func _spawn_bullet_from_angle(player: BattlePlayer, ang: float, damage: int, is_
 	var visual_kind: String = player.get_active_bullet_visual_kind() if player.has_method("get_active_bullet_visual_kind") else ("spirit" if is_spirit else ("blood_blade" if blood_blade else ""))
 	shurikens.append(_with_upgrade_fx_layer({
 		"kind": "auto",
+		# is_basic_attack：标记「这是玩家普攻的一次命中实例」，与 kind（底层渲染/伤害分类）正交。
+		# 1471/1496/1498 等普攻 proc 管线按此 flag 门控，而非 kind=="auto"——
+		# 这样激光炮/血飞刀/近身战及未来任何「替换普攻形态」的卡只要打上此 flag，
+		# 自动吃 sr=11 距离加成 / sr=13/18 命中 proc / 受击特效，无需在门控处 or 新 kind。
+		"is_basic_attack": true,
 		"pos": spawn_pos,
 		"origin": spawn_pos,
 		"vel": dir * float(GameConfig.get_player_value("auto_bullet_speed", 420)),
@@ -576,9 +581,21 @@ func _spawn_bullet_from_angle(player: BattlePlayer, ang: float, damage: int, is_
 	_finalize_spawned_projectile(shurikens.back(), player)
 
 
-# Phase 3 sr=14 bullet_split：从命中点向随机角度 spawn 短寿命小子弹（is_split=true 避免递归）
-func spawn_split_bullet(player: BattlePlayer, origin: Vector2, ang: float, damage: int) -> void:
+# Phase 3 sr=14 bullet_split：从命中怪向随机角度 spawn 短寿命小子弹（is_split=true 避免递归）
+# 关键：预置源怪 id 进 hit 字典 → 子子弹跳过源怪。否则子子弹出生在源怪身上，
+# _update_shurikens 先碰撞后移动，下一帧立即命中源怪被秒删，根本飞不出去（「命中了没分裂」根因）。
+func spawn_split_bullet(player: BattlePlayer, origin_monster, ang: float, damage: int) -> void:
 	var dir := Vector2(cos(ang), sin(ang))
+	var origin_pos: Vector2 = Vector2.ZERO
+	var hit_seed: Dictionary = {}
+	if origin_monster != null and is_instance_valid(origin_monster):
+		origin_pos = origin_monster.global_position
+		hit_seed[str(origin_monster.get_instance_id())] = true   # 跳过源怪，避免出生即命中被秒删
+		# 从源怪边缘外推出生，避免贴在怪身上
+		var hit_r := 16.0
+		if origin_monster.has_method("get_hitbox_radius"):
+			hit_r = origin_monster.get_hitbox_radius()
+		origin_pos = origin_pos + dir * (hit_r + 4.0)
 	var max_life := float(GameConfig.get_player_value("auto_bullet_life", 0.9)) * 0.5
 	# 继承玩家当前普攻视觉（元气弹 / 血飞刀 / 普通），分裂子弹外观与源子弹一致
 	var visual_kind: String = player.get_active_bullet_visual_kind() if player.has_method("get_active_bullet_visual_kind") else ""
@@ -587,13 +604,14 @@ func spawn_split_bullet(player: BattlePlayer, origin: Vector2, ang: float, damag
 	var upgrade_id: String = "spirit_bomb" if visual_kind == "spirit" else ("blood_blade" if visual_kind == "blood_blade" else "multi_bullet")
 	shurikens.append(_with_upgrade_fx_layer({
 		"kind": "auto",
-		"pos": origin,
-		"origin": origin,
+		"is_basic_attack": true,   # 分裂子弹仍是普攻实例 → 保留 sr=13/18 proc（与历史行为一致）
+		"pos": origin_pos,
+		"origin": origin_pos,
 		"vel": dir * float(GameConfig.get_player_value("auto_bullet_speed", 420)) * 0.85,
 		"life": max_life,
 		"max_life": max_life,
 		"damage": damage,
-		"hit": {},
+		"hit": hit_seed,   # 预置源怪 id → 跳过源怪，子子弹才能飞出去
 		"rot": ang,
 		"anim_t": 0.0,
 		"visual_scale": 0.7,
@@ -626,6 +644,12 @@ func spawn_bounce_bullet(player: BattlePlayer, from_monster, bounces_remaining: 
 	if best == null:
 		return
 	var dir: Vector2 = (best.global_position - from_monster.global_position).normalized()
+	# 预置源怪 id → 弹射子弹跳过源怪。否则出生在源怪身上，_update_shurikens 先碰撞后移动，
+	# 下一帧立即命中源怪 → is_bounce 分支递归 spawn → 在源怪身上反复弹射直到 remaining=0，根本飞不到 best。
+	var hit_seed: Dictionary = {}
+	if is_instance_valid(from_monster):
+		hit_seed[str(from_monster.get_instance_id())] = true
+	var origin_pos: Vector2 = from_monster.global_position + dir * 20.0   # 边缘外推，避免贴源怪
 	var max_life := 1.4                        # 拉长弹射寿命（原 0.7）
 	# 继承玩家当前普攻视觉（元气弹 / 血飞刀 / 普通），弹射子弹外观与源子弹一致
 	var visual_kind: String = player.get_active_bullet_visual_kind() if player.has_method("get_active_bullet_visual_kind") else ""
@@ -634,13 +658,14 @@ func spawn_bounce_bullet(player: BattlePlayer, from_monster, bounces_remaining: 
 	var upgrade_id: String = "spirit_bomb" if visual_kind == "spirit" else ("blood_blade" if visual_kind == "blood_blade" else "multi_bullet")
 	shurikens.append(_with_upgrade_fx_layer({
 		"kind": "auto",
-		"pos": from_monster.global_position,
-		"origin": from_monster.global_position,
+		"is_basic_attack": true,   # 弹射子弹仍是普攻实例 → 保留 sr=13/18 proc（与历史行为一致）
+		"pos": origin_pos,
+		"origin": origin_pos,
 		"vel": dir * 700.0,                    # 拉长弹射速度（原 520）→ 最大飞行距离 ~980px（覆盖大半屏）
 		"life": max_life,
 		"max_life": max_life,
 		"damage": damage,
-		"hit": {},
+		"hit": hit_seed,   # 预置源怪 id → 跳过源怪，弹射子弹才能飞向 best
 		"rot": dir.angle(),
 		"anim_t": 0.0,
 		"visual_scale": 0.7,
@@ -657,36 +682,47 @@ func spawn_bounce_bullet(player: BattlePlayer, from_monster, bounces_remaining: 
 
 
 # Phase 5 sr=22 combo_shuriken：slash 末段 spawn 辅助子弹（line: 朝最近敌人；其它 shape 走随机方向）
-func spawn_combo_shuriken(player: BattlePlayer, shape: String) -> void:
+# 数量 = 2/级（desc「+2 枚手里剑/级」）；伤害 = auto_bullet × weapon_mult（desc「0.6×ATK」）；
+# 方向优先用 slash 末端方向 end_ang 扇射（desc「向斩击末端方向」），无 end_ang 则朝最近怪。
+func spawn_combo_shuriken(player: BattlePlayer, shape: String, level: int = 1, weapon_mult: float = 0.6, end_ang: float = INF) -> void:
 	if battle == null or battle.spawner == null:
 		return
 	var monsters: Array = battle.spawner.get_active_monsters()
 	if monsters.is_empty():
 		return
-	var ang: float = _nearest_monster_angle(player.global_position, -PI * 0.5, monsters)
-	if shape == "random" or shape == "":
-		ang = randf() * TAU
-	var dir := Vector2(cos(ang), sin(ang))
-	var spawn_pos := player.global_position + dir * (player.get_effective_radius() + GameConfig.scale_world(AUTO_BULLET_SPAWN_OFFSET))
-	var dmg: int = player.get_auto_bullet_damage()
-	shurikens.append(_with_upgrade_fx_layer({
-		"kind": "auto",
-		"pos": spawn_pos,
-		"origin": spawn_pos,
-		"vel": dir * float(GameConfig.get_player_value("auto_bullet_speed", 420)) * 0.9,
-		"life": 0.8,
-		"max_life": 0.8,
-		"damage": dmg,
-		"hit": {},
-		"rot": ang,
-		"anim_t": 0.0,
-		"visual_scale": 0.9,
-		"is_spirit": false,
-		"returning": false,
-		"mirror_used": false,
-		"is_split": true,
-	}, "shuriken"))
-	_finalize_spawned_projectile(shurikens.back(), player)
+	# 基准方向：优先 slash 末端方向；random/空 shape 或无 end_ang 走最近怪 / 随机
+	var base_ang: float = end_ang
+	if base_ang == INF or shape == "random" or shape == "":
+		base_ang = _nearest_monster_angle(player.global_position, -PI * 0.5, monsters)
+		if shape == "random" or shape == "":
+			base_ang = randf() * TAU
+	var count: int = maxi(1, 2 * maxi(1, level))
+	var dmg: int = maxi(1, int(round(player.get_auto_bullet_damage() * weapon_mult)))
+	const SHURIKEN_FAN_SPREAD := 0.18   # 扇射间隔（弧度）
+	for i in range(count):
+		var fang: float = base_ang + (float(i) - (count - 1) * 0.5) * SHURIKEN_FAN_SPREAD
+		var dir := Vector2(cos(fang), sin(fang))
+		var spawn_pos := player.global_position + dir * (player.get_effective_radius() + GameConfig.scale_world(AUTO_BULLET_SPAWN_OFFSET))
+		shurikens.append(_with_upgrade_fx_layer({
+			"kind": "auto",
+			"is_basic_attack": true,   # combo 衍生子弹：保留历史 sr=13/18/11 触发（kind=auto 一直在吃）
+			"visual_kind": "shuriken",   # 走 _draw_pixel_shuriken 手里剑像素 art，不再画成普通白剑气
+			"pos": spawn_pos,
+			"origin": spawn_pos,
+			"vel": dir * float(GameConfig.get_player_value("auto_bullet_speed", 420)) * 0.9,
+			"life": 0.8,
+			"max_life": 0.8,
+			"damage": dmg,
+			"hit": {},
+			"rot": fang,
+			"anim_t": 0.0,
+			"visual_scale": 0.9,
+			"is_spirit": false,
+			"returning": false,
+			"mirror_used": false,
+			"is_split": true,
+		}, "shuriken"))
+		_finalize_spawned_projectile(shurikens.back(), player)
 
 
 # ============= Phase 6 v6 combo spawn helpers (sr=20) =============
@@ -1017,7 +1053,8 @@ func _update_holy_pillars(delta: float) -> void:
 func spawn_v6_bullet_beam(player: BattlePlayer, pos: Vector2, ang: float, atk_mult: float) -> void:
 	var dir := Vector2(cos(ang), sin(ang))
 	# 从玩家外缘发射（不用 dispatcher 传入的 hit_pos，那是子弹命中怪物点，离玩家太远）
-	var muzzle_offset: float = player.get_effective_radius() + GameConfig.scale_world(14.0)
+	# 能量光束是 60px 短冲刺段，发射点贴玩家身体（半径 0.4 处），不要像满屏激光炮那样外推到边缘+14
+	var muzzle_offset: float = player.get_effective_radius() * 0.4
 	var muzzle: Vector2 = player.global_position + dir * muzzle_offset
 	var exit_dist := _ray_playfield_exit_distance(muzzle, dir)
 	var beam_length := GameConfig.scale_world(60.0) * FX_SCALE   # 短线段，非满屏光柱
@@ -1490,13 +1527,16 @@ func _apply_projectile_hit(s: Dictionary, m, player: BattlePlayer) -> bool:
 		if int(result.get("damage", 0)) > 0:
 			ElementEffectManager.try_apply(m, info, player)
 		# Phase 3 sr=14/15 bullet_split / bounce — 命中就触发（即使护盾挡掉 damage=0 也算命中）
+		# 按 Option A：split/bounce 是「飞行投射物生命周期」加成，仅 auto 子弹吃；激光炮/近身战不吃
 		if kind == "auto":
 			SpecialRuleDispatcher.on_bullet_hit(player, self, s, m, info, int(result.get("damage", 0)))
-		# Phase 6 sr=13 / sr=18 bullet proc spell / beam
-		if kind == "auto" and int(result.get("damage", 0)) > 0:
+		# Phase 6 sr=13 / sr=18 bullet proc spell / beam — 所有「普攻形态」命中都触发
+		# （is_basic_attack flag：普通子弹/元气弹/血飞刀/激光炮/未来新形态；近身战在 _fire_melee_swipe 内单独调）
+		if bool(s.get("is_basic_attack", false)) and int(result.get("damage", 0)) > 0:
 			SpecialRuleDispatcher.on_bullet_proc(player, self, m.global_position, float(s.get("rot", 0.0)))
-		if kind == "auto":
+		if bool(s.get("is_basic_attack", false)):
 			# 受击特效统一用画线攻击的 hit_a 动画爆光（与 combat_director.spawn_slash_hit_fx 一致）
+			# 所有普攻形态（含激光炮）命中都走这里；近身战有自己的挥砍矩形视觉不经过此分支
 			var fx_scale := float(s.get("visual_scale", 1.0))
 			if battle and battle.combat:
 				battle.combat.spawn_slash_hit_fx(pos, float(s.get("rot", 0.0)), fx_scale)
@@ -1885,6 +1925,10 @@ func _draw_auto_bullet(canvas: Node2D, s: Dictionary) -> void:
 			return
 		"blood_blade":
 			_draw_pixel_blood_blade(canvas, s)
+			return
+		"shuriken":
+			# combo 衍生手里剑：走专属像素 art（不再画成普通白剑气，否则玩家认不出）
+			_draw_pixel_shuriken(canvas, Vector2(s.pos) - canvas.global_position, float(s.rot), SHURIKEN_PIXEL)
 			return
 	# 默认普攻：像素白色月牙剑气（保留元素染色 + 返回态蓝色）
 	_draw_pixel_auto_bullet(canvas, s)
@@ -2489,6 +2533,7 @@ func spawn_v6_player_laser(player: BattlePlayer, monsters: Array, atk_mult: floa
 		"rot": ang,
 		"is_sulfur_laser": false,   # 与硫磺火分开渲染分支
 		"is_player_laser": true,
+		"is_basic_attack": true,   # 激光炮是普攻形态 → 吃 sr=11/13/18 + 受击特效（修复「激光炮导致能量光束失效」）
 		"laser_color_key": effective_color,
 		"pierce": pierce,
 		"follow_player": false,
@@ -2537,6 +2582,11 @@ func _fire_melee_swipe(player: BattlePlayer, monsters: Array) -> void:
 		if not result.is_empty():
 			if battle.combat:
 				battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), false, false, Color(0.95, 0.95, 0.95, 1.0))
+			# 近身战视为普攻命中实例 → 触发 sr=13/18 on_bullet_proc（火力支援/能量光束）。
+			# 注意：不调 on_bullet_hit（split/bounce 是飞行专属，按 Option A 跳过），
+			#       也不走 transform_bullet_damage（sr=11 按飞行距离缩放，近战无飞行距离且攻击距离锁死）。
+			if int(result.get("damage", 0)) > 0:
+				SpecialRuleDispatcher.on_bullet_proc(player, self, m.global_position, base_ang)
 			if bool(result.get("started_dying", false)):
 				EventBus.monster_killed.emit(m)
 	# 视觉：在玩家前方一次性短寿命挥砍矩形

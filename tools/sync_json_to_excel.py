@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Push config/json into Excel. Run after editing JSON; before export_config for stages/monsters only.
 
-覆盖：chapters / monsters / stages(+编码表) / upgrade_fx / rewards_v6 / game_tuning。
+覆盖：chapters / monsters / stages(+编码表) / upgrade_fx / game_tuning。
 game_tuning 的 json 是运行时权威源（game_config.gd 读 game_tuning.json），xlsx 是它的
 策划可读镜像——历史上有 20 个 key 只加在 json 没回写 xlsx 导致 xlsx stale，现在由本脚本
 每次从 json 重建 xlsx，保持完整镜像。"""
@@ -17,7 +17,6 @@ from export_config import (
     EXCEL_DIR,
     JSON_DIR,
     MONSTER_HEADERS,
-    REWARDS_V6_HEADERS,
     STAGE_HEADERS,
     TUNING_HEADERS,
     UPGRADE_FX_HEADERS,
@@ -54,17 +53,6 @@ def _upgrade_fx_row(item: dict) -> list:
 
 def _tuning_row(item: dict) -> list:
     return [item.get(h, "") for h in TUNING_HEADERS]
-
-
-def _reward_v6_row(item: dict) -> list:
-    """rewards_v6.json 里 extra_params 是 dict，要回写成 JSON 字符串再进 Excel 单元格。"""
-    row: list = []
-    for h in REWARDS_V6_HEADERS:
-        val = item.get(h, "")
-        if h == "extra_params" and isinstance(val, dict):
-            val = json.dumps(val, ensure_ascii=False, sort_keys=True) if val else ""
-        row.append(val)
-    return row
 
 
 def _rewrite_sheet(path: Path, headers: list[str], rows: list[list], sheet_title: str | None = None) -> None:
@@ -167,15 +155,6 @@ def main() -> None:
         [_tuning_row(t) for t in game_tuning],
         sheet_title="game_tuning",
     )
-    # rewards_v6: JSON 为权威源，回写到 Excel 便于策划编辑
-    rewards_v6_path = JSON_DIR / "rewards_v6.json"
-    if rewards_v6_path.exists():
-        rewards_v6 = _load_json("rewards_v6")
-        _rewrite_sheet(
-            EXCEL_DIR / "rewards_v6.xlsx",
-            REWARDS_V6_HEADERS,
-            [_reward_v6_row(r) for r in rewards_v6],
-        )
     print("Done.")
 
 

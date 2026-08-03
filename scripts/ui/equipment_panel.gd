@@ -186,8 +186,30 @@ func _on_language_changed(_lang: String) -> void:
 
 # ─── 进场动效：所有区块快速依次淡入显形 ───────────────────
 func _on_visibility_changed() -> void:
-	if visible and not Engine.is_editor_hint():
+	if Engine.is_editor_hint():
+		return
+	if visible:
 		call_deferred("_play_intro")
+	else:
+		# 切走时收起所有"展开中"的弹窗 / 多选态。
+		# 装备详情弹窗是面板内子节点（不是盖住整屏含 tab 栏的全屏遮罩），
+		# 玩家切 tab 即视为放弃当前操作 → 切回时应是干净状态，而非残留的详情/多选。
+		_reset_transient_state()
+
+
+func _reset_transient_state() -> void:
+	_kill_detail_tween()
+	if _detail_popup != null:
+		_detail_popup.visible = false
+	_current_detail_uid = -1
+	_kill_attr_tween()
+	if _attr_popup != null:
+		_attr_popup.visible = false
+	if _multi_select:
+		_multi_select = false
+		_selected_uids.clear()
+		_refresh_inventory()       # 清掉选中槽位的高亮 modulate
+		_refresh_action_buttons()  # 还原 [分解][技能石][合成] 三按钮态
 
 
 func _play_intro() -> void:

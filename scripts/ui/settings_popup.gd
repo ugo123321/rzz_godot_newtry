@@ -33,15 +33,15 @@ func _build_ui() -> void:
 	add_child(_overlay)
 
 	_panel = PanelContainer.new()
-	_panel.custom_minimum_size = Vector2(280, 200)
+	_panel.custom_minimum_size = Vector2(280, 260)
 	_panel.anchor_left = 0.5
 	_panel.anchor_top = 0.5
 	_panel.anchor_right = 0.5
 	_panel.anchor_bottom = 0.5
 	_panel.offset_left = -140
 	_panel.offset_right = 140
-	_panel.offset_top = -100
-	_panel.offset_bottom = 100
+	_panel.offset_top = -130
+	_panel.offset_bottom = 130
 	add_child(_panel)
 
 	_vbox = VBoxContainer.new()
@@ -64,7 +64,7 @@ func _build_ui() -> void:
 	editor_btn.pressed.connect(_on_editor_pressed)
 	_vbox.add_child(editor_btn)
 
-	# 删除存档按钮（破坏性操作，红色调）
+# 删除存档按钮（破坏性操作，红色调）
 	var delete_btn := Button.new()
 	delete_btn.name = "DeleteBtn"
 	delete_btn.custom_minimum_size = Vector2(200, 0)
@@ -72,6 +72,15 @@ func _build_ui() -> void:
 	PixelUi.apply_ui_font(delete_btn)
 	delete_btn.pressed.connect(_on_delete_save_pressed)
 	_vbox.add_child(delete_btn)
+
+	# 回复体力按钮（绿色调，调 LobbyState.restore_energy_full 回满）
+	var energy_btn := Button.new()
+	energy_btn.name = "EnergyBtn"
+	energy_btn.custom_minimum_size = Vector2(200, 0)
+	UiStyle.apply_primary_button(energy_btn, Color("#4f7a55"), 8)
+	PixelUi.apply_ui_font(energy_btn)
+	energy_btn.pressed.connect(_on_restore_energy_pressed)
+	_vbox.add_child(energy_btn)
 
 	# 返回按钮
 	var back_btn := Button.new()
@@ -94,6 +103,9 @@ func _apply_texts() -> void:
 		var d := _vbox.get_node_or_null("DeleteBtn")
 		if d:
 			d.text = LanguageManager.tr_ui("UI_SETTINGS_DELETE_SAVE")
+		var en := _vbox.get_node_or_null("EnergyBtn")
+		if en:
+			en.text = LanguageManager.tr_ui("UI_SETTINGS_RESTORE_ENERGY")
 		var b := _vbox.get_node_or_null("BackBtn")
 		if b:
 			b.text = LanguageManager.tr_ui("UI_SETTINGS_BACK")
@@ -110,6 +122,13 @@ func _on_editor_pressed() -> void:
 
 func _on_delete_save_pressed() -> void:
 	delete_save_requested.emit()
+	_close()
+
+
+func _on_restore_energy_pressed() -> void:
+	# 回满体力：LobbyState 重置时间戳 + emit energy_changed
+	# → 主界面 EnergyBar / 开始按钮消耗刷新 + CloudManager 防抖 flush。
+	LobbyState.restore_energy_full()
 	_close()
 
 

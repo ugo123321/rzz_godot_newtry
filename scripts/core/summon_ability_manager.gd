@@ -99,6 +99,14 @@ func update(delta: float, player: BattlePlayer, monsters: Array) -> void:
 func draw_fx(canvas: Node2D, below_monsters: bool) -> void:
 	# v6 召唤实体与投射物
 	if not below_monsters:
+		# 召唤物跟玩家一起显示/消失：切关（玩家起跳/滚轴）或玩家被隐藏（盖房/打造关）时不绘制。
+		# 切关期间 summons.update 因 state!=PLAYING 已停更（c.pos 冻结），这里不画就等于整段隐藏。
+		# REBASE 时 snap_to_player 已把 c.pos 吸到玩家身边，state 回 PLAYING 后自然重绘归位现身。
+		if battle != null and is_instance_valid(battle):
+			if battle.state == GameState.STAGE_TRANSITION:
+				return
+			if battle.player != null and not battle.player.visible:
+				return
 		_draw_v6_companions(canvas)
 		_draw_v6_projectiles(canvas)
 		_draw_v6_aoe_rings(canvas)

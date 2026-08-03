@@ -485,7 +485,8 @@ static func on_slash_end(player: Node, abilities: Node, end_pos: Vector2 = Vecto
 	if ki_drained:
 		for b22 in _iter_sr(player, 22):
 			if abilities and abilities.has_method("spawn_combo_shuriken"):
-				abilities.spawn_combo_shuriken(player, str(_sv_str(b22, 0, "line")))
+				# 传 level（+2/级 数量）+ weapon_mult（0.6×ATK）+ end_ang（向斩击末端方向扇射）
+				abilities.spawn_combo_shuriken(player, str(_sv_str(b22, 0, "line")), int(b22.level), float(b22.def.get("weapon_mult", 0.6)), end_ang)
 		# sr=46 死神镰刀
 		if float(player.scythe_atk_mult) > 0.0 and abilities and abilities.has_method("spawn_v6_demon_scythe"):
 			var pos: Vector2 = end_pos if end_pos.x != INF else player.global_position
@@ -656,7 +657,7 @@ static func on_bullet_hit(player: Node, abilities: Node, projectile: Dictionary,
 		if abilities and abilities.has_method("spawn_split_bullet"):
 			for i in range(count):
 				var ang: float = randf() * TAU
-				abilities.spawn_split_bullet(player, monster.global_position, ang, split_dmg)
+				abilities.spawn_split_bullet(player, monster, ang, split_dmg)
 	# sr=15 bullet_bounce — 需要 dealt > 0 作为衰减基数
 	if dealt <= 0:
 		return

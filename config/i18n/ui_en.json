@@ -255,6 +255,7 @@
 	"UI_SETTINGS_LEVEL_EDITOR": "Level Editor",
 	"UI_SETTINGS_BACK": "Back",
 	"UI_SETTINGS_DELETE_SAVE": "Delete Save",
+	"UI_SETTINGS_RESTORE_ENERGY": "Restore Energy",
 	"UI_CLOUD_GATE_CONNECTING": "Connecting to server…",
 	"UI_CLOUD_GATE_FAILED": "Cannot connect to server. Please check your network and retry.",
 	"UI_CLOUD_GATE_RETRY": "Retry",

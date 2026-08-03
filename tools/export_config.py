@@ -32,20 +32,7 @@ EXCEL_SHEETS = [
     "upgrade_fx",
     "game_tuning",
     "asset_mapping",
-    "rewards_v6",
 ]
-
-# rewards_v6: 99 项 roguelike 奖励规范化表（22 列，schema 详见 plan）。
-# 数据由 tools/build_rewards_v6.py 生成；JSON 为权威源，不在 init-excel 写默认行。
-REWARDS_V6_HEADERS = [
-    "id", "name_cn", "group", "rarity", "icon", "desc_cn",
-    "max_level", "pool_weight", "once_per_run", "once_per_chapter",
-    "dmg_layer", "secondary_layer", "element", "category",
-    "apply_type", "apply_value", "weapon_mult",
-    "trigger", "cooldown", "extra_params",
-    "special_rule", "notes",
-]
-REWARDS_V6_ROWS: list[list] = []  # 由 build_rewards_v6.py 填充，不在此处写死
 
 CHAPTER_HEADERS = [
     "chapter_id", "chapter_name", "stages_per_chapter", "description",
@@ -204,7 +191,6 @@ DEFAULT_DATASETS = {
     "upgrade_fx": (UPGRADE_FX_HEADERS, UPGRADE_FX_ROWS),
     "game_tuning": (TUNING_HEADERS, TUNING_ROWS),
     "asset_mapping": (ASSET_HEADERS, ASSET_ROWS),
-    "rewards_v6": (REWARDS_V6_HEADERS, REWARDS_V6_ROWS),
 }
 
 
@@ -314,9 +300,6 @@ def read_excel(name: str) -> tuple[list[str], list[list]]:
 def build_workbooks():
     EXCEL_DIR.mkdir(parents=True, exist_ok=True)
     for name, (headers, rows) in DEFAULT_DATASETS.items():
-        # rewards_v6 由 build_rewards_v6.py 单独生成，init-excel 不要覆盖
-        if name == "rewards_v6":
-            continue
         wb = Workbook()
         ws = wb.active
         ws.title = name
@@ -359,8 +342,8 @@ def export_json_from_excel():
     JSON_DIR.mkdir(parents=True, exist_ok=True)
     merge_tuning_excel()
     merge_dataset_excel("player")
-    # upgrades / upgrade_fx / rewards_v6 以 config/json 为准，勿用旧 Excel 覆盖
-    skip_excel_overwrite = {"upgrades", "upgrade_fx", "rewards_v6"}
+    # upgrades / upgrade_fx 以 config/json 为准，勿用旧 Excel 覆盖
+    skip_excel_overwrite = {"upgrades", "upgrade_fx"}
     print("Reading Excel files...")
     for name in EXCEL_SHEETS:
         if name in skip_excel_overwrite:

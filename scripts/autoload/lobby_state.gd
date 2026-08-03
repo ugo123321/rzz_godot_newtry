@@ -641,6 +641,15 @@ func spend_energy(amount: int) -> bool:
 	return true
 
 
+# 设置弹窗「回复体力」：直接回满。重置时间戳（=不再有自然恢复溢出），
+# emit energy_changed → 主界面 EnergyBar/开始按钮刷新 + CloudManager 防抖 flush。
+func restore_energy_full() -> void:
+	energy = ENERGY_MAX
+	_energy_last_settle_unix = int(Time.get_unix_time_from_system())
+	if EventBus:
+		EventBus.energy_changed.emit(energy, ENERGY_MAX)
+
+
 func add_wood(amount: int) -> void:
 	if amount <= 0:
 		return
