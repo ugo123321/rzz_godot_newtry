@@ -40,6 +40,8 @@ var hit_fx: Array = []
 var water_tornados: Array = []
 var black_holes: Array = []
 var whirls: Array = []
+# sr=26 trail_slash_wave 斩击余波：地面扩散冲击环（ease_out_cubic 扩散 + 渐隐）
+var v6_slash_waves: Array = []   # {pos, radius, life, max_life, color}
 # sr=13 视觉实体：火力支援像素爆炸 / 圣光柱（与 _skill_burst 微粒子分开管理）
 var bomb_explosions: Array = []   # {pos, radius_px, life, max_life}
 var holy_pillars: Array = []      # {pos, life, max_life, fall_t}
@@ -190,6 +192,7 @@ func reset() -> void:
 	holy_pillars.clear()
 	grenade_arcs.clear()
 	v6_trail_fields.clear()
+	v6_slash_waves.clear()
 	pending_bombs.clear()
 	cross_explosions.clear()
 	melee_swipes.clear()
@@ -213,7 +216,7 @@ func on_resolve_started() -> void:
 
 
 func has_active_fx() -> bool:
-	return not shurikens.is_empty() or not lasers.is_empty() or not v6_demon_scythes.is_empty() or not abyss_explosions.is_empty() or not hit_fx.is_empty() or not water_tornados.is_empty() or not black_holes.is_empty() or not whirls.is_empty() or not bomb_explosions.is_empty() or not holy_pillars.is_empty() or not grenade_arcs.is_empty() or not pending_bombs.is_empty() or not cross_explosions.is_empty() or not melee_swipes.is_empty()
+	return not shurikens.is_empty() or not lasers.is_empty() or not v6_demon_scythes.is_empty() or not abyss_explosions.is_empty() or not hit_fx.is_empty() or not water_tornados.is_empty() or not black_holes.is_empty() or not whirls.is_empty() or not bomb_explosions.is_empty() or not holy_pillars.is_empty() or not grenade_arcs.is_empty() or not pending_bombs.is_empty() or not cross_explosions.is_empty() or not melee_swipes.is_empty() or not v6_slash_waves.is_empty()
 
 
 func update(delta: float, player: BattlePlayer, monsters: Array) -> void:
@@ -235,6 +238,7 @@ func update(delta: float, player: BattlePlayer, monsters: Array) -> void:
 	_update_pending_bombs(delta, player, monsters)
 	_update_cross_explosions(delta)
 	_update_melee_swipes(delta)
+	_update_slash_waves(delta)
 	_update_holy_pillars(delta)
 	_update_grenade_arcs(delta, player)
 	_update_v6_trail_fields(delta, player, monsters)
@@ -1302,9 +1306,57 @@ func spawn_v6_slash_wave(player: BattlePlayer, end_pos: Vector2, radius: float, 
 				battle.combat.spawn_damage_number(m.global_position, int(result.get("damage", 0)), false, false, Color("#ffffff"))
 			if bool(result.get("started_dying", false)):
 				EventBus.monster_killed.emit(m)
-	_skill_burst(end_pos, 3.0, 0.08, Color("#e8e8ff"), 18)
+	# 地面扩散冲击环（ease_out_cubic 扩散 + 渐隐）— 让「范围冲击/推开」真正看得见
+	v6_slash_waves.append({
+		"pos": end_pos,
+		"radius": radius,
+		"life": 0.45,
+		"max_life": 0.45,
+		"color": Color("#e8e8ff"),
+	})
+	# 中心粒子爆光（加强：更多粒子 + 更长寿命，配合环扩散）
+	_skill_burst(end_pos, 3.0, 0.12, Color("#f4f4ff"), 26)
 	if battle:
-		battle.shake_camera(2.2, 0.08)
+		battle.shake_camera(2.2, 0.10)
+
+
+# sr=26 斩击余波地面环：扩散 + 渐隐
+func _update_slash_waves(delta: float) -> void:
+	if v6_slash_waves.is_empty():
+		return
+	var i := v6_slash_waves.size() - 1
+	while i >= 0:
+		var w: Dictionary = v6_slash_waves[i]
+		w["life"] = float(w.get("life", 0.0)) - delta
+		if float(w.get("life", 0.0)) <= 0.0:
+			v6_slash_waves.remove_at(i)
+		else:
+			v6_slash_waves[i] = w
+		i -= 1
+
+
+func _draw_slash_waves(canvas: Node2D) -> void:
+	var offset := -canvas.global_position
+	for w in v6_slash_waves:
+		var max_life: float = float(w.get("max_life", 0.45))
+		var life: float = float(w.get("life", 0.0))
+		var p: float = clampf(1.0 - life / max_life, 0.0, 1.0)
+		var ease_p: float = 1.0 - pow(1.0 - p, 3.0)   # ease_out_cubic
+		var base_r: float = float(w.get("radius", 200.0))
+		var radius: float = base_r * ease_p
+		var fade: float = 1.0 - p
+		var col: Color = w.get("color", Color("#e8e8ff"))
+		var center: Vector2 = Vector2(w.pos) + offset
+		# 外环描边（亮）+ 内环 + 淡填充，随扩散渐隐
+		var outer := Color(col.r, col.g, col.b, 0.9 * fade)
+		var fill := Color(col.r, col.g, col.b, 0.18 * fade)
+		var inner := Color(min(col.r + 0.2, 1.0), min(col.g + 0.2, 1.0), min(col.b + 0.2, 1.0), 0.5 * fade)
+		if radius > 2.0:
+			canvas.draw_circle(center, radius, fill)
+			canvas.draw_arc(center, radius, 0.0, TAU, 48, outer, 4.0)
+			var inner_r: float = radius * 0.62
+			if inner_r > 2.0:
+				canvas.draw_arc(center, inner_r, 0.0, TAU, 32, inner, 2.0)
 
 
 # ============= Phase 6 sr=25 trail_elem_field：元素场域 =============
@@ -1370,8 +1422,16 @@ func _trail_field_tick(f: Dictionary, player: BattlePlayer, monsters: Array) -> 
 		info.raw_amount = dmg
 		# 元素自带状态由 element_effect_manager 接管；这里只在 sv 有 override 时额外注入
 		var apply_fire := element == "fire"
-		var apply_ice := element == "ice"
-		var apply_thunder := element == "thunder"
+		# 冰场 tick **不**触发冻结衍生（applies_ice=false）：
+		# 冻结衍生 = 立即 0.30×ATK 冰伤 + slow(0.30+bonus)，场域每 0.5s tick × 两路（try_apply + 下方 1438）
+		# 重新触发 → 每 tick 多 0.60×ATK 立即伤 + slow 算成 0.30+0.4=0.70（desc 是 40%）。
+		# 场域减速改走下方 apply_slow_override（只 slow 不扣血，slow 直接 = slow_pct）。info.element 仍是 "ice"。
+		var apply_ice := false
+		# 雷场 tick **不**触发雷链（applies_thunder=false）：
+		# 雷链是瞬时多目标爆发衍生（0.6×ATK × 链数），场域每 0.5s tick × 场内每只怪都重新整链释放，
+		# 把 desc 承诺的「0.5×ATK/0.5s」放大 ~4 倍 → 伤害爆炸。麻痹已由下方 stun_sec 直接 apply_paralyze 给出，
+		# 不需要雷链尾麻痹。info.element 仍是 "thunder"（雷属性伤害类型 / 抗性计算不变）。
+		var apply_thunder := false
 		var apply_poison := element == "poison"
 		info.applies_fire = apply_fire
 		info.applies_ice = apply_ice
@@ -1383,8 +1443,10 @@ func _trail_field_tick(f: Dictionary, player: BattlePlayer, monsters: Array) -> 
 		if not result.is_empty() and int(result.get("damage", 0)) > 0:
 			ElementEffectManager.try_apply(m, info, player)
 			# 额外 slow override（trail_frost 0.4 取代 ice 默认 0.3）
-			if slow_pct > 0.0 and m.has_method("apply_freeze_slow"):
-				m.apply_freeze_slow(player.base_attack, 0.0, slow_pct)
+			# 走 apply_slow_override：只刷新减速、不扣血、slow 直接 = slow_pct（40%）。
+			# 旧代码调 apply_freeze_slow 会每 tick 叠 0.30×ATK 立即伤 + 把 slow 算成 0.30+0.4=0.70（desc 是 40%）。
+			if slow_pct > 0.0 and m.has_method("apply_slow_override"):
+				m.apply_slow_override(slow_pct, 1.5)
 			# stun（trail_thunder_field 0.3s）
 			if stun_sec > 0.0 and m.has_method("apply_paralyze"):
 				m.apply_paralyze(stun_sec)
@@ -2417,6 +2479,9 @@ func _draw_pixel_shuriken(canvas: CanvasItem, center: Vector2, rot: float, px: f
 func draw_fx(canvas: Node2D, below_monsters: bool) -> void:
 	# Phase 6 sr=25 trail_elem_field：地面场域（仅 below_monsters）
 	draw_v6_trail_fields(canvas, below_monsters)
+	# sr=26 trail_slash_wave 斩击余波：地面扩散冲击环（仅 below_monsters）
+	if below_monsters:
+		_draw_slash_waves(canvas)
 	for s in shurikens:
 		if not _fx_on_layer(s, below_monsters):
 			continue

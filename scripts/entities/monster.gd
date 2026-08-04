@@ -634,6 +634,17 @@ func apply_freeze_slow(snapshot_atk: float, elem_pct: float, slow_bonus: float) 
 	queue_redraw()
 
 
+# 只刷新减速，不扣血：供持续冰场（trail_frost）每 tick 刷新 slow 用。
+# apply_freeze_slow 会每 tick 叠 0.30×ATK 立即伤 + 把 slow 算成 0.30+bonus（场域传 0.4 → 0.70），
+# 场域只需要按 desc 的 slow_pct 直接减速 + 刷新时长，不要伤害。
+func apply_slow_override(slow_pct: float, duration: float) -> void:
+	if not alive or dying:
+		return
+	slow_pct_active = maxf(slow_pct_active, slow_pct)
+	slow_timer = maxf(slow_timer, duration)
+	queue_redraw()
+
+
 # Sheet4 毒元素 poison DoT：snapshot_atk × 0.30/sec × ELEM × proc_freq；持续 3.0s
 func apply_poison_dot(snapshot_atk: float, elem_pct: float, proc_freq_pct: float) -> void:
 	if not alive or dying:

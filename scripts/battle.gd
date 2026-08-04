@@ -17,7 +17,7 @@ const SakuraSystemScript = preload("res://scripts/systems/sakura_system.gd")
 const GrassSystemScript = preload("res://scripts/systems/grass_system.gd")
 const EnemyArrowScript = preload("res://scripts/entities/enemy_arrow.gd")
 const RewardWheelPopupScript = preload("res://scripts/ui/reward_wheel_popup.gd")
-const ThemedRewardPopupScript = preload("res://scripts/ui/themed_reward_popup.gd")
+const ThemedRewardPopupScene = preload("res://scenes/ui/themed_reward_popup.tscn")
 const ForgeSettlementPopupScript = preload("res://scripts/ui/forge_settlement_popup.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/virtual_joystick.gd")
 const TreeSpawnerScript = preload("res://scripts/systems/tree_spawner.gd")
@@ -260,7 +260,7 @@ func _ready() -> void:
 	$UI.add_child(reward_wheel_popup)
 	reward_wheel_popup.setup(self)
 	reward_wheel_popup.reward_finished.connect(_on_reward_wheel_finished)
-	themed_reward_popup = ThemedRewardPopupScript.new()
+	themed_reward_popup = ThemedRewardPopupScene.instantiate()
 	themed_reward_popup.name = "ThemedRewardPopup"
 	themed_reward_popup.z_index = 115
 	$UI.add_child(themed_reward_popup)

@@ -896,8 +896,8 @@ func _finish_attack(combat: CombatDirector) -> void:
 			var d: Vector2 = (p_last - p_prev)
 			slash_end_ang = d.angle() if d.length() > 0.01 else 0.0
 		SpecialRuleDispatcherT.on_slash_end(self, battle.abilities, slash_end_pos, slash_end_ang)
-		# Phase 6 sr=26 trail_slash_wave：末段 spawn 推开 AOE
-		SpecialRuleDispatcherT.on_slash_wave(self, battle.abilities, global_position)
+		# Phase 6 sr=26 trail_slash_wave：画线**末端**范围冲击（desc「画线末端」→ 传 slash_end_pos，不是玩家位置）
+		SpecialRuleDispatcherT.on_slash_wave(self, battle.abilities, slash_end_pos)
 		# Phase 6 sr=25 trail_elem_field：沿 path 生成元素场域
 		SpecialRuleDispatcherT.on_trail_field_spawn(self, battle.abilities, attack_path)
 	# 清零气力耗尽标记：sr=22/26/27/46 都已读完，下次画线重新累计

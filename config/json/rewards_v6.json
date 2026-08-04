@@ -702,14 +702,14 @@
     "group": "基础属性",
     "rarity": "white",
     "icon": "skill_10",
-    "desc_cn": "走过留下火焰 0.15×ATK/0.5s 伤害（持续 2s），附加燃烧",
+    "desc_cn": "走过留下火焰 0.15×ATK/0.5s 伤害（持续 4s），附加燃烧",
     "max_level": 3,
     "pool_weight": 1,
     "special_rule": 5,
     "special_values": [
       0.15,
       0.5,
-      2
+      4
     ],
     "special_values_per_lv": [],
     "card_path": "element",
@@ -725,7 +725,7 @@
     "notes": "白·元素铺地",
     "desc_cn_game": "走过留下火焰足迹",
     "name_en": "Flame Walk",
-    "desc_en": "Footprints deal 0.15×ATK/0.5s for 2s, ignites burn",
+    "desc_en": "Footprints deal 0.15×ATK/0.5s for 4s, ignites burn",
     "desc_cn_game_en": "Footprints leave flame trail",
     "attrs": [
       {
@@ -4282,7 +4282,7 @@
     "icon": "skill_59",
     "desc_cn": "普攻改为近战：子弹数锁 1、不显示外观，射程=攻击动画长度，攻击 +50%",
     "max_level": 1,
-    "pool_weight": 1,
+    "pool_weight": 0,
     "special_rule": 54,
     "special_values": [
       0.5,
