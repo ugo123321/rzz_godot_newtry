@@ -6,7 +6,7 @@ extends CanvasLayer
 # === 测试开关 ============================================================
 # true  : 连 Firebase 服务器（匿名登录 + Firestore 读写），启动必须联网通过门控
 # false : 纯单机（不联网、不创建账号、不弹门控；仅本地存档；引擎内反复测试用）
-const ONLINE: bool = true
+const ONLINE: bool = false
 # =========================================================================
 
 const LOCAL_SAVE_PATH := "user://save.json"

@@ -1,12 +1,14 @@
 extends Node
 class_name LevelLayoutLoader
 
-# 关卡编辑器保存的布局读写：user://levels/<编号>.json
+# 关卡编辑器保存的布局读写：res://config/levels/<编号>.json
 # 格式：{"number": "3-1", "elements": [{type, col, row, facing}, ...]}
-# 这是项目首个 JSON 写盘路径（此前只读 res://config/json/*.json + 写 user://settings.cfg ConfigFile）。
+# 模板随项目走 git + 随导出包发行。注意：res:// 仅在「从 Godot 编辑器运行」时可写，
+# 导出包内 res:// 只读 —— 编辑器入口已在 settings_popup 用 OS.has_feature("editor") 门控，
+# 导出包不暴露编辑器，不会出现「在只读 res:// 上保存」。
 # stage→编号 绑定属未来工作（在配置表里指定每关用哪个编号），battle._apply_level_layout 通过编号读取本文件。
 
-const LEVELS_DIR := "user://levels"
+const LEVELS_DIR := "res://config/levels"
 
 # 编号 → 文件名（统一小写、去掉路径分隔符，避免恶意路径）。
 static func _path_for(number) -> String:

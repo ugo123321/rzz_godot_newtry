@@ -1,0 +1,11 @@
+{
+  "elements": [
+    {
+      "col": 9,
+      "facing": "up",
+      "row": 18,
+      "type": "fixed_portal"
+    }
+  ],
+  "number": "999"
+}

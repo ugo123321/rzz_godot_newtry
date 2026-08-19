@@ -50,7 +50,7 @@ var enhance_gem: int = 5000
 var wood: int = 0
 # 关卡编辑器「测试」模式：切到真实战斗场景跑当前布局；停止时回编辑器。
 var editor_test_mode: bool = false
-var editor_test_layout: String = ""  # 测试时载入的布局编号（编辑器自动保存到 user://levels/__editor_test__.json）
+var editor_test_layout: String = ""  # 测试时载入的布局编号（编辑器自动保存到 res://config/levels/__editor_test__.json）
 var editor_test_stage: int = 0  # 测试用关卡 index（默认 0，有怪物 counts）
 var equipment_inventory: Array[Dictionary] = []
 var equipped_by_slot: Dictionary = {}

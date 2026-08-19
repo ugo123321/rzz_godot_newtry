@@ -44,7 +44,7 @@ const WaterOverlayScript = preload("res://scripts/systems/water_overlay.gd")
 const PixelUi := preload("res://scripts/utils/pixel_ui_helper.gd")
 const MAIN_SCENE := "res://scenes/main.tscn"
 # wheel 关固定套用的关卡模板编号：模板里中间放固定传送门，玩家触发后弹转盘。
-# 该模板由关卡编辑器保存为 user://levels/999.json（策划自行放置 fixed_portal）。
+# 该模板由关卡编辑器保存为 res://config/levels/999.json（策划自行放置 fixed_portal）。
 const WHEEL_STAGE_LAYOUT := "999"
 
 @export var stage_index := 0
@@ -598,7 +598,7 @@ func _start_run() -> void:
 			tree_spawner.begin(self)
 		else:
 			tree_spawner.reset()
-	# 关卡编辑器布局：若该关配置了 layout_number，载入对应 user://levels/<编号>.json 放置元素/地块。
+	# 关卡编辑器布局：若该关配置了 layout_number，载入对应 res://config/levels/<编号>.json 放置元素/地块。
 	_apply_stage_layout_if_any(stage_index)
 	_invalidate_nav()
 	if portal_spawner:
@@ -1195,7 +1195,7 @@ func _on_lottery_exit_complete() -> void:
 
 
 # === 关卡编辑器布局载入 ===
-# 读取 user://levels/<编号>.json，按 elements 列表放置地块/元素。
+# 读取 res://config/levels/<编号>.json，按 elements 列表放置地块/元素。
 # 地板类（水地板/石地板）走 terrain.set_tile 作为底面；其余（含深坑/阻挡石）走对应 FieldElement 实体，
 # 这样"水地板上放深坑/阻挡石"能同时保留地板与阻挡实体两层。
 # stage→编号 绑定属未来工作（在 stages.json 加 layout_number 字段）；此处通过编号直接载入。

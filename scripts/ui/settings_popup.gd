@@ -55,14 +55,16 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", 22)
 	_vbox.add_child(title)
 
-	# 关卡编辑器按钮
-	var editor_btn := Button.new()
-	editor_btn.name = "EditorBtn"
-	editor_btn.custom_minimum_size = Vector2(200, 0)
-	UiStyle.apply_primary_button(editor_btn, Color("#7a6a90"), 8)
-	PixelUi.apply_ui_font(editor_btn)
-	editor_btn.pressed.connect(_on_editor_pressed)
-	_vbox.add_child(editor_btn)
+	# 关卡编辑器按钮（仅从 Godot 编辑器运行时显示：res:// 此时可写，模板才能保存；
+	# 导出包内 res:// 只读，编辑器保存会静默失败，故不暴露入口。_apply_texts 用 get_node_or_null 兼容其缺席）
+	if OS.has_feature("editor"):
+		var editor_btn := Button.new()
+		editor_btn.name = "EditorBtn"
+		editor_btn.custom_minimum_size = Vector2(200, 0)
+		UiStyle.apply_primary_button(editor_btn, Color("#7a6a90"), 8)
+		PixelUi.apply_ui_font(editor_btn)
+		editor_btn.pressed.connect(_on_editor_pressed)
+		_vbox.add_child(editor_btn)
 
 # 删除存档按钮（破坏性操作，红色调）
 	var delete_btn := Button.new()

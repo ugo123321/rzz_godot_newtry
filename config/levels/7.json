@@ -1,0 +1,47 @@
+{
+  "elements": [
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "tree"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 6,
+      "type": "tree"
+    },
+    {
+      "col": 9,
+      "facing": "up",
+      "row": 12,
+      "type": "tree"
+    },
+    {
+      "col": 2,
+      "facing": "up",
+      "row": 17,
+      "type": "tree"
+    },
+    {
+      "col": 16,
+      "facing": "up",
+      "row": 21,
+      "type": "tree"
+    },
+    {
+      "col": 10,
+      "facing": "up",
+      "row": 26,
+      "type": "tree"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "tree"
+    }
+  ],
+  "number": "7"
+}

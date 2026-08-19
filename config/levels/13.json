@@ -1,0 +1,1445 @@
+{
+  "elements": [
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 8,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 7,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 6,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 15,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 24,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 23,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 22,
+      "type": "stone_floor"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 7,
+      "type": "arrow_cross"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 7,
+      "type": "arrow_cross"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 23,
+      "type": "arrow_cross"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 23,
+      "type": "arrow_cross"
+    }
+  ],
+  "number": "13"
+}

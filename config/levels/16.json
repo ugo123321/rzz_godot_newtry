@@ -1,0 +1,173 @@
+{
+  "elements": [
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 8,
+      "type": "pit"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 8,
+      "type": "pit"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 9,
+      "type": "pit"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 10,
+      "type": "pit"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 11,
+      "type": "pit"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 12,
+      "type": "pit"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 13,
+      "type": "pit"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 13,
+      "type": "pit"
+    },
+    {
+      "col": 6,
+      "facing": "up",
+      "row": 12,
+      "type": "pit"
+    },
+    {
+      "col": 6,
+      "facing": "up",
+      "row": 11,
+      "type": "pit"
+    },
+    {
+      "col": 6,
+      "facing": "up",
+      "row": 10,
+      "type": "pit"
+    },
+    {
+      "col": 6,
+      "facing": "up",
+      "row": 9,
+      "type": "pit"
+    },
+    {
+      "col": 11,
+      "facing": "up",
+      "row": 8,
+      "type": "pit"
+    },
+    {
+      "col": 11,
+      "facing": "up",
+      "row": 9,
+      "type": "pit"
+    },
+    {
+      "col": 11,
+      "facing": "up",
+      "row": 10,
+      "type": "pit"
+    },
+    {
+      "col": 11,
+      "facing": "up",
+      "row": 11,
+      "type": "pit"
+    },
+    {
+      "col": 11,
+      "facing": "up",
+      "row": 12,
+      "type": "pit"
+    },
+    {
+      "col": 11,
+      "facing": "up",
+      "row": 13,
+      "type": "pit"
+    },
+    {
+      "col": 12,
+      "facing": "up",
+      "row": 10,
+      "type": "pit"
+    },
+    {
+      "col": 12,
+      "facing": "up",
+      "row": 11,
+      "type": "pit"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 9,
+      "type": "pit"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 8,
+      "type": "pit"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 12,
+      "type": "pit"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 13,
+      "type": "pit"
+    },
+    {
+      "col": 1,
+      "facing": "up",
+      "row": 27,
+      "type": "arrow_single"
+    },
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 27,
+      "type": "arrow_single"
+    },
+    {
+      "col": 12,
+      "facing": "up",
+      "row": 27,
+      "type": "arrow_single"
+    },
+    {
+      "col": 16,
+      "facing": "up",
+      "row": 27,
+      "type": "arrow_single"
+    }
+  ],
+  "number": "16"
+}

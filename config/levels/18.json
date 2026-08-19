@@ -1,0 +1,89 @@
+{
+  "elements": [
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 7,
+      "type": "tree"
+    },
+    {
+      "col": 11,
+      "facing": "up",
+      "row": 6,
+      "type": "tree"
+    },
+    {
+      "col": 13,
+      "facing": "up",
+      "row": 13,
+      "type": "tree"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 23,
+      "type": "tree"
+    },
+    {
+      "col": 0,
+      "facing": "up",
+      "row": 11,
+      "type": "pit"
+    },
+    {
+      "col": 0,
+      "facing": "up",
+      "row": 12,
+      "type": "pit"
+    },
+    {
+      "col": 0,
+      "facing": "up",
+      "row": 13,
+      "type": "pit"
+    },
+    {
+      "col": 1,
+      "facing": "up",
+      "row": 13,
+      "type": "pit"
+    },
+    {
+      "col": 1,
+      "facing": "up",
+      "row": 14,
+      "type": "pit"
+    },
+    {
+      "col": 0,
+      "facing": "up",
+      "row": 14,
+      "type": "pit"
+    },
+    {
+      "col": 0,
+      "facing": "up",
+      "row": 15,
+      "type": "pit"
+    },
+    {
+      "col": 1,
+      "facing": "up",
+      "row": 11,
+      "type": "pit"
+    },
+    {
+      "col": 1,
+      "facing": "up",
+      "row": 12,
+      "type": "pit"
+    },
+    {
+      "col": 1,
+      "facing": "up",
+      "row": 15,
+      "type": "pit"
+    }
+  ],
+  "number": "18"
+}

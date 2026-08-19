@@ -27,3 +27,6 @@ save.json
 
 # Cursor migration backups (local only; paths can exceed Windows MAX_PATH)
 tools/cursor-migration-backup-*/
+
+# 关卡编辑器「测试」scratch（每次按测试自动重写，不入版本控制；其余关卡模板走 git）
+config/levels/__editor_test__.json

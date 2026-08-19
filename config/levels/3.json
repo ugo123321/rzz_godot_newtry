@@ -1,0 +1,65 @@
+{
+  "elements": [
+    {
+      "col": 5,
+      "facing": "up",
+      "row": 12,
+      "type": "arrow_cross"
+    },
+    {
+      "col": 12,
+      "facing": "up",
+      "row": 12,
+      "type": "arrow_cross"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 7,
+      "type": "tree"
+    },
+    {
+      "col": 9,
+      "facing": "up",
+      "row": 6,
+      "type": "tree"
+    },
+    {
+      "col": 9,
+      "facing": "up",
+      "row": 11,
+      "type": "tree"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 17,
+      "type": "tree"
+    },
+    {
+      "col": 4,
+      "facing": "up",
+      "row": 18,
+      "type": "tree"
+    },
+    {
+      "col": 3,
+      "facing": "up",
+      "row": 25,
+      "type": "tree"
+    },
+    {
+      "col": 9,
+      "facing": "up",
+      "row": 27,
+      "type": "tree"
+    },
+    {
+      "col": 14,
+      "facing": "up",
+      "row": 24,
+      "type": "tree"
+    }
+  ],
+  "number": "3"
+}

@@ -1,0 +1,11 @@
+{
+  "number": "wheel",
+  "elements": [
+    {
+      "type": "fixed_portal",
+      "col": 9,
+      "row": 16,
+      "facing": "up"
+    }
+  ]
+}

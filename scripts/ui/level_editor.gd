@@ -1,8 +1,9 @@
 extends Node2D
 class_name LevelEditor
 
-# 关卡编辑器：在场地上放置特殊地块/元素，设编号，保存到 user://levels/<编号>.json。
+# 关卡编辑器：在场地上放置特殊地块/元素，设编号，保存到 res://config/levels/<编号>.json。
 # 入口：主界面右上角设置 → 关卡编辑器（main_menu._on_level_editor_pressed）。
+# 注意：仅从 Godot 编辑器运行可保存（res:// 此时可写）；入口在 settings_popup 用 OS.has_feature("editor") 门控。
 #
 # 顶栏（右上角）选项按钮 → 菜单：退出 / 添加 / 编号栏 / 保存。
 # 添加 → 弹元素列表选 1 种 → 元素以"编辑模式"出现（跟随鼠标，上方浮确认/取消按钮）；
