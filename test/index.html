@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>骰子战记 — 玩法验证原型</title>
+<style>
+  :root{
+    --red:#e5484d; --green:#2ea44f; --yellow:#e0a800;
+    --bg:#0f1115; --panel:#1b1f27; --panel2:#262b36; --line:#333a47;
+    --txt:#e8eaed; --dim:#9aa3af; --gold:#f5c518;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);
+    -webkit-user-select:none;user-select:none}
+  h2{margin:0 0 8px;font-size:18px}
+  .topbar{display:flex;align-items:center;gap:18px;padding:10px 16px;background:var(--panel);
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .topbar .coin{color:var(--gold);font-weight:700}
+  .topbar .lvl{color:#7fd1ff}
+  .topbar button{margin-left:auto}
+  .view{padding:14px 16px 30px;max-width:1100px;margin:0 auto}
+  .hidden{display:none!important}
+
+  .battle{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .side{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:220px}
+  .side-head{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:8px}
+  .side-head h3{margin:0;font-size:13px;color:var(--dim)}
+  .side-head .roll-btn{padding:7px 14px;font-size:14px}
+  .monster-list{display:flex;flex-direction:column;gap:10px}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .slot{min-height:128px}
+
+  .card{border-radius:8px;padding:6px 7px;border:2px solid var(--line);background:var(--panel2);
+    position:relative;cursor:default;transition:box-shadow .15s}
+  .card.red{border-color:var(--red)} .card.green{border-color:var(--green)} .card.yellow{border-color:var(--yellow)}
+  .card.dead{opacity:.35;filter:grayscale(1)}
+  .card .head{display:flex;align-items:center;gap:6px}
+  .card .ava{width:30px;height:30px;flex:none;line-height:0;border-radius:6px;overflow:hidden;background:#0b0d11}
+  .card .ava svg{display:block;width:100%;height:100%}
+  .card .nm{font-size:11px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .hpbar{height:6px;background:#000;border-radius:4px;margin:4px 0 3px;overflow:hidden}
+  .card .hpfill{height:100%;background:#46d160;transition:width .35s}
+  .card .hpfill.mid{background:#f5c518} .card .hpfill.low{background:#e5484d}
+  .card .hptxt{font-size:10px;color:var(--dim);text-align:center}
+  .card .stats{font-size:10px;color:var(--dim);display:flex;justify-content:space-between;margin-top:2px}
+  .card .sk{font-size:12px;margin-top:3px;text-align:center;letter-spacing:2px}
+  .card .status{position:absolute;top:3px;right:4px;font-size:12px}
+  .card.acting{box-shadow:0 0 0 2px #fff,0 0 12px #fff}
+  .card.player.defending{box-shadow:0 0 0 2px #7fe0a0,0 0 10px #7fe0a0}
+  .shield-bar{position:absolute;left:6px;right:6px;bottom:14px;height:3px;background:#7fd1ff;border-radius:2px}
+
+  /* 3 个颜色骰子 */
+  .dice-row{display:flex;gap:14px;justify-content:center;margin-top:14px;padding-bottom:6px}
+  .die{width:66px;height:66px;border-radius:14px;border:3px solid var(--line);
+    background:linear-gradient(150deg,#2c333f,#161a21);display:flex;align-items:center;justify-content:center;
+    font-size:30px;font-weight:700;color:#cfd6e0;position:relative}
+  .die.red{border-color:var(--red)} .die.green{border-color:var(--green)} .die.yellow{border-color:var(--yellow)}
+  .die .sym.atk{color:#ff6b6b} .die .sym.sk{color:#7fd1ff} .die .sym.blank{color:#566070} .die .sym.def{color:#7fe0a0}
+  .die.shake{animation:di-shake .1s linear infinite}
+  .die.pop{animation:di-pop .3s ease}
+  .die .dname{position:absolute;bottom:-17px;left:0;right:0;text-align:center;font-size:10px;color:var(--dim)}
+  @keyframes di-shake{0%{transform:translate(0,0) rotate(-7deg)}25%{transform:translate(2px,-1px) rotate(6deg)}
+    50%{transform:translate(-1px,2px) rotate(-5deg)}75%{transform:translate(2px,1px) rotate(7deg)}100%{transform:translate(0,0) rotate(-7deg)}}
+  @keyframes di-pop{0%{transform:scale(1)}45%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+  .roll-btn{font-size:16px;padding:10px 22px;border:none;border-radius:8px;background:var(--gold);color:#1a1a1a;font-weight:800;cursor:pointer}
+  .roll-btn:disabled{opacity:.5;cursor:not-allowed}
+  .log{margin-top:14px;max-height:150px;overflow:auto;background:#0b0d11;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5}
+  .log div{border-bottom:1px solid #1d2129;padding:1px 0}
+  .log .dmg{color:#ff8a8a} .log .heal{color:#7fe0a0} .log .sk{color:#8ab4ff} .log .sys{color:var(--gold)}
+
+  .shop{display:grid;grid-template-columns:300px 1fr;gap:16px}
+  .roster{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;max-height:600px;overflow:auto}
+  .roster h3{margin:0 0 8px;font-size:14px}
+  .roster .item{display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;border:2px solid var(--line);background:var(--panel2);margin-bottom:6px;cursor:pointer;font-size:12px}
+  .roster .item:hover{background:#2f3542}
+  .roster .item .ava{width:34px;height:34px;flex:none;border-radius:6px;overflow:hidden;background:#0b0d11}
+  .roster .item .ava svg{display:block;width:100%;height:100%}
+  .roster .item .nm{flex:1;font-weight:600}
+  .roster .item .st{color:var(--dim);font-size:10px;letter-spacing:1px}
+  .deploy-wrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .deploy-wrap .hint{font-size:12px;color:var(--dim);margin-bottom:8px}
+  .recruit{font-size:15px;padding:9px 16px;border:none;border-radius:8px;background:var(--gold);color:#1a1a1a;font-weight:800;cursor:pointer;margin:8px 0}
+  .recruit:disabled{opacity:.5;cursor:not-allowed}
+  .nextbtn{font-size:15px;padding:9px 18px;border:none;border-radius:8px;background:var(--green);color:#fff;font-weight:700;cursor:pointer;margin-top:10px}
+  .toast{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:#111827;border:1px solid var(--line);
+    padding:10px 18px;border-radius:8px;z-index:20;font-size:14px;box-shadow:0 4px 20px #000}
+  .legend{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.6}
+  .legend b{color:var(--txt)}
+  [data-tip]{cursor:help}
+  .tooltip{position:fixed;z-index:50;max-width:260px;padding:8px 10px;background:#0b0d11;
+    border:1px solid var(--line);border-radius:8px;font-size:12px;line-height:1.5;
+    color:var(--txt);box-shadow:0 4px 18px #000;pointer-events:none;visibility:hidden;opacity:0;
+    transition:opacity .12s,visibility .12s}
+  .tooltip.show{visibility:visible;opacity:1}
+  .tooltip b{color:#7fd1ff}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="lvl">关卡 <b id="t-level">1</b></span>
+  <span class="coin">💰 <b id="t-gold">0</b></span>
+  <button id="btn-shop" class="hidden" onclick="goShop()">返回管理</button>
+</div>
+
+<div id="view-battle" class="view">
+  <div class="battle">
+    <div class="side">
+      <div class="side-head"><h3>👾 敌人</h3></div>
+      <div id="monster-list" class="monster-list"></div>
+    </div>
+    <div class="side">
+      <div class="side-head">
+        <h3>⚔️ 我方阵容（前排在上挡伤害）</h3>
+        <button id="roll-btn" class="roll-btn" onclick="rollAndResolve()">🎲 投骰子</button>
+      </div>
+      <div id="player-grid" class="grid"></div>
+      <div id="dice-row" class="dice-row"></div>
+    </div>
+  </div>
+  <div id="log" class="log"></div>
+</div>
+
+<div id="view-shop" class="view hidden">
+  <div class="shop">
+    <div class="roster">
+      <h3>📦 已拥有角色</h3>
+      <button class="recruit" id="recruit-btn" onclick="recruit()">🎯 招募新角色 (100💰)</button>
+      <div id="roster-list"></div>
+    </div>
+    <div class="deploy-wrap">
+      <h2>阵容管理</h2>
+      <div class="hint">点击左侧角色上阵（自动放入空位），点击场上角色下阵。最多 15 人，第 1 排为前排（挡伤害）。投骰按 红→绿→黄 顺序结算。</div>
+      <div id="deploy-grid" class="grid"></div>
+      <button class="nextbtn" onclick="nextLevel()">➡️ 进入下一关</button>
+      <div class="legend">
+        <b>骰面</b>：⚔攻击 ·空 ·空 ✦技能 🛡防御 ·空<br>
+        <b>规则</b>：3 个颜色骰子分别影响同色全体角色；空面则该色角色不行动；技能面随机释放该角色一个技能；防御面该色角色本回合受击减半。<br>
+        <b>技能</b>：H治疗 / S护盾 / A全体攻击 / B增益攻击 / D减益敌人 / R复活 / P毒 / C反击　<b>伤害</b>＝攻击×(1−防御/100)，下限1
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<div id="tooltip" class="tooltip"></div>
+
+<script>
+/* ============ 角色数据（30 个，仅红/绿/黄三色） ============ */
+const CHARACTERS = [
+  {id:1, name:"烈焰战士", color:"red",    hp:50, atk:14, def:8,  skills:[]},
+  {id:2, name:"熔岩巨人", color:"red",    hp:85, atk:16, def:22, skills:["C"]},
+  {id:3, name:"红龙骑士", color:"red",    hp:80, atk:22, def:14, skills:["A"]},
+  {id:4, name:"血色刺客", color:"red",    hp:55, atk:24, def:6,  skills:["B"]},
+  {id:5, name:"火焰法师", color:"red",    hp:55, atk:20, def:8,  skills:["A"]},
+  {id:6, name:"炽热斗士", color:"red",    hp:70, atk:18, def:12, skills:["C","B"]},
+  {id:7, name:"余烬游侠", color:"red",    hp:60, atk:17, def:10, skills:["B"]},
+  {id:8, name:"赤焰武僧", color:"red",    hp:65, atk:16, def:14, skills:["C"]},
+  {id:9, name:"翠林德鲁伊", color:"green", hp:55, atk:10, def:12, skills:["H"]},
+  {id:10,name:"荆棘守卫", color:"green",  hp:80, atk:12, def:20, skills:["S"]},
+  {id:11,name:"毒藤巫医", color:"green",  hp:60, atk:12, def:12, skills:["P","H"]},
+  {id:12,name:"自然祭司", color:"green",  hp:60, atk:11, def:14, skills:["H"]},
+  {id:13,name:"森林游侠", color:"green",  hp:60, atk:16, def:10, skills:["P"]},
+  {id:14,name:"生命树灵", color:"green",  hp:90, atk:10, def:18, skills:["H","S"]},
+  {id:15,name:"草原猎手", color:"green",  hp:55, atk:17, def:8,  skills:["P"]},
+  {id:16,name:"藤蔓术士", color:"green",  hp:60, atk:14, def:12, skills:["P","D"]},
+  {id:17,name:"黄金圣骑士", color:"yellow",hp:60, atk:12, def:16, skills:["S"]},
+  {id:18,name:"沙漠法师", color:"yellow", hp:60, atk:15, def:12, skills:["D"]},
+  {id:19,name:"琥珀守护者", color:"yellow",hp:85, atk:13, def:20, skills:["S"]},
+  {id:20,name:"麦田武僧", color:"yellow", hp:70, atk:14, def:14, skills:["B"]},
+  {id:21,name:"蜜蜡炼金师", color:"yellow",hp:60, atk:13, def:14, skills:["D","R"]},
+  {id:22,name:"阳光吟游诗人",color:"yellow",hp:55, atk:13, def:12, skills:["B","H"]},
+  {id:23,name:"沙暴战士", color:"yellow", hp:70, atk:16, def:14, skills:["C"]},
+  {id:24,name:"寒冰法师", color:"red",    hp:55, atk:18, def:10, skills:["D"]},
+  {id:25,name:"深海萨满", color:"green",  hp:60, atk:13, def:14, skills:["H","D"]},
+  {id:26,name:"霜狼战士", color:"yellow", hp:75, atk:17, def:14, skills:["C"]},
+  {id:27,name:"潮汐术士", color:"red",    hp:60, atk:16, def:12, skills:["A"]},
+  {id:28,name:"蓝晶弓手", color:"green",  hp:55, atk:19, def:8,  skills:["B"]},
+  {id:29,name:"极地游侠", color:"yellow", hp:60, atk:16, def:10, skills:["D"]},
+  {id:30,name:"漩涡召唤师", color:"yellow",hp:60, atk:15, def:12, skills:["A","D"]},
+];
+const SKILLS = {
+  H:{name:"治疗", icon:"💉", desc:"回复一名友军 30% 最大血量。目标：当前血量最低的友军。"},
+  S:{name:"护盾", icon:"🛡️", desc:"给一名友军加 50% 最大血量的护盾，抵消等额伤害。目标：血量最低的友军。"},
+  A:{name:"全体攻击", icon:"💥", desc:"对所有存活敌人各造成 80% 攻击力的伤害。"},
+  B:{name:"增益攻击", icon:"⚡", desc:"自身攻击力 +40%（本场战斗持久，可叠加至上限 2 倍）。"},
+  D:{name:"减益敌人", icon:"🔻", desc:"使攻击最高的敌人攻击力 -30%（本场战斗持久）。"},
+  R:{name:"复活", icon:"✨", desc:"复活一名阵亡友军，恢复 50% 最大血量。"},
+  P:{name:"毒", icon:"☠️", desc:"对前排敌人施毒，每回合末受到施法者 15% 攻击力的持续伤害。"},
+  C:{name:"反击", icon:"↩️", desc:"进入反击姿态，被攻击命中时反弹 60% 所受伤害。"},
+};
+const RECRUIT_COST=100, CONSOLATION=30;
+
+/* 颜色与骰子 */
+const COLORSETS={
+  red:   {grad1:"#ff7a7e",grad2:"#9e2d31",dark:"#6e1f23",base:"#e5484d"},
+  green: {grad1:"#67d28a",grad2:"#1c7a37",dark:"#124522",base:"#2ea44f"},
+  yellow:{grad1:"#ffd24a",grad2:"#b07d00",dark:"#7a5600",base:"#e0a800"},
+};
+const COLORNAME={red:"红",green:"绿",yellow:"黄"};
+const DICE_ORDER=["red","green","yellow"];
+// 6 面：攻击 / 空 / 空 / 技能 / 防御 / 空
+const DIE_FACES=[
+  {type:"ATK",   s:"⚔", cls:"atk",   name:"攻击"},
+  {type:"BLANK", s:"·", cls:"blank", name:"空"},
+  {type:"BLANK", s:"·", cls:"blank", name:"空"},
+  {type:"SKILL", s:"✦", cls:"sk",    name:"技能"},
+  {type:"DEFEND",s:"🛡", cls:"def",   name:"防御"},
+  {type:"BLANK", s:"·", cls:"blank", name:"空"},
+];
+const TIPS={
+  ATK:{name:"攻击",desc:"该色所有角色自动攻击前排敌人。伤害=攻击×(1−敌防御/100)，下限1。"},
+  BLANK:{name:"空",desc:"该色所有角色本回合不行动。"},
+  SKILL:{name:"技能",desc:"该色所有有技能的角色随机释放一个自己的技能。"},
+  DEFEND:{name:"防御",desc:"该色所有角色本回合进入防御，受到的伤害减半。"},
+};
+const SKIN=["#f2c9a5","#e0b08a","#c98e5e","#a0683f","#ffd6ba","#8a5a3b"];
+const HAIR=["#2b1b0f","#111111","#5b3a1a","#8a5a2a","#bfbfbf","#6b4f2a"];
+
+/* ============ 立绘 ============ */
+function hairBack(s,h,c){ if(s===2)return `<path d="M12,30 Q12,8 32,8 Q52,8 52,30 L52,42 Q32,30 12,42 Z" fill="${c.dark}"/>`;
+  if(s===3)return `<path d="M16,28 A16,16 0 0 1 48,28 L48,30 L16,30 Z" fill="#8a929e"/>`; return ""; }
+function hairFront(s,h,c){ switch(s){
+  case 0:return `<path d="M17,22 L21,7 L25,22 L29,5 L33,22 L37,7 L41,22 L46,12 L46,24 L17,24 Z" fill="${h}"/>`;
+  case 1:return `<path d="M18,26 Q32,7 46,26 L46,22 Q32,12 18,22 Z" fill="${h}"/><path d="M18,24 Q32,9 46,24 L46,20 Q32,14 18,20 Z" fill="${h}"/>`;
+  case 2:return `<path d="M16,26 Q32,14 48,26 L48,22 Q32,12 16,22 Z" fill="${c.dark}" opacity="0.8"/>`;
+  case 3:return `<rect x="17" y="13" width="30" height="14" rx="6" fill="#aeb6c2"/><rect x="24" y="20" width="16" height="3" rx="1.5" fill="#1a1a1a"/><rect x="17" y="13" width="30" height="4" rx="3" fill="#7fd1ff"/>`;
+  case 4:return `<circle cx="32" cy="9" r="5" fill="${h}"/><path d="M19,22 Q32,14 45,22 L45,20 Q32,12 19,20 Z" fill="${h}"/>`;
+  case 5:return `<rect x="17" y="19" width="30" height="5" rx="2.5" fill="${c.base}"/><rect x="28" y="18" width="8" height="7" fill="${c.dark}"/>`; } return ""; }
+function eyesSVG(s){ switch(s){ case 0:return `<circle cx="26" cy="28" r="2" fill="#222"/><circle cx="38" cy="28" r="2" fill="#222"/>`;
+  case 1:return `<rect x="24.5" y="25" width="3" height="5" rx="1.5" fill="#222"/><rect x="36.5" y="25" width="3" height="5" rx="1.5" fill="#222"/>`;
+  case 2:return `<path d="M22,25 L29,27 M35,27 L42,25" stroke="#222" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="26" cy="29" r="1.7" fill="#222"/><circle cx="38" cy="29" r="1.7" fill="#222"/>`; } return ""; }
+function mouthSVG(s){ switch(s){ case 0:return `<path d="M27,34 Q32,38 37,34" stroke="#222" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+  case 1:return `<path d="M28,35 L36,35" stroke="#222" stroke-width="1.5" stroke-linecap="round"/>`;
+  case 2:return `<path d="M27,36 L31,34 L35,36 L39,34" stroke="#222" stroke-width="1.5" fill="none" stroke-linecap="round"/>`; } return ""; }
+function avatarSVG(u){ const c=COLORSETS[u.color],id=u.id,skin=SKIN[id%SKIN.length],hair=HAIR[(id*3+1)%HAIR.length];
+  const hs=id%6,es=id%3,ms=(id+1)%3; const em=u.skills.length?SKILLS[u.skills[0]].icon:"⚔";
+  return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <rect width="64" height="64" rx="10" fill="${c.grad1}"/><rect y="42" width="64" height="22" fill="${c.dark}" opacity="0.55"/>
+    <path d="M7,64 C7,49 20,44 32,44 C44,44 57,49 57,64 Z" fill="${c.dark}"/>
+    <rect x="29" y="39" width="6" height="7" rx="3" fill="${skin}"/>
+    ${hairBack(hs,hair,c)}<circle cx="32" cy="28" r="14" fill="${skin}"/>
+    ${eyesSVG(es)}${mouthSVG(ms)}${hairFront(hs,hair,c)}
+    <circle cx="54" cy="54" r="8" fill="${c.dark}" stroke="#000" stroke-width="1"/>
+    <text x="54" y="58" text-anchor="middle" font-size="9" font-family="sans-serif">${em}</text></svg>`; }
+function monsterSVG(m){ const bg=m.isBoss?"#3a1530":"#2a1a1a",body=m.isBoss?"#8a2a5a":"#5a2530",eye=m.isBoss?"#ffd24a":"#ff5a4a";
+  return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <rect width="64" height="64" rx="10" fill="${bg}"/>
+    <path d="M15,22 L21,6 L27,22 Z" fill="#14090d"/><path d="M37,22 L43,6 L49,22 Z" fill="#14090d"/>
+    <ellipse cx="32" cy="38" rx="20" ry="20" fill="${body}"/><ellipse cx="32" cy="34" rx="18" ry="13" fill="${body}" opacity="0.7"/>
+    <circle cx="25" cy="34" r="5" fill="#fff"/><circle cx="39" cy="34" r="5" fill="#fff"/>
+    <circle cx="26" cy="35" r="2.5" fill="${eye}"/><circle cx="38" cy="35" r="2.5" fill="${eye}"/>
+    <path d="M21,46 Q32,55 43,46 L43,48 Q32,57 21,48 Z" fill="#14090d"/>
+    <path d="M24,47 L26,53 L28,47 Z" fill="#fff"/><path d="M36,47 L38,53 L40,47 Z" fill="#fff"/>
+    ${m.isBoss?`<path d="M18,12 L22,3 L26,12 L30,3 L34,12 L38,3 L42,12 L46,3 L46,14 L18,14 Z" fill="#ffd24a"/>`:''}</svg>`; }
+
+/* ============ 状态 ============ */
+const state={ level:1,gold:0,ownedIds:[1,9,17],slots:Array(15).fill(null),monsters:[],rolling:false,_deathCounter:0 };
+const byId=id=>CHARACTERS.find(c=>c.id===id);
+function buildPlayer(id){ const t=byId(id);
+  return {kind:"player",id,name:t.name,color:t.color,maxHp:t.hp,hp:t.hp,baseAtk:t.atk,def:t.def,
+    skills:t.skills.slice(),atkBuff:1,shield:0,counter:false,defending:false,alive:true}; }
+function buildMonster(level,isBoss){ let hp=40+level*15,atk=10+level*3,def=Math.min(40,5+level*2);
+  if(isBoss){hp*=2.5;atk*=1.3;} hp=Math.round(hp);atk=Math.round(atk);
+  return {kind:"monster",name:isBoss?`第${level}关 BOSS`:`第${level}关 小怪`,maxHp:hp,hp,baseAtk:atk,def,atkMult:1,poison:0,alive:true,isBoss}; }
+function curAtk(u){ return u.kind==="monster"?u.baseAtk*u.atkMult:u.baseAtk*u.atkBuff; }
+
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rand=n=>Math.floor(Math.random()*n);
+function dmgCalc(atk,def){ return Math.max(1,Math.round(atk*(1-def/100))); }
+function log(msg,cls){ const el=document.getElementById("log");const d=document.createElement("div");
+  if(cls)d.className=cls;d.textContent=msg;el.appendChild(d);el.scrollTop=el.scrollHeight; }
+function toast(msg){ const t=document.getElementById("toast");t.textContent=msg;t.classList.remove("hidden");
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.add("hidden"),1800); }
+function frontEnemy(){ return state.monsters.find(m=>m.alive); }
+function frontAlly(){ for(const i of allSlotScan()){const u=state.slots[i];if(u&&u.alive)return u;} return null; }
+function allSlotScan(){ const a=[];for(let r=0;r<3;r++)for(let c=0;c<5;c++)a.push(r*5+c);return a; }
+function slotOf(u){ return allSlotScan().find(i=>state.slots[i]===u); }
+
+/* ============ 渲染 ============ */
+function hpClass(u){ const r=u.hp/u.maxHp; return r>0.5?"":r>0.25?"mid":"low"; }
+function statusIcons(u){ let s=""; if(u.kind==="player"){ if(u.atkBuff>1)s+="⚡"; if(u.shield>0)s+="🛡️"; if(u.counter)s+="↩️"; }
+  else{ if(u.atkMult<1)s+="🔻"; if(u.poison>0)s+="☠️"; } return s; }
+function skillTags(u){ if(!u.skills.length)return '<span style="color:#566070">—</span>';
+  return u.skills.map(s=>`<span data-tip="${s}">${SKILLS[s].icon}</span>`).join(" "); }
+
+function renderTop(){ document.getElementById("t-level").textContent=state.level;
+  document.getElementById("t-gold").textContent=state.gold; }
+
+function renderMonsters(){ const el=document.getElementById("monster-list");el.innerHTML="";
+  state.monsters.forEach(m=>{ const d=document.createElement("div");d.className="card monster"+(m.alive?"":" dead");
+    d.innerHTML=`<div class="head"><div class="ava">${monsterSVG(m)}</div><span class="nm">${m.name}</span></div>
+      <div class="hpbar"><div class="hpfill ${hpClass(m)}" style="width:${Math.max(0,m.hp/m.maxHp*100)}%"></div></div>
+      <div class="hptxt">${Math.max(0,m.hp)}/${m.maxHp}</div>
+      <div class="stats"><span>ATK ${Math.round(curAtk(m))}</span><span>DEF ${m.def}</span></div>
+      <div class="status">${statusIcons(m)}</div>`; el.appendChild(d); }); }
+
+function renderGrid(){ const el=document.getElementById("player-grid");el.innerHTML="";
+  allSlotScan().forEach(i=>{ const u=state.slots[i];const d=document.createElement("div");d.className="slot";
+    if(u){ const c=document.createElement("div");
+      c.className="card player "+u.color+(u.alive?"":" dead")+(u.defending?" defending":"");
+      c.innerHTML=`<div class="head"><div class="ava">${avatarSVG(u)}</div><span class="nm">${u.name}</span></div>
+        <div class="hpbar"><div class="hpfill ${hpClass(u)}" style="width:${Math.max(0,u.hp/u.maxHp*100)}%"></div></div>
+        <div class="hptxt">${Math.max(0,u.hp)}/${u.maxHp}</div>
+        <div class="stats"><span>ATK ${Math.round(curAtk(u))}</span><span>DEF ${u.def}</span></div>
+        <div class="sk">${skillTags(u)}</div>
+        <div class="status">${statusIcons(u)}</div>`;
+      if(u.shield>0){const sb=document.createElement("div");sb.className="shield-bar";sb.style.width=Math.min(100,u.shield/u.maxHp*100)+"%";c.appendChild(sb);}
+      d.appendChild(c); } el.appendChild(d); }); }
+
+function renderDiceRow(){ const el=document.getElementById("dice-row");el.innerHTML="";
+  DICE_ORDER.forEach(color=>{ const die=document.createElement("div");die.className="die "+color;
+    die.dataset.color=color;
+    die.dataset.tip=`${COLORNAME[color]}骰：投出结果影响所有${COLORNAME[color]}色角色。六面＝攻击·空·空·技能·防御·空`;
+    die.innerHTML=`<span class="sym">🎲</span><span class="dname">${COLORNAME[color]}</span>`; el.appendChild(die); }); }
+
+function renderBattle(){ renderTop();renderMonsters();renderGrid();renderDiceRow();bindTooltips(); }
+function renderAll(){ renderMonsters();renderGrid();bindTooltips(); }
+
+/* ============ tooltip ============ */
+function tipText(code){ if(TIPS[code])return `<b>${TIPS[code].name}</b><br>${TIPS[code].desc}`;
+  let sid=code.includes("-")?code.split("-")[1]:code;
+  if(SKILLS[sid])return `<b>${SKILLS[sid].name}</b><br>${SKILLS[sid].desc}`;
+  return code; }
+function bindTooltips(){ const tip=document.getElementById("tooltip");
+  const show=(el,x,y)=>{ tip.innerHTML=tipText(el.dataset.tip);tip.classList.add("show");
+    let tx=x+14,ty=y+14;const r=tip.getBoundingClientRect();
+    if(tx+r.width>window.innerWidth-8)tx=x-r.width-14;
+    if(ty+r.height>window.innerHeight-8)ty=y-r.height-14;
+    tip.style.left=Math.max(8,tx)+"px";tip.style.top=Math.max(8,ty)+"px"; };
+  document.querySelectorAll("[data-tip]").forEach(el=>{ if(el._bound)return; el._bound=true;
+    el.addEventListener("mouseenter",e=>show(el,e.clientX,e.clientY));
+    el.addEventListener("mousemove",e=>show(el,e.clientX,e.clientY));
+    el.addEventListener("mouseleave",()=>tip.classList.remove("show")); }); }
+
+/* ============ 骰子翻滚 ============ */
+async function rollAnimation(results){
+  const dies=[...document.querySelectorAll('#dice-row .die')];
+  const tasks=dies.map(die=>{ const color=die.dataset.color;const symEl=die.querySelector('.sym');
+    const final=results[color];const fs=DIE_FACES[final];
+    return new Promise(res=>{ die.classList.add('shake');
+      const iv=setInterval(()=>{ const r=DIE_FACES[rand(6)];symEl.textContent=r.s;symEl.className='sym '+r.cls; },55);
+      setTimeout(()=>{ clearInterval(iv);symEl.textContent=fs.s;symEl.className='sym '+fs.cls;
+        die.classList.remove('shake');die.classList.add('pop');setTimeout(()=>die.classList.remove('pop'),300);res(); },880); }); });
+  await Promise.all(tasks); await sleep(120); }
+
+/* ============ 战斗 ============ */
+function dealDamage(target,rawDmg){ let dmg=rawDmg;
+  if(target.defending){ dmg=Math.max(1,Math.round(dmg*0.5)); }
+  if(target.shield>0){ const ab=Math.min(target.shield,dmg);target.shield-=ab;dmg-=ab;
+    if(ab>0)log(`${target.name} 护盾抵消 ${ab}`,"sk"); }
+  target.hp-=dmg;
+  if(target.hp<=0){ target.hp=0;target.alive=false;
+    if(target.kind==="player")target._deathOrder=state._deathCounter++;
+    log(`${target.name} 被击倒！`,"sys"); }
+  return dmg; }
+
+async function rollAndResolve(){
+  if(state.rolling)return;
+  if(!frontAlly()){toast("没有可出战角色");return;}
+  state.rolling=true;document.getElementById("roll-btn").disabled=true;
+
+  // 投 3 个颜色骰子
+  const results={}; DICE_ORDER.forEach(c=>results[c]=rand(6));
+  await rollAnimation(results);
+
+  // 按红→绿→黄结算
+  for(const color of DICE_ORDER){
+    const face=DIE_FACES[results[color]]; const action=face.type;
+    const chars=allSlotScan().map(i=>state.slots[i]).filter(u=>u&&u.alive&&u.color===color);
+    if(!chars.length)continue;
+    log(`【${COLORNAME[color]}骰 → ${face.name}】`,"sys");
+    if(action==="BLANK")continue;
+    for(const u of chars){ if(!u.alive)continue; highlightBy(u);
+      if(action==="ATK"){ const en=frontEnemy(); if(!en)continue;
+        const d=dmgCalc(curAtk(u),en.def); log(`${u.name} 攻击 ${en.name}，造成 ${d} 伤害`,"dmg");
+        dealDamage(en,d);renderMonsters();await sleep(300);
+        if(state.monsters.every(m=>!m.alive))break;
+      } else if(action==="SKILL"){ if(!u.skills.length){log(`${u.name} 无技能`,"sys");await sleep(180);continue;}
+        const sid=u.skills[rand(u.skills.length)]; await applySkill(u,sid);renderAll();await sleep(360);
+      } else if(action==="DEFEND"){ u.defending=true;log(`${u.name} 进入防御`,"sk");renderGrid();await sleep(180); }
+    } clearHighlight();
+    if(state.monsters.every(m=>!m.alive))break;
+  }
+  clearHighlight();
+
+  if(state.monsters.every(m=>!m.alive)){ await winBattle();return; }
+
+  await monsterTurn();
+  // 回合末：毒 + 清除防御
+  for(const m of state.monsters){ if(m.alive&&m.poison>0){ const pd=m.poison;m.hp-=pd;log(`${m.name} 受毒伤 ${pd}`,"dmg");
+    if(m.hp<=0){m.hp=0;m.alive=false;log(`${m.name} 毒发身亡`,"sys");} } }
+  allSlotScan().forEach(i=>{const u=state.slots[i];if(u)u.defending=false;});
+  renderMonsters();renderGrid();
+
+  if(!frontAlly()){ await loseBattle();return; }
+  state.rolling=false;document.getElementById("roll-btn").disabled=false;
+  log("—— 回合结束，可继续投骰 ——","sys");
+}
+
+async function monsterTurn(){ log("【敌人回合】","sys");await sleep(300);
+  for(const m of state.monsters){ if(!m.alive)continue;
+    const tgt=frontAlly();if(!tgt)break;
+    highlightBy(tgt);
+    const d=dmgCalc(curAtk(m),tgt.def);
+    log(`${m.name} 攻击 ${tgt.name}，造成 ${d} 伤害${tgt.defending?"（防御减半）":""}`,"dmg");
+    const dealt=dealDamage(tgt,d);
+    if(tgt.alive&&tgt.counter&&dealt>0){ const rd=Math.max(1,Math.round(dealt*0.6));m.hp-=rd;
+      log(`${tgt.name} 反击 ${m.name}，造成 ${rd} 伤害`,"dmg");
+      if(m.hp<=0){m.hp=0;m.alive=false;log(`${m.name} 被反击击倒`,"sys");} }
+    renderGrid();renderMonsters();await sleep(420);
+    if(!frontAlly())break; }
+  clearHighlight(); }
+
+async function applySkill(u,sid){ switch(sid){
+  case "H":{const t=lowestHpAlly();if(!t){log(`${u.name} 治疗无目标`,"sk");return;}const h=Math.round(t.maxHp*0.3);t.hp=Math.min(t.maxHp,t.hp+h);log(`${u.name} 治疗 ${t.name} +${h}`,"heal");break;}
+  case "S":{const t=lowestHpAlly();if(!t){log(`${u.name} 护盾无目标`,"sk");return;}const s=Math.round(t.maxHp*0.5);t.shield+=s;log(`${u.name} 给 ${t.name} 加 ${s} 护盾`,"sk");break;}
+  case "A":{const ens=state.monsters.filter(m=>m.alive);if(!ens.length){log(`${u.name} 无敌人`,"sk");return;}const a=Math.round(curAtk(u)*0.8);log(`${u.name} 全体攻击！`,"sk");for(const en of ens){const d=dmgCalc(a,en.def);dealDamage(en,d);log(`  → ${en.name} -${d}`,"dmg");}break;}
+  case "B":{u.atkBuff=Math.min(2,u.atkBuff*1.4);log(`${u.name} 攻击增益 → ATK ${Math.round(curAtk(u))}`,"sk");break;}
+  case "D":{const t=state.monsters.filter(m=>m.alive).sort((a,b)=>curAtk(b)-curAtk(a))[0];if(!t){log(`${u.name} 减益无目标`,"sk");return;}t.atkMult=Math.max(0.3,t.atkMult*0.7);log(`${u.name} 减益 ${t.name} → ATK ${Math.round(curAtk(t))}`,"sk");break;}
+  case "R":{const dead=allSlotScan().map(i=>state.slots[i]).filter(x=>x&&!x.alive);if(!dead.length){log(`${u.name} 无可复活队友`,"sk");return;}dead.sort((a,b)=>a._deathOrder-b._deathOrder);const t=dead[0];t.hp=Math.round(t.maxHp*0.5);t.alive=true;t.shield=0;log(`${u.name} 复活 ${t.name}！`,"heal");break;}
+  case "P":{const en=frontEnemy();if(!en){log(`${u.name} 毒无目标`,"sk");return;}en.poison=Math.max(en.poison,Math.round(curAtk(u)*0.15));log(`${u.name} 对 ${en.name} 施毒 (${en.poison}/回合)`,"sk");break;}
+  case "C":{u.counter=true;log(`${u.name} 进入反击姿态`,"sk");break;} } }
+function lowestHpAlly(){ let best=null;for(const i of allSlotScan()){const u=state.slots[i];if(u&&u.alive){if(!best||u.hp/u.maxHp<best.hp/best.maxHp)best=u;}}return best; }
+
+function highlightBy(u){ clearHighlight();const si=slotOf(u);if(si===undefined)return;
+  const c=document.querySelectorAll("#player-grid .slot")[si]?.firstElementChild;if(c)c.classList.add("acting"); }
+function clearHighlight(){ document.querySelectorAll(".acting").forEach(e=>e.classList.remove("acting")); }
+
+/* ============ 关卡 / 胜负 ============ */
+function startBattle(){ state._deathCounter=0;
+  allSlotScan().forEach(i=>{const u=state.slots[i];if(u){u.hp=u.maxHp;u.atkBuff=1;u.shield=0;u.counter=false;u.defending=false;u.alive=true;u._deathOrder=0;}});
+  const lv=state.level,isBoss=(lv%5===0);let count=lv===1?1:(lv>=3&&rand(2)===0?2:1);if(isBoss)count=1;
+  state.monsters=[];for(let k=0;k<count;k++)state.monsters.push(buildMonster(lv,isBoss));
+  document.getElementById("log").innerHTML="";
+  log(`—— 第 ${lv} 关开始，敌人 ${count} 只 ${isBoss?"(BOSS)":""} ——`,"sys");
+  switchView("battle");renderBattle();
+  document.getElementById("btn-shop").classList.add("hidden");
+  document.getElementById("roll-btn").disabled=false;state.rolling=false; }
+async function winBattle(){ const reward=50+state.level*10;state.gold+=reward;
+  log(`🎉 胜利！获得 ${reward} 金币`,"sys");renderTop();await sleep(700);toast(`胜利！+${reward}💰`);goShop(); }
+async function loseBattle(){ log("💀 全军覆没……回到第 1 关（保留角色与金币）","sys");await sleep(900);
+  state.level=1;startBattle();toast("全军覆没，回到第 1 关"); }
+function nextLevel(){ if(!state.slots.some(s=>s)){toast("至少上阵 1 个角色");return;}state.level++;startBattle(); }
+
+/* ============ 商店 / 管理 ============ */
+function goShop(){ switchView("shop");renderShop();document.getElementById("btn-shop").classList.add("hidden"); }
+function renderShop(){ renderTop();
+  document.getElementById("recruit-btn").disabled=state.gold<RECRUIT_COST;
+  const list=document.getElementById("roster-list");list.innerHTML="";
+  state.ownedIds.forEach(id=>{ const t=byId(id);const deployed=state.slots.some(s=>s&&s.id===id);
+    const d=document.createElement("div");d.className="item";
+    d.style.borderColor=deployed?`var(--${t.color})`:"var(--line)";
+    d.innerHTML=`<div class="ava">${avatarSVG(t)}</div>
+      <span class="nm">${t.name}${deployed?" <span style='color:#7fe0a0'>(上阵)</span>":""}</span>
+      <span class="st">${t.skills.map(s=>SKILLS[s].icon).join("")||"—"}</span>`;
+    d.onclick=()=>toggleDeploy(id);list.appendChild(d); });
+  const g=document.getElementById("deploy-grid");g.innerHTML="";
+  allSlotScan().forEach(i=>{ const u=state.slots[i];const slot=document.createElement("div");slot.className="slot";
+    if(u){ const c=document.createElement("div");c.className="card player "+u.color;c.style.cursor="pointer";c.onclick=()=>undeploy(i);
+      c.innerHTML=`<div class="head"><div class="ava">${avatarSVG(u)}</div><span class="nm">${u.name}</span></div>
+        <div class="hpbar"><div class="hpfill" style="width:100%"></div></div>
+        <div class="hptxt">${u.maxHp} HP</div>
+        <div class="stats"><span>ATK ${u.baseAtk}</span><span>DEF ${u.def}</span></div>
+        <div class="sk">${skillTags(u)}</div>`;
+      slot.appendChild(c); } g.appendChild(slot); });
+  bindTooltips(); }
+function toggleDeploy(id){ const idx=state.slots.findIndex(s=>s&&s.id===id);if(idx>=0){undeploy(idx);return;}
+  if(state.slots.filter(Boolean).length>=15){toast("阵容已满 15 人");return;}
+  const free=allSlotScan().find(i=>!state.slots[i]);state.slots[free]=buildPlayer(id);renderShop(); }
+function undeploy(i){ state.slots[i]=null;renderShop(); }
+function recruit(){ if(state.gold<RECRUIT_COST){toast("金币不足");return;}
+  const unowned=CHARACTERS.filter(c=>!state.ownedIds.includes(c.id)).map(c=>c.id);
+  if(!unowned.length){state.gold+=CONSOLATION;toast(`角色已全收集，+${CONSOLATION}💰`);renderShop();return;}
+  state.gold-=RECRUIT_COST;const got=unowned[rand(unowned.length)];state.ownedIds.push(got);
+  toast(`招募到 ${byId(got).name}！`);renderShop(); }
+
+function switchView(name){ document.getElementById("view-battle").classList.toggle("hidden",name!=="battle");
+  document.getElementById("view-shop").classList.toggle("hidden",name!=="shop"); }
+
+function init(){ [1,9,17].forEach((id,k)=>state.slots[k]=buildPlayer(id)); startBattle(); }
+init();
+</script>
+</body>
+</html>
